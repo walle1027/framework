@@ -22,11 +22,13 @@
 		<dependency>
 			<groupId>com.alibaba</groupId>
 			<artifactId>druid</artifactId>
+			<version>${druid.version}</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>com.mchange</groupId>
 			<artifactId>c3p0</artifactId>
+			<version>${c3p0.version}</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
@@ -41,6 +43,7 @@
 		<dependency>
 			<groupId>p6spy</groupId>
 			<artifactId>p6spy</artifactId>
+			<version>${p6spy.version}</version>
 		</dependency>
 		<!--testScope-->
 		<!--</dependency>
@@ -63,6 +66,11 @@
 			<scope>provided</scope>
 		</dependency>
 
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-test</artifactId>
