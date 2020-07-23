@@ -1,0 +1,67 @@
+<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+		   xmlns="http://www.shyueya.com/mappings"
+		   targetNamespace="http://www.shyueya.com/mappings">
+	<xs:element name="mappings">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="mapping" maxOccurs="unbounded">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="srcClass" type="xs:string" maxOccurs="1"/>
+							<xs:element name="destClass" type="xs:string" maxOccurs="1"/>
+							<xs:element name="excludes">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="exclude" maxOccurs="unbounded">
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="srcProperty" type="xs:string" maxOccurs="1">
+														<xs:complexType>
+															<xs:attribute name="srcType" type="xs:string"/>
+														</xs:complexType>
+													</xs:element>
+													<xs:element name="destProperty" type="xs:string" maxOccurs="1">
+														<xs:complexType>
+															<xs:attribute name="destType" type="xs:string"/>
+														</xs:complexType>
+													</xs:element>
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="includs">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="include" maxOccurs="unbounded">
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="srcProperty" type="xs:string" maxOccurs="1">
+														<xs:complexType>
+															<xs:attribute name="srcType" type="xs:string"/>
+														</xs:complexType>
+													</xs:element>
+													<xs:element name="destProperty" type="xs:string" maxOccurs="1">
+														<xs:complexType>
+															<xs:attribute name="destType" type="xs:string"/>
+														</xs:complexType>
+													</xs:element>
+												</xs:sequence>
+												<xs:attribute name="convertor" type="xs:string"/>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+						<xs:attribute name="id" type="xs:string"/>
+						<xs:attribute name="srcClass" type="xs:string"/>
+						<xs:attribute name="destClass" type="xs:string"/>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	   xmlns:context="http://www.springframework.org/schema/context" xmlns:aop="http://www.springframework.org/schema/aop" xmlns:tx="http://www.springframework.org/schema/tx"
+	   xmlns="http://www.springframework.org/schema/beans"
+	   xsi:schemaLocation="http://www.springframework.org/schema/beans
+	http://www.springframework.org/schema/beans/spring-beans-3.0.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+	<!-- 使用annotation 自动注册bean,并保证@Required,@Autowired的属性被注入 -->
+	<context:component-scan base-package="org.loed.framework">
+	</context:component-scan>
+	<aop:aspectj-autoproxy proxy-target-class="false"/>
+
+	<bean id="propertyConfigurer"
+		  class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations">
+			<list>
+				<value>classpath:env.properties</value>
+			</list>
+		</property>
+	</bean>
+
+	<!-- c3p0数据源配置 -->
+	<bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+		<!--数据库连接驱动类-->
+		<property name="driverClassName" value="${jdbc.driverClassName}"/>
+		<!--数据库连接URL-->
+		<property name="url" value="${jdbc.url}"/>
+		<!--数据库用户名-->
+		<property name="username" value="${jdbc.username}"/>
+		<!--数据库密码-->
+		<property name="password" value="${jdbc.password}"/>
+		<!--初始化时获取三个连接，取值应在minPoolSize与maxPoolSize之间。Default: 3 -->
+		<property name="initialSize" value="${c3p0.initialPoolSize}"/>
+		<!--连接池中保留的最大连接数。Default: 15 -->
+		<property name="maxActive" value="${c3p0.maxPoolSize}"/>
+	</bean>
+
+	<!--hibernate5 事务管理器-->
+	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource"/>
+	</bean>
+
+	<bean id="configurablePluginProvider" class="org.loed.framework.common.plugin.provider.ConfigurablePluginProvider">
+		<property name="plugins">
+			<list>
+				<value>classpath*:/plugin/**/*-plugin.xml</value>
+			</list>
+		</property>
+	</bean>
+
+	<!-- 配置事务切面Bean,指定事务管理器 -->
+	<tx:advice id="txAdvice" transaction-manager="transactionManager">
+		<!-- 用于配置详细的事务语义 -->
+		<tx:attributes>
+			<!-- 所有以'get'开头的方法是read-only的 -->
+			<tx:method name="get*" read-only="true" isolation="READ_COMMITTED" propagation="REQUIRED"/>
+			<!-- 所有以'select'开头的方法是read-only的 -->
+			<tx:method name="select*" read-only="true" isolation="READ_COMMITTED" propagation="REQUIRED"/>
+			<!-- 所有以'find'开头的方法是read-only的 -->
+			<tx:method name="find*" read-only="true" isolation="READ_COMMITTED" propagation="REQUIRED"/>
+			<!-- 所有以'list'开头的方法是read-only的 -->
+			<tx:method name="list*" read-only="true" isolation="READ_COMMITTED" propagation="REQUIRED"/>
+			<!-- 其他方法使用默认的事务设置 -->
+			<tx:method name="*" rollback-for="java.lang.Exception" isolation="READ_COMMITTED" propagation="REQUIRED"/>
+		</tx:attributes>
+	</tx:advice>
+
+
+	<bean id="pluginProxy" class="org.loed.framework.common.plugin.PluginProxy">
+		<property name="provider" ref="configurablePluginProvider"/>
+	</bean>
+
+	<aop:config>
+		<aop:pointcut id="plugin" expression="@target(org.loed.framework.common.plugin.Plugable) || @annotation(org.loed.framework.common.plugin.Plugable)"/>
+		<aop:pointcut id="servicePointcut" expression="execution(* org.loed.framework.common.plugin.TestObject.*(..))"/>
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="servicePointcut" order="2"/>
+		<aop:aspect id="exceptionAspect" ref="pluginProxy" order="0">
+			<aop:around pointcut-ref="plugin" method="execute"/>
+		</aop:aspect>
+	</aop:config>
+
+	<!--除了以上的事务配置外，还支持annotation形式的事务配置-->
+	<tx:annotation-driven transaction-manager="transactionManager"/>
+</beans>

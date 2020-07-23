@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<plugins>
+	<!--内部实现的插件配置(全)-->
+	<internalPlugin>
+		<tenantCode>test</tenantCode>
+		<!--string型(必选) 要代理的方法信息 以类名.方法名(参数1类型,参数2类型...) 方式定义
+			例如：
+			org.loed.framework.plugin.TestObject.publicSayHello(java.lang.String)
+			org.loed.framework.plugin.TestObject.publicSayHello(java.lang.String,java.lang.String)
+			org.loed.framework.plugin.TestObject.publicSayHello()
+			注意：简单类型的参数，需要按照简单类型来写，比如：
+			1 org.loed.framework.plugin.TestObject.simpleType(int)
+			2 相同的signature配置，后面的配置会覆盖前面的配置
+		-->
+		<signature>org.loed.framework.common.plugin.TestObject.publicSayHello(java.lang.String)</signature>
+		<!--boolean(可选) 该插件实现类是否是springbean 默认是true 可以不设定此值-->
+		<isSpringBean>true</isSpringBean>
+		<!--string(可选) 如果插件类是springbean,它的beanName-->
+		<beanName>testObject2</beanName>
+		<!--string(可选) 如果插件类不是springbean 它的类全名,
+			运行时会反射创建该对象，再执行方法
+			注意：该类必须提供一个无参数的构造方法，否则创建对象时会报错 isSpringBean为true时无需配置此属性-->
+		<beanClass></beanClass>
+		<!--string(可选) 插件对象的方法 默认和原来执行的方法名称，参数相同
+			如果配置了此属性，要确保此方法的参数和被代理的方法参数类型，个数，顺序一致
+		-->
+		<method></method>
+	</internalPlugin>
+
+	<!--内部实现的插件配置(简)-->
+	<internalPlugin>
+		<!--string 要代理的方法信息 以类名.方法名(参数1类型,参数2类型...) 方式定义
+			例如：
+			org.loed.framework.plugin.TestObject.publicSayHello(java.lang.String)
+			org.loed.framework.plugin.TestObject.publicSayHello(java.lang.String,java.lang.String)
+			org.loed.framework.plugin.TestObject.publicSayHello()
+			注意：简单类型的参数，需要按照简单类型来写，比如：
+			org.loed.framework.plugin.TestObject.simpleType(int)
+		-->
+		<signature>org.loed.framework.common.plugin.TestObject.publicSayHello(java.lang.String)</signature>
+		<!--string 如果插件类是springbean,它的beanName-->
+		<beanName>testObject2</beanName>
+	</internalPlugin>
+	<internalPlugin>
+		<signature>org.loed.framework.common.plugin.TestObject.noParam()</signature>
+		<beanName>testObject2</beanName>
+	</internalPlugin>
+	<internalPlugin>
+		<signature>org.loed.framework.common.plugin.TestObject.voidSayHello(java.lang.String)</signature>
+		<beanName>testObject2</beanName>
+	</internalPlugin>
+	<internalPlugin>
+		<signature>org.loed.framework.common.plugin.TestObject.simpleType(int)</signature>
+		<beanName>testObject2</beanName>
+	</internalPlugin>
+
+	<internalPlugin>
+		<tenantCode>test</tenantCode>
+		<signature>org.loed.framework.common.plugin.TestObjectWithTx.publicSayHello(java.lang.String)</signature>
+		<beanName>testObject2Tx</beanName>
+	</internalPlugin>
+</plugins>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mappings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		  xmlns="http://www.yangtao.org/mapping"
+		  xsi:noNamespaceSchemaLocation="/mapping.xsd">
+	<!--属性映射配置文件 direction=one-way ,two-way-->
+	<mapping srcClass="org.loed.framework.common.mapping.ClassA">
+		<excludes>
+			<exclude>
+				<srcProperty>id</srcProperty>
+			</exclude>
+			<exclude>
+				<srcProperty>version</srcProperty>
+			</exclude>
+			<exclude>
+				<srcProperty>name</srcProperty>
+			</exclude>
+		</excludes>
+	</mapping>
+	<mapping id="excludeSimple" srcClass="org.loed.framework.common.mapping.ClassA">
+		<excludes>
+			<exclude>
+				<srcProperty>id</srcProperty>
+			</exclude>
+			<exclude>
+				<srcProperty>version</srcProperty>
+			</exclude>
+			<s></s>
+		</excludes>
+	</mapping>
+</mappings>

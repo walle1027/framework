@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mappings>
+	<!--属性映射配置文件 direction=one-way ,two-way-->
+	<mapping id="caseA" srcClass="org.loed.framework.common.mapping.ClassA">
+		<destClass>org.loed.framework.common.mapping.ClassB</destClass>
+		<!--<includes>-->
+		<!--<include>-->
+		<!--<srcProperty>id</srcProperty>-->
+		<!--<destProperty>id</destProperty>-->
+		<!--</include>-->
+		<!--</includes>-->
+		<excludes>
+			<exclude>
+				<srcProperty>id</srcProperty>
+			</exclude>
+			<exclude>
+				<srcProperty>version</srcProperty>
+			</exclude>
+			<exclude>
+				<srcProperty>name</srcProperty>
+			</exclude>
+		</excludes>
+	</mapping>
+	<mapping id="caseB" srcClass="org.loed.framework.common.mapping.ClassA">
+		<destClass>org.loed.framework.common.mapping.ClassB</destClass>
+		<includes>
+			<include>
+				<srcProperty>id</srcProperty>
+				<destProperty>id</destProperty>
+			</include>
+			<include>
+				<srcProperty>version</srcProperty>
+				<destProperty>version</destProperty>
+			</include>
+			<include>
+				<srcProperty>name</srcProperty>
+				<destProperty>name</destProperty>
+			</include>
+			<include>
+				<srcProperty>code</srcProperty>
+				<destProperty>type</destProperty>
+			</include>
+		</includes>
+		<!--<excludes>-->
+		<!--<exclude>-->
+		<!--<srcProperty>id</srcProperty>-->
+		<!--</exclude>-->
+		<!--<exclude>-->
+		<!--<srcProperty>version</srcProperty>-->
+		<!--</exclude>-->
+		<!--<exclude>-->
+		<!--<srcProperty>name</srcProperty>-->
+		<!--</exclude>-->
+		<!--</excludes>-->
+	</mapping>
+</mappings>
