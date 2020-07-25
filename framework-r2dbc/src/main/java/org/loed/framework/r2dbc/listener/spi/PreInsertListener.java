@@ -9,5 +9,5 @@ import reactor.core.publisher.Mono;
  * @since 2018/1/2 上午10:26
  */
 public interface PreInsertListener extends OrderedListener {
-	Mono<Boolean> preInsert(Object object);
+	Mono<Void> preInsert(Object object);
 }
