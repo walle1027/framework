@@ -10,5 +10,5 @@ import reactor.core.publisher.Mono;
  * @since 2018/1/2 上午10:26
  */
 public interface PostInsertListener extends OrderedListener {
-	Mono<Void> postInsert(ServerWebExchange exchange, Object object);
+	<T> Mono<T> postInsert(T object);
 }

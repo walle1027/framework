@@ -20,4 +20,6 @@ public interface R2dbcSqlBuilder {
 	Tuple2<String, List<Tuple2<String, Class<?>>>> insert(Table table);
 
 	Tuple2<String, List<Tuple2<String, Class<?>>>> update(Table table);
+
+	Tuple2<String, List<Tuple2<String, Class<?>>>> batchInsert(Table table, int batchSize);
 }

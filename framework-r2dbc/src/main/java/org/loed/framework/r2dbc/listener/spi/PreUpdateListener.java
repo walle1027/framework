@@ -2,6 +2,7 @@ package org.loed.framework.r2dbc.listener.spi;
 
 import org.loed.framework.r2dbc.listener.OrderedListener;
 import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
 
 /**
  * @author thomason
@@ -9,5 +10,5 @@ import org.springframework.web.server.ServerWebExchange;
  * @since 2018/1/2 上午10:26
  */
 public interface PreUpdateListener extends OrderedListener {
-	boolean preUpdate(ServerWebExchange exchange, Object object);
+	Mono<Void> preUpdate(Object object);
 }

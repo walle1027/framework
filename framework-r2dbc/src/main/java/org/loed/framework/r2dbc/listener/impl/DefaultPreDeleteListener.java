@@ -1,7 +1,7 @@
 package org.loed.framework.r2dbc.listener.impl;
 
 import org.loed.framework.r2dbc.listener.spi.PreDeleteListener;
-import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
 
 /**
  * @author thomason
@@ -11,17 +11,7 @@ import org.springframework.web.server.ServerWebExchange;
 public class DefaultPreDeleteListener implements PreDeleteListener {
 
 	@Override
-	public boolean preDelete(ServerWebExchange exchange, Object object) {
-		return true;
-	}
-
-	private Integer order;
-
-	public void setOrder(Integer order) {
-		this.order = order;
-	}
-	@Override
-	public int getOrder() {
-		return order == null ? -1 : order;
+	public Mono<Void> preDelete(Object object) {
+		return Mono.just(object).then();
 	}
 }

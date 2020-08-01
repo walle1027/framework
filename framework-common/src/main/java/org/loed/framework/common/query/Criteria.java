@@ -369,6 +369,5 @@ public class Criteria<T> implements Serializable {
 			criteria.criterion(condition);
 			return criteria;
 		}
-
 	}
 }

@@ -1,7 +1,11 @@
 package org.loed.framework.r2dbc;
 
 import io.r2dbc.spi.ConnectionFactory;
+import org.loed.framework.r2dbc.dao.R2dbcSqlBuilder;
+import org.loed.framework.r2dbc.dao.dialect.MysqlR2DbcSqlBuilder;
+import org.loed.framework.r2dbc.listener.impl.DefaultPostInsertListener;
 import org.loed.framework.r2dbc.listener.impl.DefaultPreInsertListener;
+import org.loed.framework.r2dbc.listener.spi.PostInsertListener;
 import org.loed.framework.r2dbc.listener.spi.PreInsertListener;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -17,7 +21,7 @@ import org.springframework.transaction.ReactiveTransactionManager;
  */
 @SpringBootApplication
 @Import(R2dbcDaoRegister.class)
-public class R2dbcApplication  {
+public class R2dbcApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(R2dbcApplication.class, args);
 	}
@@ -38,12 +42,22 @@ public class R2dbcApplication  {
 //	}
 
 	@Bean
-	PreInsertListener preInsertListener(){
+	PreInsertListener defaultPreInsertListener() {
 		return new DefaultPreInsertListener();
+	}
+
+	@Bean
+	PostInsertListener defaultPostInsertListener() {
+		return new DefaultPostInsertListener();
 	}
 
 	@Bean
 	ReactiveTransactionManager transactionManager(ConnectionFactory connectionFactory) {
 		return new R2dbcTransactionManager(connectionFactory);
+	}
+
+	@Bean
+	R2dbcSqlBuilder mysql() {
+		return new MysqlR2DbcSqlBuilder();
 	}
 }

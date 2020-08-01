@@ -7,7 +7,6 @@ import org.junit.runner.RunWith;
 import org.loed.framework.common.context.ReactiveSystemContext;
 import org.loed.framework.common.context.SystemContext;
 import org.loed.framework.common.query.Criteria;
-import org.loed.framework.common.util.SerializeUtils;
 import org.loed.framework.r2dbc.dao.PersonDao;
 import org.loed.framework.r2dbc.po.CommonPO;
 import org.loed.framework.r2dbc.po.Person;
@@ -31,18 +30,18 @@ public class PersonDaoTest {
 	@Autowired
 	private PersonDao personDao;
 
-	private Map<String,String> contextMap;
+	private Map<String, String> contextMap;
 
 	@Before
 	public void setUp() throws Exception {
 		contextMap = new HashMap<>();
-		contextMap.put(SystemContext.CONTEXT_ACCOUNT_ID,"testAccountId");
-		contextMap.put(SystemContext.CONTEXT_TENANT_CODE,"testTenantCode");
+		contextMap.put(SystemContext.CONTEXT_ACCOUNT_ID, "testAccountId");
+		contextMap.put(SystemContext.CONTEXT_TENANT_CODE, "testTenantCode");
 	}
 
 	@Test
 	public void testInsert() {
-		Person person =  new Person();
+		Person person = new Person();
 		String id = UUID.randomUUID().toString().replace("-", "");
 		person.setId(id);
 		person.setName("test");
@@ -50,8 +49,27 @@ public class PersonDaoTest {
 				.subscriberContext(context -> {
 					return context.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, contextMap);
 				}).map(CommonPO::getId);
-		StepVerifier.create(idMono).expectNext(id)
-				.verifyComplete();
+		StepVerifier.create(idMono.log()).expectNext(id).verifyComplete();
+	}
+
+	@Test
+	public void testBatchInsert() {
+		List<Person> personList = new ArrayList<>();
+		List<String> idList = new ArrayList<>();
+		for (int i = 0; i < 2; i++) {
+			Person person = new Person();
+			String id = UUID.randomUUID().toString().replace("-", "");
+			person.setId(id);
+			person.setName("test");
+			personList.add(person);
+			idList.add(id);
+		}
+
+		Flux<String> map = personDao.batchInsert(personList)
+				.subscriberContext(context -> {
+					return context.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, contextMap);
+				}).map(CommonPO::getId).doOnNext(System.out::println);
+		StepVerifier.create(map.log()).expectNextSequence(idList).verifyComplete();
 	}
 
 	@Test
