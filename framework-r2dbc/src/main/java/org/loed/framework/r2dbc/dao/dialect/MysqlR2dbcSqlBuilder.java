@@ -19,11 +19,13 @@ import org.loed.framework.r2dbc.dao.R2dbcParam;
 import org.loed.framework.r2dbc.dao.R2dbcQuery;
 import org.loed.framework.r2dbc.dao.R2dbcSqlBuilder;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.lang.NonNull;
 
 import javax.persistence.criteria.JoinType;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -47,7 +49,7 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 		StringBuilder builder = new StringBuilder();
 		Map<String, R2dbcParam> params = new HashMap<>();
 		builder.append("insert into ").append(wrap(table.getSqlName())).append("(");
-		List<Column> columns = table.getColumns().stream().filter(Column::isInsertable).collect(Collectors.toList());
+		List<Column> columns = table.getColumns().stream().filter(INSERTABLE_FILTER).collect(Collectors.toList());
 		columns.forEach(column -> {
 			builder.append(wrap(column.getSqlName()));
 			builder.append(",");
@@ -70,8 +72,8 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 		R2dbcQuery query = new R2dbcQuery();
 		StringBuilder builder = new StringBuilder();
 		Map<String, R2dbcParam> params = new HashMap<>();
-		builder.append("insert into ").append(table.getSqlName()).append("(");
-		List<Column> columns = table.getColumns().stream().filter(Column::isInsertable).collect(Collectors.toList());
+		builder.append("insert into ").append(wrap(table.getSqlName())).append("(");
+		List<Column> columns = table.getColumns().stream().filter(INSERTABLE_FILTER).collect(Collectors.toList());
 		columns.forEach(column -> {
 			builder.append(wrap(column.getSqlName()));
 			builder.append(",");
@@ -95,39 +97,27 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 	}
 
 	@Override
-	public R2dbcQuery updateByCondition(Object entity, Table table, List<Condition> conditions, Collection<String> includes, Collection<String> excludes) {
+	public <T> R2dbcQuery updateByCriteria(@NonNull Object entity, @NonNull Table table, @NonNull Criteria<T> criteria, @NonNull Predicate<Column> columnFilter) {
 		R2dbcQuery query = new R2dbcQuery();
 		AtomicInteger counter = new AtomicInteger(1);
 		Map<String, R2dbcParam> params = new HashMap<>();
 		QueryBuilder builder = new QueryBuilder();
 		builder.update(wrap(table.getSqlName()));
-		table.getColumns().stream().filter(column -> {
-			return column.isUpdatable() || column.isVersioned();
-		}).filter(column -> {
-			if (includes == null) {
-				return true;
-			}
-			return includes.contains(column.getJavaName());
-		}).filter(column -> {
-			if (excludes == null) {
-				return true;
-			}
-			return !excludes.contains(column.getJavaName());
-		}).forEach(column -> {
+		table.getColumns().parallelStream().filter(UPDATABLE_FILTER.and(columnFilter).or(VERSION_FILTER)).forEach(column -> {
 			StringBuilder setBuilder = new StringBuilder();
 			if (column.isVersioned()) {
 				setBuilder.append(wrap(column.getSqlName())).append(BLANK).append("=").append(BLANK).append(wrap(column.getSqlName())).append(" + 1");
 			} else {
 				setBuilder.append(wrap(column.getSqlName())).append(BLANK).append("=").append(BLANK).append(":").append(column.getJavaName());
+				Object fieldValue = ReflectionUtils.getFieldValue(entity, column.getJavaName());
+				params.put(column.getJavaName(), new R2dbcParam(column.getJavaType(), fieldValue));
 			}
 			builder.set(setBuilder.toString());
-			Object fieldValue = ReflectionUtils.getFieldValue(entity, column.getJavaName());
-			params.put(column.getJavaName(), new R2dbcParam(column.getJavaType(), fieldValue));
 		});
 		if (CollectionUtils.isEmpty(builder.getUpdateList())) {
 			throw new RuntimeException("empty columns to update");
 		}
-
+		List<Condition> conditions = criteria.getConditions();
 		if (CollectionUtils.isEmpty(conditions)) {
 			log.warn("conditions is empty, the statement:" + builder.toString() + " will update all rows");
 		} else {
@@ -141,7 +131,7 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 	}
 
 	@Override
-	public <T> R2dbcQuery deleteByCriteria(Table table, Criteria<T> criteria) {
+	public <T> R2dbcQuery deleteByCriteria(@NonNull Table table, @NonNull Criteria<T> criteria) {
 		R2dbcQuery query = new R2dbcQuery();
 		QueryBuilder builder = new QueryBuilder();
 		AtomicInteger counter = new AtomicInteger(1);
@@ -168,7 +158,7 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 	}
 
 	@Override
-	public <T> R2dbcQuery findByCriteria(Table table, Criteria<T> criteria) {
+	public <T> R2dbcQuery findByCriteria(@NonNull Table table, @NonNull Criteria<T> criteria) {
 		R2dbcQuery query = new R2dbcQuery();
 		QueryBuilder builder = new QueryBuilder();
 		AtomicInteger counter = new AtomicInteger(1);
@@ -178,7 +168,7 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 		String rootAlias = createTableAlias(tableName, counter);
 		tableAliasMap.put(ROOT_TABLE_ALIAS_KEY, rootAlias);
 		table.getColumns().forEach(column -> {
-			builder.select(wrap(rootAlias + "." + column.getSqlName()) + " as " + "\"" + column.getJavaName() + "\"");
+			builder.select(rootAlias + "." + wrap(column.getSqlName()) + " as " + "\"" + column.getJavaName() + "\"");
 		});
 		builder.from(wrap(tableName) + " as " + rootAlias);
 		List<Condition> conditions = criteria.getConditions();
@@ -197,7 +187,7 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 	}
 
 	@Override
-	public <T> R2dbcQuery findPageByCriteria(Table table, Criteria<T> criteria, PageRequest pageRequest) {
+	public <T> R2dbcQuery findPageByCriteria(@NonNull Table table, @NonNull Criteria<T> criteria, @NonNull PageRequest pageRequest) {
 		R2dbcQuery query = findByCriteria(table, criteria);
 		String statement = query.getStatement();
 		Map<String, R2dbcParam> params = query.getParams();
@@ -219,8 +209,29 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 	}
 
 	@Override
-	public <T> R2dbcQuery countByCriteria(Criteria<T> criteria) {
-		return null;
+	public <T> R2dbcQuery countByCriteria(@NonNull Table table, @NonNull Criteria<T> criteria) {
+		R2dbcQuery query = new R2dbcQuery();
+		QueryBuilder builder = new QueryBuilder();
+		AtomicInteger counter = new AtomicInteger(1);
+		Map<String, R2dbcParam> paramMap = new HashMap<>();
+		String tableName = table.getSqlName();
+		Map<String, String> tableAliasMap = new ConcurrentHashMap<>();
+		String rootAlias = createTableAlias(tableName, counter);
+		tableAliasMap.put(ROOT_TABLE_ALIAS_KEY, rootAlias);
+		builder.select("count(1)").from(wrap(tableName) + " as " + rootAlias);
+		List<Condition> conditions = criteria.getConditions();
+		if (CollectionUtils.isNotEmpty(conditions)) {
+			for (Condition condition : conditions) {
+				buildCondition(paramMap, tableAliasMap, counter, builder, condition, table);
+			}
+		}
+		buildOrder(tableAliasMap, counter, builder, table, criteria.getSortProperties());
+		if (log.isDebugEnabled()) {
+			log.debug(builder.toString());
+		}
+		query.setStatement(builder.toString());
+		query.setParams(paramMap);
+		return query;
 	}
 
 	@Override
@@ -253,12 +264,12 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 		String joint = (condition.getJoint() == null ? "" : condition.getJoint().name()) + BLANK;
 		Object value = condition.getValue();
 //		Operator operator = condition.getOperator();
-		String paramName = StringUtils.replace(propertyName, ".", "_") + "Value";
-		paramName = genUniqueParamName(paramName, parameterMap);
+		String rawParamName = StringUtils.replace(propertyName, ".", "_") + "Value";
+		String uniqueParamName = genUniqueParamName(rawParamName, parameterMap);
 		String alias = tableAliasMap.get(ROOT_TABLE_ALIAS_KEY);
 		Column column = resolvePropertyCascade(tableAliasMap, table, alias, counter, sql, condition.getJoinType(), null, propertyName);
 		if (column == null) {
-			return;
+			throw new RuntimeException("can't find  column from condition:" + condition);
 		}
 		String columnName = column.getSqlName();
 		String jdbcType = column.getSqlTypeName();
@@ -271,166 +282,196 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 		if (alias == null) {
 			columnNameAlias = wrap(columnName);
 		} else {
-			columnNameAlias = wrap(alias + "." + columnName);
+			columnNameAlias = alias + "." + wrap(columnName);
 		}
 
 		switch (condition.getOperator()) {
 			case beginWith:
 			case notBeginWith:
-				sql.where(joint + columnNameAlias + BLANK + condition.getOperator().value() + BLANK + ":" + paramName);
-				parameterMap.put(paramName, new R2dbcParam(columnType, value + "%"));
+				sql.where(joint + columnNameAlias + BLANK + condition.getOperator().value() + BLANK + ":" + uniqueParamName);
+				parameterMap.put(uniqueParamName, new R2dbcParam(columnType, value + "%"));
 				break;
 			case endWith:
 			case notEndWith:
-				sql.where(joint + columnNameAlias + BLANK + condition.getOperator().value() + BLANK + ":" + paramName);
-				parameterMap.put(paramName, new R2dbcParam(columnType, "%" + value));
+				sql.where(joint + columnNameAlias + BLANK + condition.getOperator().value() + BLANK + ":" + uniqueParamName);
+				parameterMap.put(uniqueParamName, new R2dbcParam(columnType, "%" + value));
 				break;
 			case contains:
 			case notContains:
-				sql.where(joint + columnNameAlias + BLANK + condition.getOperator().value() + BLANK + ":" + paramName);
-				parameterMap.put(paramName, new R2dbcParam(columnType, "%" + value + "%"));
+				sql.where(joint + columnNameAlias + BLANK + condition.getOperator().value() + BLANK + ":" + uniqueParamName);
+				parameterMap.put(uniqueParamName, new R2dbcParam(columnType, "%" + value + "%"));
 				break;
 			case between:
 			case notBetween:
-				String betweenKey1 = paramName + "Value1";
-				String betweenKey2 = paramName + "Value2";
-				sql.where(joint + columnNameAlias + BLANK + condition.getOperator().value() + BLANK + ":" + betweenKey1 + BLANK
-						+ "and" + BLANK + ":" + betweenKey2);
+				String start = genUniqueParamName(uniqueParamName + "Start", parameterMap);
+				String end = genUniqueParamName(uniqueParamName + "End", parameterMap);
+				sql.where(joint + columnNameAlias + BLANK + condition.getOperator().value() + BLANK + ":" + start + BLANK
+						+ "and" + BLANK + ":" + end);
 				if (value instanceof Collection) {
+					if (((Collection) value).size() < 2) {
+						throw new IllegalArgumentException("parameter " + value + " length less than 2 when use between operator");
+					}
+
 					int i = 0;
 					for (Object v : (Collection<?>) value) {
 						if (i == 0) {
-							parameterMap.put(betweenKey1, new R2dbcParam(columnType, DataType.toType(v, DataType.getDataType(v.getClass()), dataType)));
+							parameterMap.put(start, new R2dbcParam(columnType, DataType.toType(v, DataType.getDataType(v.getClass()), dataType)));
 						}
 						if (i == 1) {
-							parameterMap.put(betweenKey2, new R2dbcParam(columnType, DataType.toType(v, DataType.getDataType(v.getClass()), dataType)));
+							parameterMap.put(end, new R2dbcParam(columnType, DataType.toType(v, DataType.getDataType(v.getClass()), dataType)));
 						}
 						i++;
 					}
 				} else if (value instanceof String) {
 					String[] betweenValues = StringUtils.split((String) value, ",");
-					parameterMap.put(betweenKey1, new R2dbcParam(columnType, DataType.toType(betweenValues[0], DataType.DT_String, dataType)));
-					if (betweenValues.length > 1) {
-						parameterMap.put(betweenKey2, new R2dbcParam(columnType, DataType.toType(betweenValues[1], DataType.DT_String, dataType)));
-					} else {
-						parameterMap.put(betweenKey2, new R2dbcParam(columnType, null));
+					if (betweenValues.length < 2) {
+						throw new IllegalArgumentException("parameter " + value + " length less than 2 when use between operator");
 					}
+					parameterMap.put(start, new R2dbcParam(columnType, DataType.toType(betweenValues[0], DataType.DT_String, dataType)));
+					parameterMap.put(end, new R2dbcParam(columnType, DataType.toType(betweenValues[1], DataType.DT_String, dataType)));
 				} else if (value.getClass().isArray()) {
 					String simpleName = value.getClass().getSimpleName();
 					switch (simpleName) {
 						case "int[]": {
 							int[] values = (int[]) value;
+							if (values.length < 2) {
+								throw new IllegalArgumentException("parameter " + value + " length less than 2 when use between operator");
+							}
 							for (int i = 0; i < values.length; i++) {
 								int v = values[i];
 								if (i == 0) {
-									parameterMap.put(betweenKey1, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_int, dataType)));
+									parameterMap.put(start, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_int, dataType)));
 								}
 								if (i == 1) {
-									parameterMap.put(betweenKey2, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_int, dataType)));
+									parameterMap.put(end, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_int, dataType)));
 								}
 							}
 							break;
 						}
 						case "long[]": {
 							long[] values = (long[]) value;
+							if (values.length < 2) {
+								throw new IllegalArgumentException("parameter " + value + " length less than 2 when use between operator");
+							}
 							for (int i = 0; i < values.length; i++) {
 								long v = values[i];
 								if (i == 0) {
-									parameterMap.put(betweenKey1, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_long, dataType)));
+									parameterMap.put(start, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_long, dataType)));
 								}
 								if (i == 1) {
-									parameterMap.put(betweenKey2, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_long, dataType)));
+									parameterMap.put(end, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_long, dataType)));
 								}
 							}
 							break;
 						}
 						case "char[]": {
 							char[] values = (char[]) value;
+							if (values.length < 2) {
+								throw new IllegalArgumentException("parameter " + value + " length less than 2 when use between operator");
+							}
 							for (int i = 0; i < values.length; i++) {
 								char v = values[i];
 								if (i == 0) {
-									parameterMap.put(betweenKey1, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_char, dataType)));
+									parameterMap.put(start, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_char, dataType)));
 								}
 								if (i == 1) {
-									parameterMap.put(betweenKey2, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_char, dataType)));
+									parameterMap.put(end, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_char, dataType)));
 								}
 							}
 							break;
 						}
 						case "double[]": {
 							double[] values = (double[]) value;
+							if (values.length < 2) {
+								throw new IllegalArgumentException("parameter " + value + " length less than 2 when use between operator");
+							}
 							for (int i = 0; i < values.length; i++) {
 								double v = values[i];
 								if (i == 0) {
-									parameterMap.put(betweenKey1, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_double, dataType)));
+									parameterMap.put(start, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_double, dataType)));
 								}
 								if (i == 1) {
-									parameterMap.put(betweenKey2, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_double, dataType)));
+									parameterMap.put(end, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_double, dataType)));
 								}
 							}
 							break;
 						}
 						case "byte[]": {
 							byte[] values = (byte[]) value;
+							if (values.length < 2) {
+								throw new IllegalArgumentException("parameter " + value + " length less than 2 when use between operator");
+							}
 							for (int i = 0; i < values.length; i++) {
 								byte v = values[i];
 								if (i == 0) {
-									parameterMap.put(betweenKey1, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_byte, dataType)));
+									parameterMap.put(start, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_byte, dataType)));
 								}
 								if (i == 1) {
-									parameterMap.put(betweenKey2, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_byte, dataType)));
+									parameterMap.put(end, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_byte, dataType)));
 								}
 							}
 							break;
 						}
 						case "short[]": {
 							short[] values = (short[]) value;
+							if (values.length < 2) {
+								throw new IllegalArgumentException("parameter " + value + " length less than 2 when use between operator");
+							}
 							for (int i = 0; i < values.length; i++) {
 								short v = values[i];
 								if (i == 0) {
-									parameterMap.put(betweenKey1, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_short, dataType)));
+									parameterMap.put(start, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_short, dataType)));
 								}
 								if (i == 1) {
-									parameterMap.put(betweenKey2, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_short, dataType)));
+									parameterMap.put(end, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_short, dataType)));
 								}
 							}
 							break;
 						}
 						case "boolean[]": {
 							boolean[] values = (boolean[]) value;
+							if (values.length < 2) {
+								throw new IllegalArgumentException("parameter " + value + " length less than 2 when use between operator");
+							}
 							for (int i = 0; i < values.length; i++) {
 								boolean v = values[i];
 								if (i == 0) {
-									parameterMap.put(betweenKey1, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_boolean, dataType)));
+									parameterMap.put(start, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_boolean, dataType)));
 								}
 								if (i == 1) {
-									parameterMap.put(betweenKey2, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_boolean, dataType)));
+									parameterMap.put(end, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_boolean, dataType)));
 								}
 							}
 							break;
 						}
 						case "float[]": {
 							float[] values = (float[]) value;
+							if (values.length < 2) {
+								throw new IllegalArgumentException("parameter " + value + " length less than 2 when use between operator");
+							}
 							for (int i = 0; i < values.length; i++) {
 								float v = values[i];
 								if (i == 0) {
-									parameterMap.put(betweenKey1, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_float, dataType)));
+									parameterMap.put(start, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_float, dataType)));
 								}
 								if (i == 1) {
-									parameterMap.put(betweenKey2, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_float, dataType)));
+									parameterMap.put(end, new R2dbcParam(columnType, DataType.toType(v, DataType.DT_float, dataType)));
 								}
 							}
 							break;
 						}
 						default: {
 							Object[] values = (Object[]) value;
+							if (values.length < 2) {
+								throw new IllegalArgumentException("parameter " + value + " length less than 2 when use between operator");
+							}
 							for (int i = 0; i < values.length; i++) {
 								Object v = values[i];
 								if (i == 0) {
-									parameterMap.put(betweenKey1, new R2dbcParam(columnType, DataType.toType(v, DataType.getDataType(v.getClass()), dataType)));
+									parameterMap.put(start, new R2dbcParam(columnType, DataType.toType(v, DataType.getDataType(v.getClass()), dataType)));
 								}
 								if (i == 1) {
-									parameterMap.put(betweenKey2, new R2dbcParam(columnType, DataType.toType(v, DataType.getDataType(v.getClass()), dataType)));
+									parameterMap.put(end, new R2dbcParam(columnType, DataType.toType(v, DataType.getDataType(v.getClass()), dataType)));
 								}
 							}
 							break;
@@ -450,8 +491,8 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 			case lessThan:
 			case greaterEqual:
 			case greaterThan:
-				sql.where(joint + columnNameAlias + BLANK + condition.getOperator().value() + BLANK + ":" + paramName);
-				parameterMap.put(paramName, new R2dbcParam(columnType, DataType.toType(value, dataType)));
+				sql.where(joint + columnNameAlias + BLANK + condition.getOperator().value() + BLANK + ":" + uniqueParamName);
+				parameterMap.put(uniqueParamName, new R2dbcParam(columnType, DataType.toType(value, dataType)));
 				break;
 			case in:
 			case notIn:
@@ -465,6 +506,15 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 						for (Object inValue : collectionValue) {
 							builder.append("'");
 							builder.append(StringHelper.escapeSql(inValue + ""));
+							builder.append("'");
+							builder.append(",");
+						}
+						builder.deleteCharAt(builder.length() - 1);
+					} else if (columnType.isEnum()) {
+						for (Object inValue : collectionValue) {
+							String enumName = ((Enum) inValue).name();
+							builder.append("'");
+							builder.append(StringHelper.escapeSql(enumName));
 							builder.append("'");
 							builder.append(",");
 						}
@@ -651,7 +701,7 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 			throw new RuntimeException("error propertyName -> " + key);
 		}
 
-		Class targetEntity = join.getTargetEntity();
+		Class<?> targetEntity = join.getTargetEntity();
 		Table targetTable = ORMapping.get(targetEntity);
 		assert targetTable != null;
 		//done 对分表的支持
@@ -686,7 +736,7 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 			}
 			//todo 根据列选择器动态选择列 增加查询结果
 			targetTable.getColumns().forEach(column -> {
-				sql.select(wrap(targetAlias + "." + column.getSqlName()) + BLANK + "as" + BLANK + "\"" + k + "." + column.getJavaName() + "\"");
+				sql.select(targetAlias + "." + wrap(column.getSqlName()) + BLANK + "as" + BLANK + "\"" + k + "." + column.getJavaName() + "\"");
 			});
 			return targetAlias;
 		});

@@ -7,6 +7,8 @@ import org.loed.framework.common.query.Criteria;
 import org.loed.framework.common.query.Pagination;
 import org.reactivestreams.Publisher;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -78,7 +80,7 @@ public interface R2dbcDao<T, ID> {
 	 * @param <S>     对象的子类
 	 * @return 更新后的对象
 	 */
-	<S extends T> Mono<S> updateWith(S entity, Collection<SFunction<T, ?>> columns);
+	<S extends T> Mono<S> updateWith(@NonNull S entity, @Nullable Collection<SFunction<T, ?>> columns);
 
 	/**
 	 * 更新一个对象，忽略指定的属性

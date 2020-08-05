@@ -34,8 +34,8 @@ import java.util.stream.Collectors;
  * @since 2017/10/9 下午3:38
  */
 public class ORMapping {
-	private static Logger logger = LoggerFactory.getLogger(ORMapping.class);
-	private static ConcurrentMap<Class<?>, Table> orm = new ConcurrentHashMap<>();
+	private static final Logger logger = LoggerFactory.getLogger(ORMapping.class);
+	private static final ConcurrentMap<Class<?>, Table> orm = new ConcurrentHashMap<>();
 
 	public static Table get(Class<?> clazz) {
 		javax.persistence.Table clazzAnnotation = clazz.getAnnotation(javax.persistence.Table.class);
@@ -135,7 +135,7 @@ public class ORMapping {
 				Set<String> columnSet = Arrays.stream(sharding.columns()).collect(Collectors.toSet());
 				List<org.loed.framework.common.database.Column> shardingColumns = table.getColumns().stream().
 						filter(r -> columnSet.contains(r.getSqlName())).collect(Collectors.toList());
-				if (shardingColumns != null && shardingColumns.size() > 0) {
+				if (shardingColumns.size() > 0) {
 					table.setSharding(true);
 					table.setShardingCount(sharding.count());
 					table.setShardingAlias(sharding.alias());
@@ -147,7 +147,7 @@ public class ORMapping {
 			//处理一对一，一对多，多对一的关系
 			fields.stream().filter(f -> f.getAnnotation(OneToOne.class) != null).forEach(field -> {
 				OneToOne oneToOne = field.getAnnotation(OneToOne.class);
-				Class targetEntity = oneToOne.targetEntity();
+				Class<?> targetEntity = oneToOne.targetEntity();
 				if (targetEntity == void.class) {
 					targetEntity = field.getType();
 				}
@@ -156,7 +156,7 @@ public class ORMapping {
 			});
 			fields.stream().filter(f -> f.getAnnotation(ManyToOne.class) != null).forEach(field -> {
 				ManyToOne manyToOne = field.getAnnotation(ManyToOne.class);
-				Class targetEntity = manyToOne.targetEntity();
+				Class<?> targetEntity = manyToOne.targetEntity();
 				if (targetEntity == void.class) {
 					targetEntity = field.getType();
 				}
@@ -166,10 +166,10 @@ public class ORMapping {
 
 			fields.stream().filter(f -> f.getAnnotation(OneToMany.class) != null).forEach(field -> {
 				OneToMany oneToMany = field.getAnnotation(OneToMany.class);
-				Class targetEntity = oneToMany.targetEntity();
+				Class<?> targetEntity = oneToMany.targetEntity();
 				if (targetEntity == void.class) {
 					//从对象的泛型中获取对象的类型
-					targetEntity = (Class) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
+					targetEntity = (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
 				}
 				javax.persistence.Table targetTable = (javax.persistence.Table) targetEntity.getAnnotation(javax.persistence.Table.class);
 				if (targetTable == null) {
@@ -197,7 +197,7 @@ public class ORMapping {
 		});
 	}
 
-	private static void createJoin(Table table, Field field, Class targetEntity, Join join) {
+	private static void createJoin(Table table, Field field, Class<?> targetEntity, Join join) {
 		List<org.loed.framework.common.database.JoinColumn> joinColumns = getJoinColumns(targetEntity, field);
 		if (CollectionUtils.isNotEmpty(joinColumns)) {
 			javax.persistence.Table targetTable = (javax.persistence.Table) targetEntity.getAnnotation(javax.persistence.Table.class);
@@ -327,7 +327,7 @@ public class ORMapping {
 				default:
 					return JDBCType.VARCHAR;
 			}
-		} else if (dataType == DataType.DT_ENUM) {
+		} else if (dataType == DataType.DT_Enum) {
 			return JDBCType.VARCHAR;
 		} else {
 			return JDBCType.BLOB;

@@ -1,13 +1,14 @@
 package org.loed.framework.common.query;
 
 import lombok.Data;
+import lombok.ToString;
 import org.loed.framework.common.lambda.LambdaUtils;
 import org.loed.framework.common.lambda.SFunction;
 import org.loed.framework.common.lambda.SerializedLambda;
 import org.loed.framework.common.util.ReflectionUtils;
+import org.springframework.lang.NonNull;
 
 import javax.persistence.criteria.JoinType;
-import javax.validation.constraints.NotNull;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,6 +21,7 @@ import java.util.List;
  * @since 2017/9/7 下午9:31
  */
 @Data
+@ToString
 public class Criteria<T> implements Serializable {
 	private Selector selector;
 
@@ -221,56 +223,56 @@ public class Criteria<T> implements Serializable {
 			this.joint = joint;
 		}
 
-		public Criteria<T> beginWith(String value) {
+		public Criteria<T> beginWith(@NonNull String value) {
 			Condition condition = new Condition(property, Operator.beginWith, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> notBeginWith(String value) {
+		public Criteria<T> notBeginWith(@NonNull String value) {
 			Condition condition = new Condition(property, Operator.notBeginWith, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> contains(String value) {
+		public Criteria<T> contains(@NonNull String value) {
 			Condition condition = new Condition(property, Operator.contains, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> notContains(String value) {
+		public Criteria<T> notContains(@NonNull String value) {
 			Condition condition = new Condition(property, Operator.notContains, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> endWith(String value) {
+		public Criteria<T> endWith(@NonNull String value) {
 			Condition condition = new Condition(property, Operator.endWith, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> notEndWith(String value) {
+		public Criteria<T> notEndWith(@NonNull String value) {
 			Condition condition = new Condition(property, Operator.notEndWith, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> between(Object start, Object end) {
+		public Criteria<T> between(@NonNull Object start, @NonNull Object end) {
 			Condition condition = new Condition(property, Operator.between, new Object[]{start, end});
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> notBetween(Object start, Object end) {
+		public Criteria<T> notBetween(@NonNull Object start, @NonNull Object end) {
 			Condition condition = new Condition(property, Operator.notBetween, new Object[]{start, end});
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -291,42 +293,42 @@ public class Criteria<T> implements Serializable {
 			return criteria;
 		}
 
-		public Criteria<T> is(Object value) {
+		public Criteria<T> is(@NonNull Object value) {
 			Condition condition = new Condition(property, Operator.equal, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> isNot(Object value) {
+		public Criteria<T> isNot(@NonNull Object value) {
 			Condition condition = new Condition(property, Operator.notEqual, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> greaterThan(Object value) {
+		public Criteria<T> greaterThan(@NonNull Object value) {
 			Condition condition = new Condition(property, Operator.greaterThan, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> greaterEqual(Object value) {
+		public Criteria<T> greaterEqual(@NonNull Object value) {
 			Condition condition = new Condition(property, Operator.greaterEqual, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> lessEqual(Object value) {
+		public Criteria<T> lessEqual(@NonNull Object value) {
 			Condition condition = new Condition(property, Operator.lessEqual, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> lessThan(Object value) {
+		public Criteria<T> lessThan(@NonNull Object value) {
 			Condition condition = new Condition(property, Operator.lessThan, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -347,21 +349,147 @@ public class Criteria<T> implements Serializable {
 			return criteria;
 		}
 
-		public Criteria<T> in(@NotNull Collection<?> values) {
+		public Criteria<T> in(@NonNull Collection<?> values) {
 			Condition condition = new Condition(property, Operator.in, values);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> notIn(@NotNull Collection<?> values) {
+		public Criteria<T> in(int[] values) {
+			Condition condition = new Condition(property, Operator.in, values);
+			condition.setJoint(joint);
+			criteria.criterion(condition);
+			return criteria;
+		}
+
+		public Criteria<T> in(long[] values) {
+			Condition condition = new Condition(property, Operator.in, values);
+			condition.setJoint(joint);
+			criteria.criterion(condition);
+			return criteria;
+		}
+
+		public Criteria<T> in(char[] values) {
+			Condition condition = new Condition(property, Operator.in, values);
+			condition.setJoint(joint);
+			criteria.criterion(condition);
+			return criteria;
+		}
+
+		public Criteria<T> in(double[] values) {
+			Condition condition = new Condition(property, Operator.in, values);
+			condition.setJoint(joint);
+			criteria.criterion(condition);
+			return criteria;
+		}
+
+		public Criteria<T> in(byte[] values) {
+			Condition condition = new Condition(property, Operator.in, values);
+			condition.setJoint(joint);
+			criteria.criterion(condition);
+			return criteria;
+		}
+
+		public Criteria<T> in(short[] values) {
+			Condition condition = new Condition(property, Operator.in, values);
+			condition.setJoint(joint);
+			criteria.criterion(condition);
+			return criteria;
+		}
+
+		public Criteria<T> in(boolean[] values) {
+			Condition condition = new Condition(property, Operator.in, values);
+			condition.setJoint(joint);
+			criteria.criterion(condition);
+			return criteria;
+		}
+
+		public Criteria<T> in(float[] values) {
+			Condition condition = new Condition(property, Operator.in, values);
+			condition.setJoint(joint);
+			criteria.criterion(condition);
+			return criteria;
+		}
+
+		public Criteria<T> in(Object[] values) {
+			Condition condition = new Condition(property, Operator.in, values);
+			condition.setJoint(joint);
+			criteria.criterion(condition);
+			return criteria;
+		}
+
+		public Criteria<T> notIn(@NonNull Collection<?> values) {
 			Condition condition = new Condition(property, Operator.notIn, values);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> custom(@NotNull String value) {
+		public Criteria<T> notIn(int[] values) {
+			Condition condition = new Condition(property, Operator.notIn, values);
+			condition.setJoint(joint);
+			criteria.criterion(condition);
+			return criteria;
+		}
+
+		public Criteria<T> notIn(long[] values) {
+			Condition condition = new Condition(property, Operator.notIn, values);
+			condition.setJoint(joint);
+			criteria.criterion(condition);
+			return criteria;
+		}
+
+		public Criteria<T> notIn(char[] values) {
+			Condition condition = new Condition(property, Operator.notIn, values);
+			condition.setJoint(joint);
+			criteria.criterion(condition);
+			return criteria;
+		}
+
+		public Criteria<T> notIn(double[] values) {
+			Condition condition = new Condition(property, Operator.notIn, values);
+			condition.setJoint(joint);
+			criteria.criterion(condition);
+			return criteria;
+		}
+
+		public Criteria<T> notIn(byte[] values) {
+			Condition condition = new Condition(property, Operator.notIn, values);
+			condition.setJoint(joint);
+			criteria.criterion(condition);
+			return criteria;
+		}
+
+		public Criteria<T> notIn(short[] values) {
+			Condition condition = new Condition(property, Operator.notIn, values);
+			condition.setJoint(joint);
+			criteria.criterion(condition);
+			return criteria;
+		}
+
+		public Criteria<T> notIn(boolean[] values) {
+			Condition condition = new Condition(property, Operator.notIn, values);
+			condition.setJoint(joint);
+			criteria.criterion(condition);
+			return criteria;
+		}
+
+		public Criteria<T> notIn(float[] values) {
+			Condition condition = new Condition(property, Operator.notIn, values);
+			condition.setJoint(joint);
+			criteria.criterion(condition);
+			return criteria;
+		}
+
+		public Criteria<T> notIn(Object[] values) {
+			Condition condition = new Condition(property, Operator.notIn, values);
+			condition.setJoint(joint);
+			criteria.criterion(condition);
+			return criteria;
+		}
+
+		public Criteria<T> custom(@NonNull String value) {
 			Condition condition = new Condition(property, Operator.custom, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);

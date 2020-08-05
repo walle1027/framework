@@ -1,14 +1,20 @@
 package org.loed.framework.r2dbc.dao;
 
 import org.apache.commons.lang3.StringUtils;
+import org.loed.framework.common.database.Column;
 import org.loed.framework.common.database.Table;
 import org.loed.framework.common.query.Condition;
 import org.loed.framework.common.query.Criteria;
 import org.loed.framework.common.query.Operator;
+import org.loed.framework.common.util.ReflectionUtils;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.lang.NonNull;
 
+import javax.persistence.GenerationType;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Predicate;
 
 /**
  * @author thomason
@@ -38,16 +44,15 @@ public interface R2dbcSqlBuilder {
 	R2dbcQuery batchInsert(List<?> entityList, Table table);
 
 	/**
-	 * 构造一个机遇r2dbc的更新语句
+	 * 构造一个基于r2dbc的更新语句
 	 *
-	 * @param entity     对象
-	 * @param table      对象元信息
-	 * @param conditions 动态更新条件
-	 * @param includes   包含的更新的列，如果指定了，只更新包含的列，如果为空，将更新所有列
-	 * @param excludes   排除更新的列，如果指定了，排除指定的列，如果为空，将不排除任何列
+	 * @param entity       对象
+	 * @param table        对象元信息
+	 * @param criteria     动态更新条件
+	 * @param columnFilter 列过滤器
 	 * @return 更新语句及参数
 	 */
-	R2dbcQuery updateByCondition(Object entity, Table table, List<Condition> conditions, Collection<String> includes, Collection<String> excludes);
+	<T> R2dbcQuery updateByCriteria(@NonNull Object entity, @NonNull Table table, @NonNull Criteria<T> criteria, @NonNull Predicate<Column> columnFilter);
 
 	/**
 	 * 按照动态条件构建一个删除对象的语句
@@ -55,10 +60,9 @@ public interface R2dbcSqlBuilder {
 	 *
 	 * @param table    表元信息
 	 * @param criteria 动态条件
-	 * @param <T>      对象类型
 	 * @return 删除语句及参数
 	 */
-	<T> R2dbcQuery deleteByCriteria(Table table, Criteria<T> criteria);
+	<T> R2dbcQuery deleteByCriteria(@NonNull Table table, @NonNull Criteria<T> criteria);
 
 	/**
 	 * 按照动态条件构建一个查询语句
@@ -68,25 +72,28 @@ public interface R2dbcSqlBuilder {
 	 * @param <T>      对象类型
 	 * @return 查询语句及参数
 	 */
-	<T> R2dbcQuery findByCriteria(Table table, Criteria<T> criteria);
+	<T> R2dbcQuery findByCriteria(@NonNull Table table, @NonNull Criteria<T> criteria);
+
+	/**
+	 * 按照动态条件构建一个分页查询语句
+	 *
+	 * @param table       查询对象
+	 * @param criteria    动态条件
+	 * @param pageRequest 分页条件
+	 * @param <T>         对象类型
+	 * @return 查询语句及参数
+	 */
+	<T> R2dbcQuery findPageByCriteria(@NonNull Table table, @NonNull Criteria<T> criteria, @NonNull PageRequest pageRequest);
 
 	/**
 	 * 按照动态条件构建一个查询语句
 	 *
+	 * @param table    查询对象信息
 	 * @param criteria 动态条件
 	 * @param <T>      对象类型
 	 * @return 查询语句及参数
 	 */
-	<T> R2dbcQuery findPageByCriteria(Table table, Criteria<T> criteria, PageRequest pageRequest);
-
-	/**
-	 * 按照动态条件构建一个查询语句
-	 *
-	 * @param criteria 动态条件
-	 * @param <T>      对象类型
-	 * @return 查询语句及参数
-	 */
-	<T> R2dbcQuery countByCriteria(Criteria<T> criteria);
+	<T> R2dbcQuery countByCriteria(@NonNull Table table, @NonNull Criteria<T> criteria);
 
 	/**
 	 * 是否需要引号
@@ -131,5 +138,96 @@ public interface R2dbcSqlBuilder {
 			return false;
 		}
 		return true;
+	}
+
+	/**
+	 * 默认过滤器
+	 */
+	Predicate<Column> ALWAYS_TRUE_FILTER = column -> true;
+
+	/**
+	 * 可插入列的过滤器
+	 */
+	Predicate<Column> INSERTABLE_FILTER = column -> {
+		boolean pk = column.isPk();
+		if (pk) {
+			GenerationType generationType = column.getIdGenerationType();
+			if (Objects.equals(generationType, GenerationType.AUTO)) {
+				return false;
+			} else {
+				return true;
+			}
+		}
+		return true;
+	};
+
+	/**
+	 * 可更新列的过滤器
+	 */
+	Predicate<Column> UPDATABLE_FILTER = Column::isUpdatable;
+	/**
+	 * 版本列的过滤器
+	 */
+	Predicate<Column> VERSION_FILTER = Column::isVersioned;
+
+	/**
+	 * 指定更新列的过滤器
+	 */
+	class IncludeFilter implements Predicate<Column> {
+		private final Collection<String> includes;
+
+		public IncludeFilter(@NonNull Collection<String> includes) {
+			this.includes = includes;
+		}
+
+		@Override
+		public boolean test(Column column) {
+			return includes.contains(column.getJavaName());
+		}
+	}
+
+	/**
+	 * 指定忽略列的过滤器
+	 */
+	class ExcludeFilter implements Predicate<Column> {
+		private final Collection<String> excludes;
+
+		public ExcludeFilter(@NonNull Collection<String> excludes) {
+			this.excludes = excludes;
+		}
+
+		@Override
+		public boolean test(Column column) {
+			return !excludes.contains(column.getJavaName());
+		}
+	}
+
+	/**
+	 * 动态判断属性为空的过滤器
+	 */
+	class NotEmptyFilter implements Predicate<Column> {
+		private final Object object;
+
+		public NotEmptyFilter(@NonNull Object object) {
+			this.object = object;
+		}
+
+		@Override
+		public boolean test(Column column) {
+			if (column.isPk()) {
+				return false;
+			}
+			if (column.isVersioned()) {
+				return false;
+			}
+			Object value = ReflectionUtils.getFieldValue(object, column.getJavaName());
+			if (value == null) {
+				return false;
+			}
+			if (value instanceof String) {
+				return StringUtils.isNotBlank((String) value);
+			}
+			return true;
+		}
 	}
 }

@@ -1,6 +1,7 @@
 package org.loed.framework.r2dbc.dao;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.loed.framework.common.ORMapping;
 import org.loed.framework.common.context.ReactiveSystemContext;
 import org.loed.framework.common.database.Column;
@@ -19,6 +20,8 @@ import org.loed.framework.r2dbc.listener.spi.*;
 import org.reactivestreams.Publisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.r2dbc.core.DatabaseClient;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -27,6 +30,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 
@@ -178,15 +182,12 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 
 	@Override
 	public <S extends T> Mono<S> update(S entity) {
-		return Mono.just(entity).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, null, null)).flatMap(postUpdateFunction());
+		return Mono.just(entity).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, R2dbcSqlBuilder.ALWAYS_TRUE_FILTER)).flatMap(postUpdateFunction());
 	}
 
 	@Override
 	public <S extends T> Mono<S> updateSelective(S entity) {
-		List<String> includes = table.getColumns().stream().filter(column -> {
-			return ReflectionUtils.getFieldValue(entity, column.getJavaName()) != null;
-		}).map(Column::getJavaName).collect(Collectors.toList());
-		return Mono.just(entity).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, includes, null)).flatMap(postUpdateFunction());
+		return Mono.just(entity).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, new R2dbcSqlBuilder.NotEmptyFilter(po))).flatMap(postUpdateFunction());
 	}
 
 	private <S extends T> Function<S, Mono<? extends S>> preUpdateFunction() {
@@ -217,39 +218,39 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 		};
 	}
 
-	private <S> Mono<S> doUpdate(S entity, Collection<String> includes, Collection<String> excludes) {
+	private <S> Mono<S> doUpdate(S entity, Predicate<Column> columnFilter) {
 		ID id = (ID) ReflectionUtils.getFieldValue(entity, idColumn.getJavaName());
 		if (id == null) {
 			return Mono.error(new RuntimeException("id is null "));
 		}
 		return Flux.merge(Flux.just(new Condition(idColumn.getJavaName(), Operator.equal, id)), addConditions())
 				.collectList().map(conditions -> {
-					return sqlBuilder.updateByCondition(entity, table, conditions, includes, excludes);
+					return sqlBuilder.updateByCriteria(entity, table, Criteria.from(entityClass).criterion(conditions.toArray(new Condition[0])), columnFilter);
 				}).flatMap(r2dbcQuery -> {
 					return execute(r2dbcQuery).thenReturn(entity);
 				});
 	}
 
 	@Override
-	public <S extends T> Mono<S> updateWith(S entity, Collection<SFunction<T, ?>> columns) {
+	public <S extends T> Mono<S> updateWith(@NonNull S entity, @Nullable Collection<SFunction<T, ?>> columns) {
 		List<String> includes = columns == null ? null : columns.stream().map(LambdaUtils::getPropFromLambda).collect(Collectors.toList());
-		return Mono.just(entity).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, includes, null)).flatMap(postUpdateFunction());
+		return Mono.just(entity).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, includes == null ? R2dbcSqlBuilder.ALWAYS_TRUE_FILTER : new R2dbcSqlBuilder.IncludeFilter(includes))).flatMap(postUpdateFunction());
 	}
 
 	@Override
 	public <S extends T> Mono<S> updateWithout(S entity, Collection<SFunction<T, ?>> columns) {
 		List<String> excludes = columns == null ? null : columns.stream().map(LambdaUtils::getPropFromLambda).collect(Collectors.toList());
-		return Mono.just(entity).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, null, excludes)).flatMap(postUpdateFunction());
+		return Mono.just(entity).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, excludes == null ? R2dbcSqlBuilder.ALWAYS_TRUE_FILTER : new R2dbcSqlBuilder.ExcludeFilter(excludes))).flatMap(postUpdateFunction());
 	}
 
 	@Override
 	public <S extends T> Flux<S> batchUpdate(Iterable<S> entities) {
-		return Flux.fromIterable(entities).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, null, null)).flatMap(postUpdateFunction());
+		return Flux.fromIterable(entities).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, R2dbcSqlBuilder.ALWAYS_TRUE_FILTER)).flatMap(postUpdateFunction());
 	}
 
 	@Override
 	public <S extends T> Flux<S> batchUpdate(Publisher<S> entityStream) {
-		return Flux.from(entityStream).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, null, null)).flatMap(postUpdateFunction());
+		return Flux.from(entityStream).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, R2dbcSqlBuilder.ALWAYS_TRUE_FILTER)).flatMap(postUpdateFunction());
 	}
 
 	@Override
@@ -321,13 +322,16 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 
 	@Override
 	public Mono<Integer> deleteByCriteria(Criteria<T> criteria) {
-		return Mono.just(criteria).flatMap(cr -> {
+		return Mono.just(criteria).flatMap(crit -> {
 					return addConditions().collectList().map(conditions -> {
-						return cr.criterion(conditions.toArray(new Condition[0]));
-					}).defaultIfEmpty(cr);
+						return crit.criterion(conditions.toArray(new Condition[0]));
+					}).defaultIfEmpty(crit);
 				}
-		).map(criteria1 -> {
-			return sqlBuilder.deleteByCriteria(table, criteria1);
+		).map(crit -> {
+			if (CollectionUtils.isEmpty(crit.getConditions())) {
+				throw new RuntimeException("empty conditions to delete the entity ,this will ignore");
+			}
+			return sqlBuilder.deleteByCriteria(table, crit);
 		}).flatMap(this::execute);
 	}
 
@@ -360,7 +364,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 			return criteriaNew;
 		}).defaultIfEmpty(criteria)
 				.flatMap(crit -> {
-					R2dbcQuery query = sqlBuilder.countByCriteria(crit);
+					R2dbcQuery query = sqlBuilder.countByCriteria(table, crit);
 					DatabaseClient.GenericExecuteSpec exec = bind(query);
 					return exec.as(Long.class).fetch().one();
 				});

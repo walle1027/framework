@@ -54,7 +54,7 @@ public class DataType {
 	public static final int DT_Object = 40;
 	public static final int DT_Class = 41;
 	//枚举变量
-	public static final int DT_ENUM = 42;
+	public static final int DT_Enum = 42;
 	public static final int DT_UserDefine = 50;
 	private static Map<String, Integer> dataTypeMap = new Hashtable<String, Integer>();
 
@@ -108,6 +108,8 @@ public class DataType {
 		typeName = deletePrefix(typeName, "java.util.");
 		typeName = deletePrefix(typeName, "java.sql.");
 		typeName = deletePrefix(typeName, "java.math.");
+		//TODO 增加对localDateTime的支持
+//		typeName = deletePrefix(typeName, "java.time.");
 		return typeName;
 	}
 
@@ -120,11 +122,16 @@ public class DataType {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static int getDataType(Class cls) {
+	public static int getDataType(Class<?> cls) {
 		if (cls == null) {
 			return DT_Unknown;
 		}
-
+		if (cls.isArray()) {
+			return DT_Array;
+		}
+		if (cls.isEnum()) {
+			return DT_Enum;
+		}
 		return getDataType(cls.getName());
 	}
 

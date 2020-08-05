@@ -21,4 +21,7 @@ public class Person extends CommonPO {
 
 	@Column(columnDefinition = "VARCHAR(10) NULL COMMENT 'sex'")
 	private Sex sex;
+
+	@Column(columnDefinition = "int4 NULL COMMENT 'age'")
+	private Integer age;
 }

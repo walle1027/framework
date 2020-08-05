@@ -64,8 +64,8 @@ public class MybatisSqlBuilder {
 		String joint = (condition.getJoint() == null ? "" : condition.getJoint().name()) + BLANK;
 		Object value = condition.getValue();
 		Operator operator = condition.getOperator();
-		String mapKey = StringUtils.replace(propertyName, ".", "_") + "Value";
-		mapKey = genUniqueMapKey(mapKey, parameterMap);
+		String rawParamName = StringUtils.replace(propertyName, ".", "_") + "Value";
+		String uniqueParamName = genUniqueMapKey(rawParamName, parameterMap);
 		String alias = tableAliasMap.get(ROOT_TABLE_ALIAS_KEY);
 		Column column = resolvePropertyCascade(tableAliasMap, table, alias, counter, sql, condition.getJoinType(), null, propertyName);
 		if (column == null) {
@@ -87,23 +87,23 @@ public class MybatisSqlBuilder {
 		switch (condition.getOperator()) {
 			case beginWith:
 			case notBeginWith:
-				sql.where(joint + columnNameAlias + BLANK + condition.getOperator().value() + BLANK + "#{map." + mapKey + ",jdbcType=" + jdbcType + "}");
-				parameterMap.put(mapKey, value + "%");
+				sql.where(joint + columnNameAlias + BLANK + condition.getOperator().value() + BLANK + "#{map." + uniqueParamName + ",jdbcType=" + jdbcType + "}");
+				parameterMap.put(uniqueParamName, value + "%");
 				break;
 			case endWith:
 			case notEndWith:
-				sql.where(joint + columnNameAlias + BLANK + condition.getOperator().value() + BLANK + "#{map." + mapKey + ",jdbcType=" + jdbcType + "}");
-				parameterMap.put(mapKey, "%" + value);
+				sql.where(joint + columnNameAlias + BLANK + condition.getOperator().value() + BLANK + "#{map." + uniqueParamName + ",jdbcType=" + jdbcType + "}");
+				parameterMap.put(uniqueParamName, "%" + value);
 				break;
 			case contains:
 			case notContains:
-				sql.where(joint + columnNameAlias + BLANK + condition.getOperator().value() + BLANK + "#{map." + mapKey + ",jdbcType=" + jdbcType + "}");
-				parameterMap.put(mapKey, "%" + value + "%");
+				sql.where(joint + columnNameAlias + BLANK + condition.getOperator().value() + BLANK + "#{map." + uniqueParamName + ",jdbcType=" + jdbcType + "}");
+				parameterMap.put(uniqueParamName, "%" + value + "%");
 				break;
 			case between:
 			case notBetween:
-				String betweenKey1 = mapKey + "Value1";
-				String betweenKey2 = mapKey + "Value2";
+				String betweenKey1 = genUniqueMapKey(uniqueParamName + "Value1", parameterMap);
+				String betweenKey2 = genUniqueMapKey(uniqueParamName + "Value2", parameterMap);
 				sql.where(joint + columnNameAlias + BLANK + condition.getOperator().value() + BLANK + "#{map." + betweenKey1 + ",jdbcType=" + jdbcType + "}" + BLANK
 						+ "and" + BLANK + "#{map." + betweenKey2 + ",jdbcType=" + jdbcType + "}");
 				if (value instanceof Collection) {
@@ -241,8 +241,8 @@ public class MybatisSqlBuilder {
 			case lessThan:
 			case greaterEqual:
 			case greaterThan:
-				sql.where(joint + columnNameAlias + BLANK + condition.getOperator().value() + BLANK + "#{map." + mapKey + ",jdbcType=" + jdbcType + "}");
-				parameterMap.put(mapKey, DataType.toType(value, dataType));
+				sql.where(joint + columnNameAlias + BLANK + condition.getOperator().value() + BLANK + "#{map." + uniqueParamName + ",jdbcType=" + jdbcType + "}");
+				parameterMap.put(uniqueParamName, DataType.toType(value, dataType));
 				break;
 			case in:
 			case notIn:

@@ -1,6 +1,7 @@
 package org.loed.framework.common.database;
 
 import lombok.Data;
+import lombok.ToString;
 import org.apache.commons.collections4.CollectionUtils;
 
 import javax.persistence.GenerationType;
@@ -13,6 +14,7 @@ import java.util.List;
  * @since 2017/10/9 上午9:21
  */
 @Data
+@ToString
 public class Table {
 	/**
 	 * db schema

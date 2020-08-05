@@ -4,6 +4,8 @@ package org.loed.framework.common.query;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.ToString;
 import org.apache.commons.collections4.CollectionUtils;
+import org.loed.framework.common.lambda.LambdaUtils;
+import org.loed.framework.common.lambda.SFunction;
 
 import javax.persistence.criteria.JoinType;
 import java.io.Serializable;
@@ -33,10 +35,6 @@ public class Condition implements Serializable {
 	 * 条件连接字符串 and or
 	 */
 	private Joint joint = Joint.and;
-	/**
-	 * 查询主实体名称
-	 */
-	private String entityName;
 	/**
 	 * 实体对应的属性名称
 	 */
@@ -68,6 +66,12 @@ public class Condition implements Serializable {
 
 	public Condition(String propertyName, Operator operator, Object value) {
 		this.propertyName = propertyName;
+		this.operator = operator;
+		this.value = value;
+	}
+
+	public <T> Condition(SFunction<T,?> lambda, Operator operator, Object value) {
+		this.propertyName = LambdaUtils.getPropFromLambda(lambda);
 		this.operator = operator;
 		this.value = value;
 	}
@@ -157,14 +161,6 @@ public class Condition implements Serializable {
 
 	public void setJoint(Joint joint) {
 		this.joint = joint;
-	}
-
-	public String getEntityName() {
-		return entityName;
-	}
-
-	public void setEntityName(String entityName) {
-		this.entityName = entityName;
 	}
 
 	public String getPropertyName() {

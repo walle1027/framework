@@ -1,6 +1,7 @@
 package org.loed.framework.common.database;
 
 import lombok.Data;
+import lombok.ToString;
 
 import javax.persistence.GenerationType;
 
@@ -10,6 +11,7 @@ import javax.persistence.GenerationType;
  * @since 2017/10/9 上午9:23
  */
 @Data
+@ToString
 public class Column {
 	/**
 	 * 关联的表
