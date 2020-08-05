@@ -9,6 +9,7 @@ import org.loed.framework.common.po.TenantId;
 import org.loed.framework.common.util.LocalDateUtils;
 import org.loed.framework.common.util.ReflectionUtils;
 import org.loed.framework.r2dbc.listener.spi.PreInsertListener;
+import org.springframework.core.Ordered;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -28,6 +29,9 @@ import java.util.List;
  */
 @Slf4j
 public class DefaultPreInsertListener implements PreInsertListener {
+
+	private int order = Ordered.LOWEST_PRECEDENCE;
+
 
 	@Override
 	public <T> Mono<T> preInsert(T object) {
@@ -150,5 +154,14 @@ public class DefaultPreInsertListener implements PreInsertListener {
 			methodFlux = Flux.just(Boolean.TRUE);
 		}
 		return filedFlux.mergeWith(methodFlux).all(p -> p).thenReturn(object);
+	}
+
+	public void setOrder(int order) {
+		this.order = order;
+	}
+
+	@Override
+	public int getOrder() {
+		return order;
 	}
 }

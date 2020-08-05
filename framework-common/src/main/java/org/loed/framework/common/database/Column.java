@@ -1,5 +1,7 @@
 package org.loed.framework.common.database;
 
+import lombok.Data;
+
 import javax.persistence.GenerationType;
 
 /**
@@ -7,6 +9,7 @@ import javax.persistence.GenerationType;
  * @version 1.0
  * @since 2017/10/9 上午9:23
  */
+@Data
 public class Column {
 	/**
 	 * 关联的表
@@ -61,6 +64,30 @@ public class Column {
 	 */
 	private boolean updatable = true;
 	/**
+	 * 是否是租户Id
+	 */
+	private boolean tenantId;
+	/**
+	 * 是否是创建人
+	 */
+	private boolean createBy;
+	/**
+	 * 是否是创建时间
+	 */
+	private boolean createTime;
+	/**
+	 * 是否是最后修改人
+	 */
+	private boolean lastModifyBy;
+	/**
+	 * 是否是最后修改时间
+	 */
+	private boolean lastModifyTime;
+	/**
+	 * 是否是删除标记
+	 */
+	private boolean deleted;
+	/**
 	 * 默认值
 	 */
 	private String defaultValue;
@@ -95,173 +122,5 @@ public class Column {
 
 	public Column(Table table) {
 		this.table = table;
-	}
-
-	public Table getTable() {
-		return table;
-	}
-
-	public void setTable(Table table) {
-		this.table = table;
-	}
-
-	public int getSqlType() {
-		return sqlType;
-	}
-
-	public void setSqlType(int sqlType) {
-		this.sqlType = sqlType;
-	}
-
-	public String getSqlTypeName() {
-		return sqlTypeName;
-	}
-
-	public void setSqlTypeName(String sqlTypeName) {
-		this.sqlTypeName = sqlTypeName;
-	}
-
-	public String getSqlName() {
-		return sqlName;
-	}
-
-	public void setSqlName(String sqlName) {
-		this.sqlName = sqlName;
-	}
-
-	public int getLength() {
-		return length;
-	}
-
-	public void setLength(int length) {
-		this.length = length;
-	}
-
-	public int getPrecision() {
-		return precision;
-	}
-
-	public void setPrecision(int precision) {
-		this.precision = precision;
-	}
-
-	public int getScale() {
-		return scale;
-	}
-
-	public void setScale(int scale) {
-		this.scale = scale;
-	}
-
-	public boolean isNullable() {
-		return nullable;
-	}
-
-	public void setNullable(boolean nullable) {
-		this.nullable = nullable;
-	}
-
-	public boolean isIndexed() {
-		return indexed;
-	}
-
-	public void setIndexed(boolean indexed) {
-		this.indexed = indexed;
-	}
-
-	public boolean isUnique() {
-		return unique;
-	}
-
-	public void setUnique(boolean unique) {
-		this.unique = unique;
-	}
-
-	public String getDefaultValue() {
-		return defaultValue;
-	}
-
-	public void setDefaultValue(String defaultValue) {
-		this.defaultValue = defaultValue;
-	}
-
-	public boolean isPk() {
-		return isPk;
-	}
-
-	public void setPk(boolean pk) {
-		isPk = pk;
-	}
-
-	public Class<?> getJavaType() {
-		return javaType;
-	}
-
-	public void setJavaType(Class<?> javaType) {
-		this.javaType = javaType;
-	}
-
-	public String getJavaName() {
-		return javaName;
-	}
-
-	public void setJavaName(String javaName) {
-		this.javaName = javaName;
-	}
-
-	public String getSqlComment() {
-		return sqlComment;
-	}
-
-	public void setSqlComment(String sqlComment) {
-		this.sqlComment = sqlComment;
-	}
-
-	public String getColumnDefinition() {
-		return columnDefinition;
-	}
-
-	public void setColumnDefinition(String columnDefinition) {
-		this.columnDefinition = columnDefinition;
-	}
-
-	public boolean isShardingColumn() {
-		return shardingColumn;
-	}
-
-	public void setShardingColumn(boolean shardingColumn) {
-		this.shardingColumn = shardingColumn;
-	}
-
-	public boolean isInsertable() {
-		return insertable;
-	}
-
-	public void setInsertable(boolean insertable) {
-		this.insertable = insertable;
-	}
-
-	public boolean isUpdatable() {
-		return updatable;
-	}
-
-	public void setUpdatable(boolean updatable) {
-		this.updatable = updatable;
-	}
-
-	public boolean isVersioned() {
-		return versioned;
-	}
-
-	public void setVersioned(boolean versioned) {
-		this.versioned = versioned;
-	}
-
-	public GenerationType getIdGenerationType() {
-		return idGenerationType;
-	}
-
-	public void setIdGenerationType(GenerationType idGenerationType) {
-		this.idGenerationType = idGenerationType;
 	}
 }

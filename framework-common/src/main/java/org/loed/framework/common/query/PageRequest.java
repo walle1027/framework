@@ -5,7 +5,7 @@ package org.loed.framework.common.query;
  * @version 1.0
  * @since 2018/6/7 上午12:06
  */
-public class PageRequest {
+public class PageRequest<T> {
 	//是否自动计算总行数
 	private boolean needCount = true;
 	//是否自动分页
@@ -15,7 +15,7 @@ public class PageRequest {
 	//页码号
 	private int pageNo = 1;
 	//查询条件
-	private Criteria criteria;
+	private Criteria<T> criteria;
 
 	public boolean isNeedCount() {
 		return needCount;

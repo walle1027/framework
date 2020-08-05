@@ -2,7 +2,7 @@ package org.loed.framework.r2dbc;
 
 import io.r2dbc.spi.ConnectionFactory;
 import org.loed.framework.r2dbc.dao.R2dbcSqlBuilder;
-import org.loed.framework.r2dbc.dao.dialect.MysqlR2DbcSqlBuilder;
+import org.loed.framework.r2dbc.dao.dialect.MysqlR2dbcSqlBuilder;
 import org.loed.framework.r2dbc.listener.impl.DefaultPostInsertListener;
 import org.loed.framework.r2dbc.listener.impl.DefaultPreInsertListener;
 import org.loed.framework.r2dbc.listener.spi.PostInsertListener;
@@ -43,11 +43,23 @@ public class R2dbcApplication {
 
 	@Bean
 	PreInsertListener defaultPreInsertListener() {
-		return new DefaultPreInsertListener();
+		DefaultPreInsertListener preInsertListener = new DefaultPreInsertListener();
+		preInsertListener.setOrder(-1);
+		return preInsertListener;
+	}
+
+	@Bean
+	PreInsertListener defaultPreInsertListener2() {
+		return new DefaultPreInsertListener2();
 	}
 
 	@Bean
 	PostInsertListener defaultPostInsertListener() {
+		return new DefaultPostInsertListener();
+	}
+
+	@Bean
+	PostInsertListener defaultPostInsertListener2() {
 		return new DefaultPostInsertListener();
 	}
 
@@ -58,6 +70,6 @@ public class R2dbcApplication {
 
 	@Bean
 	R2dbcSqlBuilder mysql() {
-		return new MysqlR2DbcSqlBuilder();
+		return new MysqlR2dbcSqlBuilder(true);
 	}
 }

@@ -442,7 +442,6 @@ public class MybatisSqlBuilder {
 
 	public void buildOrder(Map<String, String> tableAliasMap, AtomicInteger counter, QueryBuilder sql, Table table, List<SortProperty> sortProperties) {
 		if (CollectionUtils.isNotEmpty(sortProperties)) {
-			StringBuilder orderBuilder = new StringBuilder();
 			for (SortProperty sortProperty : sortProperties) {
 				String propertyName = sortProperty.getPropertyName();
 				if (StringUtils.isBlank(propertyName)) {

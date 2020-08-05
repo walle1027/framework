@@ -442,8 +442,6 @@ public interface BaseMapper<T extends Identify> {
 		Pagination<T> response = new Pagination<>();
 		response.setTotal(pageInfo.getTotal());
 		response.setRows(pageInfo.getList());
-		response.setNeedCount(request.isNeedCount());
-		response.setNeedPaging(request.isNeedPaging());
 		response.setPageSize(request.getPageSize());
 		response.setPageNo(request.getPageNo());
 		return response;

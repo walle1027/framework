@@ -1,5 +1,8 @@
 package org.loed.framework.common.database;
 
+import lombok.Data;
+import org.apache.commons.collections4.CollectionUtils;
+
 import javax.persistence.GenerationType;
 import java.util.ArrayList;
 import java.util.List;
@@ -9,6 +12,7 @@ import java.util.List;
  * @version 1.0
  * @since 2017/10/9 上午9:21
  */
+@Data
 public class Table {
 	/**
 	 * db schema
@@ -96,135 +100,10 @@ public class Table {
 		this.joins.add(join);
 	}
 
-	public String getSchema() {
-		return schema;
-	}
-
-	public void setSchema(String schema) {
-		this.schema = schema;
-	}
-
-	public String getCatalog() {
-		return catalog;
-	}
-
-	public void setCatalog(String catalog) {
-		this.catalog = catalog;
-	}
-
-	public String getSqlName() {
-		return sqlName;
-	}
-
-	public void setSqlName(String sqlName) {
-		this.sqlName = sqlName;
-	}
-
-	public String getComment() {
-		return comment;
-	}
-
-	public void setComment(String comment) {
-		this.comment = comment;
-	}
-
-	public List<Column> getColumns() {
-		return columns;
-	}
-
-	public void setColumns(List<Column> columns) {
-		this.columns = columns;
-	}
-
-	public List<Index> getIndices() {
-		return indices;
-	}
-
-	public void setIndices(List<Index> indices) {
-		this.indices = indices;
-	}
-
-	public String getJavaName() {
-		return javaName;
-	}
-
-	public void setJavaName(String javaName) {
-		this.javaName = javaName;
-	}
-
-	public Database getDatabase() {
-		return database;
-	}
-
-	public void setDatabase(Database database) {
-		this.database = database;
-	}
-
-	public String getOwnerSynonymName() {
-		return ownerSynonymName;
-	}
-
-	public void setOwnerSynonymName(String ownerSynonymName) {
-		this.ownerSynonymName = ownerSynonymName;
-	}
-
-	public String getSimpleJavaName() {
-		return simpleJavaName;
-	}
-
-	public void setSimpleJavaName(String simpleJavaName) {
-		this.simpleJavaName = simpleJavaName;
-	}
-
-	public boolean isSharding() {
-		return sharding;
-	}
-
-	public void setSharding(boolean sharding) {
-		this.sharding = sharding;
-	}
-
-	public int getShardingCount() {
-		return shardingCount;
-	}
-
-	public void setShardingCount(int shardingCount) {
-		this.shardingCount = shardingCount;
-	}
-
-	public String getShardingAlias() {
-		return shardingAlias;
-	}
-
-	public void setShardingAlias(String shardingAlias) {
-		this.shardingAlias = shardingAlias;
-	}
-
-	public List<Join> getJoins() {
-		return joins;
-	}
-
-	public void setJoins(List<Join> joins) {
-		this.joins = joins;
-	}
-
-	public Column getVersionColumn() {
-		return versionColumn;
-	}
-
-	public void setVersionColumn(Column versionColumn) {
-		this.versionColumn = versionColumn;
-	}
-
 	public boolean hasVersionColumn() {
-		return versionColumn != null;
-	}
-
-	public GenerationType getIdGenerationType() {
-		return idGenerationType;
-	}
-
-	public void setIdGenerationType(GenerationType idGenerationType) {
-		this.idGenerationType = idGenerationType;
+		if (CollectionUtils.isEmpty(columns)) {
+			return false;
+		}
+		return columns.stream().anyMatch(Column::isVersioned);
 	}
 }

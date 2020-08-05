@@ -2,6 +2,7 @@ package org.loed.framework.common.query;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.ToString;
 import org.apache.commons.collections4.CollectionUtils;
 
 import javax.persistence.criteria.JoinType;
@@ -18,6 +19,7 @@ import java.util.List;
  * Time: 下午2:16
  * @version 1.0
  */
+@ToString
 public class Condition implements Serializable {
 	/**
 	 * 别名分隔符

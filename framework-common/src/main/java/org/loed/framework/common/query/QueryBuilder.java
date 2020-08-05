@@ -1,4 +1,4 @@
-package org.loed.framework.mybatis;
+package org.loed.framework.common.query;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -11,7 +11,7 @@ import java.util.List;
  * @version 1.0
  * @since 2020/2/24 1:46 PM
  */
-class QueryBuilder {
+public class QueryBuilder {
 	private static final String BLANK = " ";
 	//	private int setLastIndex = -1;
 //	private int selectLastIndex = -1;
@@ -170,6 +170,10 @@ class QueryBuilder {
 		return this;
 	}
 
+	public List<String> getUpdateList() {
+		return updateList;
+	}
+
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
@@ -194,7 +198,6 @@ class QueryBuilder {
 					}
 				}
 				buildWhereClause(builder);
-
 				if (CollectionUtils.isNotEmpty(orderByList)) {
 					builder.append(BLANK).append("order by").append(BLANK);
 					for (String orderBy : orderByList) {

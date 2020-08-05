@@ -10,5 +10,5 @@ import reactor.core.publisher.Mono;
  * @since 2018/1/2 上午10:26
  */
 public interface PreUpdateListener extends OrderedListener {
-	Mono<Void> preUpdate(Object object);
+	<T> Mono<T> preUpdate(T object);
 }

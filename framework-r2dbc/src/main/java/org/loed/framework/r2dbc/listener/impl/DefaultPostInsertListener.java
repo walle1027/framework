@@ -12,9 +12,9 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class DefaultPostInsertListener implements PostInsertListener {
 	@Override
-	public Mono<Void> postInsert(Object object) {
+	public <T> Mono<T> postInsert(T object) {
 		log.info("DefaultPostInsertListener is invoked");
-		return Mono.just(object).then();
+		return Mono.just(object);
 	}
 
 	@Override

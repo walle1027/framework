@@ -32,7 +32,7 @@ public class LambdaUtils {
 				});
 	}
 
-	public static String getPropFromLambda(SFunction<?, ?> lambda) {
+	public static <T> String getPropFromLambda(SFunction<T, ?> lambda) {
 		SerializedLambda resolve = resolve(lambda);
 		return ReflectionUtils.methodToProperty(resolve.getImplMethodName());
 	}

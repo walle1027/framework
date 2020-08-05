@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
  * @since 2020/2/10 5:12 PM
  */
 @Data
-public class CommonPO  {
+public class CommonPO {
 	/**
 	 * 主键
 	 */
@@ -41,14 +41,14 @@ public class CommonPO  {
 	/**
 	 * 更新时间
 	 */
-	@Column()
+	@Column(insertable = false)
 	@Temporal(value = TemporalType.TIMESTAMP)
 	@LastModifyTime
 	protected LocalDateTime updateTime;
 	/**
 	 * 最后修改者
 	 */
-	@Column(length = 32)
+	@Column(length = 32, insertable = false)
 	@LastModifyBy
 	protected String updateBy;
 	/**

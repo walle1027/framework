@@ -6,6 +6,10 @@ import org.loed.framework.common.database.Join;
 import org.loed.framework.common.database.Relation;
 import org.loed.framework.common.database.Sharding;
 import org.loed.framework.common.database.Table;
+import org.loed.framework.common.po.CreateBy;
+import org.loed.framework.common.po.CreateTime;
+import org.loed.framework.common.po.IsDeleted;
+import org.loed.framework.common.po.TenantId;
 import org.loed.framework.common.util.DataType;
 import org.loed.framework.common.util.ReflectionUtils;
 import org.loed.framework.common.util.StringHelper;
@@ -86,6 +90,10 @@ public class ORMapping {
 				column.setUpdatable(columnAnno.updatable());
 				column.setInsertable(columnAnno.insertable());
 				column.setVersioned(field.getAnnotation(Version.class) != null);
+				column.setTenantId(field.getAnnotation(TenantId.class) != null);
+				column.setCreateBy(field.getAnnotation(CreateBy.class) != null);
+				column.setCreateTime(field.getAnnotation(CreateTime.class) != null);
+				column.setDeleted(field.getAnnotation(IsDeleted.class) != null);
 				//自动设置columnDef
 				JDBCType jdbcType = autoGuessJdbcType(field);
 				column.setSqlType(jdbcType.getVendorTypeNumber());

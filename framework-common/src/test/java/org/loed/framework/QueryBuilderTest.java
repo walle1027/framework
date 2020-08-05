@@ -1,7 +1,7 @@
-package org.loed.framework.mybatis;
+package org.loed.framework;
 
 import org.junit.Test;
-import org.loed.framework.mybatis.QueryBuilder;
+import org.loed.framework.common.query.QueryBuilder;
 
 /**
  * @author thomason

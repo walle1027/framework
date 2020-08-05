@@ -10,8 +10,8 @@ import javax.persistence.criteria.JoinType;
 import javax.validation.constraints.NotNull;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -31,7 +31,7 @@ public class Criteria<T> implements Serializable {
 		return new Criteria<S>();
 	}
 
-	private static <S> Criteria<S> from(Criteria<S> criteria) {
+	public static <S> Criteria<S> from(Criteria<S> criteria) {
 		Criteria<S> criteriaNew = new Criteria<>();
 		criteriaNew.conditions = criteria.conditions;
 		criteriaNew.selector = criteria.selector;
@@ -39,21 +39,19 @@ public class Criteria<T> implements Serializable {
 		return criteriaNew;
 	}
 
-	public void criterion(Condition condition) {
+	public Criteria<T> criterion(Condition... condition) {
 		if (conditions == null) {
 			conditions = new ArrayList<>();
 		}
-		if (condition != null) {
-			conditions.add(condition);
+		if (condition != null && condition.length > 0) {
+			conditions.addAll(Arrays.asList(condition));
 		}
+		return this;
 	}
 
-
-//	public Criteria<T> clear() {
-//		this.conditions = new ArrayList<>();
-//		this.sortProperties = null;
-//		return this;
-//	}
+	public void setConditions(List<Condition> conditions) {
+		this.conditions = conditions;
+	}
 
 	public Criteria<T> selector(Selector selector) {
 		this.selector = selector;

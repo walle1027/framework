@@ -67,7 +67,7 @@ public class R2dbcDaoFactoryBean<R extends R2dbcDao<T, ID>, T, ID> implements In
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		this.dao = Lazy.of(() -> {
-			DefaultR2DbcDao<T, ID> defaultR2DbcDao = new DefaultR2DbcDao<T, ID>(daoInterface, databaseClient);
+			DefaultR2dbcDao<T, ID> defaultR2DbcDao = new DefaultR2dbcDao<T, ID>(daoInterface, databaseClient);
 			defaultR2DbcDao.setSqlBuilder(lookupSqlBuilder());
 			//initial listeners
 			defaultR2DbcDao.setPreInsertListeners(lookupBeans(PreInsertListener.class));
