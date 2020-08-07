@@ -204,6 +204,7 @@ public class SqlBuilder {
 	 *
 	 * @return sql字符串
 	 */
+	@Override
 	public String toString() {
 		return builder.toString();
 	}

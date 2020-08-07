@@ -12,9 +12,9 @@ import org.loed.framework.r2dbc.dao.R2dbcParam;
 import org.loed.framework.r2dbc.dao.R2dbcQuery;
 import org.loed.framework.r2dbc.dao.R2dbcSqlBuilder;
 import org.loed.framework.r2dbc.dao.dialect.MysqlR2dbcSqlBuilder;
-import org.loed.framework.r2dbc.po.People;
-import org.loed.framework.r2dbc.po.Person;
-import org.loed.framework.r2dbc.po.Sex;
+import org.loed.framework.r2dbc.po.*;
+import org.loed.framework.r2dbc.po.Class;
+import org.springframework.data.domain.PageRequest;
 
 import java.util.*;
 
@@ -149,11 +149,47 @@ public class MysqlR2dbcSqlBuilderTest {
 	@Test
 	public void testFindByCriteria() {
 		Table table = ORMapping.get(Person.class);
+		Criteria<Person> criteria = createCaseCoverageCriteria();
+		R2dbcQuery query = mysqlR2dbcSqlBuilder.findByCriteria(table, criteria);
+		printQuery(query);
+	}
+
+	@Test
+	public void testCountByCriteria() {
+		Table table = ORMapping.get(Person.class);
+		Criteria<Person> criteria = createCaseCoverageCriteria();
+		R2dbcQuery query = mysqlR2dbcSqlBuilder.countByCriteria(table, criteria);
+		printQuery(query);
+	}
+
+	@Test
+	public void testPagination() {
+		Table table = ORMapping.get(Person.class);
+		Criteria<Person> criteria = createCaseCoverageCriteria();
+		PageRequest pageRequest = PageRequest.of(0, 10);
+		R2dbcQuery pageByCriteria = mysqlR2dbcSqlBuilder.findPageByCriteria(table, criteria, pageRequest);
+		printQuery(pageByCriteria);
+	}
+
+	@Test
+	public void testJoinCriteria() {
+		Criteria<Student> criteria = Criteria.from(Student.class);
+		criteria.and(Student::getName).is("zhangsan");
+		criteria.inner(Student::getMyClass).and(Class::getGrade).is("2");
+		criteria.left(Student::getMyClass2).and(Class::getName).is("3");
+		criteria.right(Student::getMyClass).and(Class::getName).is("3");
+		criteria.and(Student::getNo).contains("2");
+		Table table = ORMapping.get(Student.class);
+		R2dbcQuery query = mysqlR2dbcSqlBuilder.findByCriteria(table, criteria);
+		printQuery(query);
+	}
+
+	private Criteria<Person> createCaseCoverageCriteria() {
 		Criteria<Person> criteria = Criteria.from(Person.class);
 		List<Sex> sexes = new ArrayList<>();
 		sexes.add(Sex.Female);
 		sexes.add(Sex.Male);
-		criteria.and(Person::getId).in(Arrays.asList("1", "2"))
+		return criteria.and(Person::getId).in(Arrays.asList("1", "2"))
 				.and(Person::getName).beginWith("test")
 				.and(Person::getName).notBeginWith("test")
 				.and(Person::getName).endWith("test")
@@ -182,9 +218,22 @@ public class MysqlR2dbcSqlBuilderTest {
 				.and(Person::getAge).in(new float[]{1, 2, 3, 4, 5})
 				.and(Person::getAge).in(new boolean[]{true, false})
 				.and(Person::getAge).in(new Object[]{1, 2, 3, 4, 5})
-				.and(Person::getName).custom(" > age");
-		R2dbcQuery query = mysqlR2dbcSqlBuilder.findByCriteria(table, criteria);
-		printQuery(query);
+
+				.and(Person::getSex).notIn(sexes)
+				.and(Person::getAge).notIn(new int[]{1, 2, 3, 4, 5})
+				.and(Person::getAge).notIn(new long[]{1L, 2L, 3L, 4L, 5L})
+				.and(Person::getAge).notIn(new short[]{1, 2, 3, 4, 5})
+				.and(Person::getAge).notIn(new char[]{'1', '2', '3', '4', '5'})
+				.and(Person::getAge).notIn(new double[]{1D, 2D, 3D, 4D, 5D})
+				.and(Person::getAge).notIn(new byte[]{1, 2, 3, 4, 5})
+				.and(Person::getAge).notIn(new float[]{1, 2, 3, 4, 5})
+				.and(Person::getAge).notIn(new boolean[]{true, false})
+				.and(Person::getAge).notIn(new Object[]{1, 2, 3, 4, 5})
+
+				.and(Person::getName).custom(" > age")
+				.desc(Person::getAge)
+				.asc(Person::getName)
+				.desc(Person::getSex);
 	}
 
 	private void printQuery(R2dbcQuery query) {

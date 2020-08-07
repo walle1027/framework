@@ -225,7 +225,18 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 				buildCondition(paramMap, tableAliasMap, counter, builder, condition, table);
 			}
 		}
-		buildOrder(tableAliasMap, counter, builder, table, criteria.getSortProperties());
+		// do not include order clause
+		List<SortProperty> sortProperties = criteria.getSortProperties();
+		if (CollectionUtils.isNotEmpty(sortProperties)) {
+			for (SortProperty sortProperty : sortProperties) {
+				String propertyName = sortProperty.getPropertyName();
+				if (StringUtils.isBlank(propertyName)) {
+					continue;
+				}
+				//解析级联属性
+				resolvePropertyCascade(tableAliasMap, table, rootAlias, counter, builder, JoinType.LEFT, null, propertyName);
+			}
+		}
 		if (log.isDebugEnabled()) {
 			log.debug(builder.toString());
 		}
@@ -665,7 +676,7 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 					propertyAlias = tableAliasMap.get(propertyName.substring(0, propertyName.lastIndexOf(".")));
 				}
 				if (StringUtils.isNotBlank(propertyAlias)) {
-					sql.orderBy(wrap(propertyAlias + "." + column.getSqlName()) + BLANK + sortProperty.getSort().name());
+					sql.orderBy(propertyAlias + "." + wrap(column.getSqlName()) + BLANK + sortProperty.getSort().name());
 				} else {
 					sql.orderBy(wrap(column.getSqlName()) + BLANK + sortProperty.getSort().name());
 				}
@@ -709,15 +720,15 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 		String alias = tableAliasMap.computeIfAbsent(key, (k) -> {
 			StringBuilder builder = new StringBuilder();
 			String targetAlias = createTableAlias(targetTableName, counter);
-			builder.append(targetTableName).append(BLANK).append("as").append(BLANK).append(targetAlias);
+			builder.append(wrap(targetTableName)).append(BLANK).append("as").append(BLANK).append(targetAlias);
 			builder.append(BLANK).append("on").append(BLANK);
 			join.getJoinColumns().forEach(joinColumn -> {
 				if (StringUtils.isNotBlank(parentTableAlias)) {
-					builder.append(BLANK).append(parentTableAlias).append(".").append(joinColumn.getName()).append(BLANK);
+					builder.append(BLANK).append(parentTableAlias).append(".").append(wrap(joinColumn.getName())).append(BLANK);
 				} else {
 					builder.append(BLANK).append(joinColumn.getName()).append(BLANK);
 				}
-				builder.append("=").append(BLANK).append(targetAlias).append(".").append(joinColumn.getReferencedColumnName());
+				builder.append("=").append(BLANK).append(targetAlias).append(".").append(wrap(joinColumn.getReferencedColumnName()));
 				builder.append(BLANK).append("and");
 			});
 			builder.delete(builder.length() - 3, builder.length());

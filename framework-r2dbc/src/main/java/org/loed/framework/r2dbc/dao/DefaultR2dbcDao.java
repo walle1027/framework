@@ -88,7 +88,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	}
 
 	@Override
-	public <S extends T> Mono<S> insert(S entity) {
+	public <S extends T> Mono<S> insert(@NonNull S entity) {
 		return Mono.just(entity).flatMap(preInsertFunction()).flatMap(this::doInsert).flatMap(postInsertFunction());
 	}
 
@@ -111,13 +111,13 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	}
 
 	@Override
-	public <S extends T> Flux<S> batchInsert(Iterable<S> entities) {
+	public <S extends T> Flux<S> batchInsert(@NonNull Iterable<S> entities) {
 		return Flux.fromIterable(entities).flatMap(preInsertFunction()).collectList().flatMapMany(batchInsertFunction()).flatMap(postInsertFunction());
 	}
 
 
 	@Override
-	public <S extends T> Flux<S> batchInsert(Publisher<S> entityStream) {
+	public <S extends T> Flux<S> batchInsert(@NonNull Publisher<S> entityStream) {
 		return Flux.from(entityStream).flatMap(preInsertFunction()).collectList().flatMapMany(batchInsertFunction()).flatMap(postInsertFunction());
 	}
 
@@ -181,12 +181,12 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	}
 
 	@Override
-	public <S extends T> Mono<S> update(S entity) {
+	public <S extends T> Mono<S> update(@NonNull S entity) {
 		return Mono.just(entity).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, R2dbcSqlBuilder.ALWAYS_TRUE_FILTER)).flatMap(postUpdateFunction());
 	}
 
 	@Override
-	public <S extends T> Mono<S> updateSelective(S entity) {
+	public <S extends T> Mono<S> updateSelective(@NonNull S entity) {
 		return Mono.just(entity).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, new R2dbcSqlBuilder.NotEmptyFilter(po))).flatMap(postUpdateFunction());
 	}
 
@@ -238,30 +238,30 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	}
 
 	@Override
-	public <S extends T> Mono<S> updateWithout(S entity, Collection<SFunction<T, ?>> columns) {
+	public <S extends T> Mono<S> updateWithout(@NonNull S entity, @Nullable Collection<SFunction<T, ?>> columns) {
 		List<String> excludes = columns == null ? null : columns.stream().map(LambdaUtils::getPropFromLambda).collect(Collectors.toList());
 		return Mono.just(entity).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, excludes == null ? R2dbcSqlBuilder.ALWAYS_TRUE_FILTER : new R2dbcSqlBuilder.ExcludeFilter(excludes))).flatMap(postUpdateFunction());
 	}
 
 	@Override
-	public <S extends T> Flux<S> batchUpdate(Iterable<S> entities) {
+	public <S extends T> Flux<S> batchUpdate(@NonNull Iterable<S> entities) {
 		return Flux.fromIterable(entities).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, R2dbcSqlBuilder.ALWAYS_TRUE_FILTER)).flatMap(postUpdateFunction());
 	}
 
 	@Override
-	public <S extends T> Flux<S> batchUpdate(Publisher<S> entityStream) {
+	public <S extends T> Flux<S> batchUpdate(@NonNull Publisher<S> entityStream) {
 		return Flux.from(entityStream).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, R2dbcSqlBuilder.ALWAYS_TRUE_FILTER)).flatMap(postUpdateFunction());
 	}
 
 	@Override
-	public Mono<T> get(ID id) {
+	public Mono<T> get(@NonNull ID id) {
 		return Flux.merge(Flux.just(new Condition(idColumn.getJavaName(), Operator.equal, id)), addConditions()).collectList().map(conditions -> {
 			return Criteria.from(entityClass).criterion(conditions.toArray(new Condition[0]));
 		}).flatMap(this::findOne);
 	}
 
 	@Override
-	public Mono<T> get(Publisher<ID> idPublisher) {
+	public Mono<T> get(@NonNull Publisher<ID> idPublisher) {
 		return Flux.merge(Flux.from(idPublisher).map(id -> {
 			return new Condition(idColumn.getJavaName(), Operator.equal, id);
 		}), addConditions()).collectList().map(conditions -> {
@@ -286,14 +286,14 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	}
 
 	@Override
-	public Mono<Boolean> existsById(ID id) {
+	public Mono<Boolean> existsById(@NonNull ID id) {
 		return Flux.merge(Flux.just(new Condition(idColumn.getJavaName(), Operator.equal, id)), addConditions()).collectList().map(conditions -> {
 			return Criteria.from(entityClass).criterion(conditions.toArray(new Condition[0]));
 		}).flatMap(this::count).map(count -> count > 0);
 	}
 
 	@Override
-	public Mono<Boolean> existsById(Publisher<ID> idPublisher) {
+	public Mono<Boolean> existsById(@NonNull Publisher<ID> idPublisher) {
 		return Flux.from(idPublisher).map(id -> {
 			return new Condition(idColumn.getJavaName(), Operator.equal, id);
 		}).mergeWith(addConditions())
@@ -303,7 +303,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	}
 
 	@Override
-	public Mono<Integer> delete(ID id) {
+	public Mono<Integer> delete(@NonNull ID id) {
 		return Flux.merge(Flux.just(new Condition(idColumn.getJavaName(), Operator.equal, id)), addConditions()).collectList()
 				.map(conditions -> {
 					return Criteria.from(entityClass).criterion(conditions.toArray(new Condition[0]));
@@ -311,7 +311,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	}
 
 	@Override
-	public Mono<Integer> delete(Publisher<ID> idPublisher) {
+	public Mono<Integer> delete(@NonNull Publisher<ID> idPublisher) {
 		return Flux.merge(Flux.from(idPublisher).map(id -> {
 			return new Condition(idColumn.getJavaName(), Operator.equal, id);
 		}), addConditions())
@@ -321,7 +321,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	}
 
 	@Override
-	public Mono<Integer> deleteByCriteria(Criteria<T> criteria) {
+	public Mono<Integer> deleteByCriteria(@NonNull Criteria<T> criteria) {
 		return Mono.just(criteria).flatMap(crit -> {
 					return addConditions().collectList().map(conditions -> {
 						return crit.criterion(conditions.toArray(new Condition[0]));
@@ -336,7 +336,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	}
 
 	@Override
-	public Flux<T> find(Criteria<T> criteria) {
+	public Flux<T> find(@NonNull Criteria<T> criteria) {
 		List<Condition> conditions = criteria.getConditions() == null ? Collections.emptyList() : criteria.getConditions();
 		return Flux.merge(Flux.fromIterable(conditions), addConditions()).collectList().map(cnd -> {
 			Criteria<T> criteriaNew = Criteria.from(criteria);
@@ -348,7 +348,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	}
 
 	@Override
-	public Mono<T> findOne(Criteria<T> criteria) {
+	public Mono<T> findOne(@NonNull Criteria<T> criteria) {
 		PageRequest request = PageRequest.of(1, 1);
 		return findPage(criteria, request).flatMap(pagination -> {
 			return pagination.getRows() == null ? Mono.empty() : Mono.just(pagination.getRows().get(0));
@@ -356,7 +356,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	}
 
 	@Override
-	public Mono<Long> count(Criteria<T> criteria) {
+	public Mono<Long> count(@NonNull Criteria<T> criteria) {
 		List<Condition> conditions = criteria.getConditions() == null ? Collections.emptyList() : criteria.getConditions();
 		return Flux.merge(Flux.fromIterable(conditions), addConditions()).collectList().map(cnds -> {
 			Criteria<T> criteriaNew = Criteria.from(criteria);
@@ -371,7 +371,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	}
 
 	@Override
-	public Mono<Pagination<T>> findPage(Criteria<T> criteria, PageRequest pageRequest) {
+	public Mono<Pagination<T>> findPage(@NonNull Criteria<T> criteria, @NonNull PageRequest pageRequest) {
 		boolean paged = pageRequest.isPaged();
 		if (paged) {
 			return Mono.zip(count(criteria), Mono.just(sqlBuilder.findPageByCriteria(table, criteria, pageRequest)).flatMap(r2dbcQuery -> {
@@ -397,7 +397,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	}
 
 	@Override
-	public Flux<T> select(String sql, Map<String, Object> params) {
+	public Flux<T> select(@NonNull String sql, @NonNull Map<String, Object> params) {
 		DatabaseClient.GenericExecuteSpec execute = databaseClient.execute(sql);
 		if (params != null && params.size() > 0) {
 			for (Map.Entry<String, Object> entry : params.entrySet()) {
@@ -423,7 +423,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 				String paramName = entry.getKey();
 				R2dbcParam param = entry.getValue();
 				if (param.getParamValue() == null) {
-					execute = execute.bind(paramName, param.getParamType());
+					execute = execute.bindNull(paramName, param.getParamType());
 				} else {
 					execute = execute.bind(paramName, param.getParamValue());
 				}

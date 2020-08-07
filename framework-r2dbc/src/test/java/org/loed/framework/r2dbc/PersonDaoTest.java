@@ -10,6 +10,7 @@ import org.loed.framework.common.query.Criteria;
 import org.loed.framework.r2dbc.dao.PersonDao;
 import org.loed.framework.r2dbc.po.CommonPO;
 import org.loed.framework.r2dbc.po.Person;
+import org.loed.framework.r2dbc.po.Sex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -45,6 +46,7 @@ public class PersonDaoTest {
 		String id = UUID.randomUUID().toString().replace("-", "");
 		person.setId(id);
 		person.setName("test");
+		person.setSex(Sex.Female);
 		Mono<String> idMono = personDao.insert(person)
 				.subscriberContext(context -> {
 					return context.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, contextMap);

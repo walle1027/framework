@@ -200,9 +200,7 @@ public class QueryBuilder {
 				buildWhereClause(builder);
 				if (CollectionUtils.isNotEmpty(orderByList)) {
 					builder.append(BLANK).append("order by").append(BLANK);
-					for (String orderBy : orderByList) {
-						builder.append(orderBy);
-					}
+					builder.append(String.join(",", orderByList));
 				}
 				break;
 			case update:
