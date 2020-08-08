@@ -17,7 +17,6 @@
 		<module>framework-common</module>
 		<module>framework-event</module>
 		<module>framework-mybatis</module>
-		<module>framework-jdbc</module>
 		<module>framework-r2dbc</module>
 		<module>framework-rest</module>
 	</modules>
