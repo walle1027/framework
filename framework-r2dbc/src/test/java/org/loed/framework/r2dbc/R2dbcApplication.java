@@ -1,6 +1,7 @@
 package org.loed.framework.r2dbc;
 
 import io.r2dbc.spi.ConnectionFactory;
+import org.loed.framework.r2dbc.autoconfigure.R2dbcDaoScanner;
 import org.loed.framework.r2dbc.dao.R2dbcSqlBuilder;
 import org.loed.framework.r2dbc.dao.dialect.MysqlR2dbcSqlBuilder;
 import org.loed.framework.r2dbc.listener.impl.DefaultPostInsertListener;
@@ -10,7 +11,6 @@ import org.loed.framework.r2dbc.listener.spi.PreInsertListener;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
 import org.springframework.data.r2dbc.connectionfactory.R2dbcTransactionManager;
 import org.springframework.transaction.ReactiveTransactionManager;
 
@@ -20,7 +20,7 @@ import org.springframework.transaction.ReactiveTransactionManager;
  * @since 2020/4/30 4:03 PM
  */
 @SpringBootApplication
-@Import(R2dbcDaoRegister.class)
+@R2dbcDaoScanner(basePackages = "org.loed.framework.r2dbc.dao")
 public class R2dbcApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(R2dbcApplication.class, args);

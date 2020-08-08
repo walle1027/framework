@@ -43,10 +43,13 @@ public class R2dbcDaoFactoryBean<R extends R2dbcDao<T, ID>, T, ID> implements In
 
 	private Environment environment;
 
+	private final R2dbcSqlBuilder r2dbcSqlBuilder;
 
-	public R2dbcDaoFactoryBean(Class<? extends R> daoInterface, DatabaseClient databaseClient) {
+
+	public R2dbcDaoFactoryBean(Class<? extends R> daoInterface, DatabaseClient databaseClient,R2dbcSqlBuilder r2dbcSqlBuilder) {
 		this.daoInterface = daoInterface;
 		this.databaseClient = databaseClient;
+		this.r2dbcSqlBuilder = r2dbcSqlBuilder;
 	}
 
 	@Override
@@ -68,7 +71,8 @@ public class R2dbcDaoFactoryBean<R extends R2dbcDao<T, ID>, T, ID> implements In
 	public void afterPropertiesSet() throws Exception {
 		this.dao = Lazy.of(() -> {
 			DefaultR2dbcDao<T, ID> defaultR2DbcDao = new DefaultR2dbcDao<T, ID>(daoInterface, databaseClient);
-			defaultR2DbcDao.setSqlBuilder(lookupSqlBuilder());
+
+			defaultR2DbcDao.setR2dbcSqlBuilder(r2dbcSqlBuilder);
 			//initial listeners
 			defaultR2DbcDao.setPreInsertListeners(lookupBeans(PreInsertListener.class));
 			defaultR2DbcDao.setPostInsertListeners(lookupBeans(PostInsertListener.class));
