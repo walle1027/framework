@@ -80,7 +80,6 @@ public class R2dbcDaoFactoryBean<R extends R2dbcDao<T, ID>, T, ID> implements In
 			defaultR2DbcDao.setPreUpdateListeners(lookupBeans(PreUpdateListener.class));
 			defaultR2DbcDao.setPostUpdateListeners(lookupBeans(PostUpdateListener.class));
 			defaultR2DbcDao.setPreDeleteListeners(lookupBeans(PreDeleteListener.class));
-			defaultR2DbcDao.setPostDeleteListeners(lookupBeans(PostDeleteListener.class));
 
 			BindResult<R2dbcDaoProperties> bind = Binder.get(environment).bind(R2dbcDaoProperties.Prefix, R2dbcDaoProperties.class);
 			if (bind.isBound()) {

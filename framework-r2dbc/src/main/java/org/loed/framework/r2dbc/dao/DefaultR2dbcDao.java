@@ -73,8 +73,6 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 
 	private List<PreDeleteListener> preDeleteListeners;
 
-	private List<PostDeleteListener> postDeleteListeners;
-
 	public DefaultR2dbcDao(Class<? extends R2dbcDao<T, ID>> daoInterface, DatabaseClient databaseClient) {
 		this.databaseClient = databaseClient;
 		this.daoInterface = daoInterface;
@@ -330,12 +328,32 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 						return crit.criterion(conditions.toArray(new Condition[0]));
 					}).defaultIfEmpty(crit);
 				}
-		).map(crit -> {
+		).flatMap(crit -> {
 			if (CollectionUtils.isEmpty(crit.getConditions())) {
 				throw new RuntimeException("empty conditions to delete the entity ,this will ignore");
 			}
-			return r2dbcSqlBuilder.deleteByCriteria(table, crit);
-		}).flatMap(this::execute);
+			if (CollectionUtils.isNotEmpty(preDeleteListeners)) {
+				return this.find(crit).flatMap(preDeleteFunction()).collectList().flatMap(entityList -> {
+					return execute(r2dbcSqlBuilder.deleteByCriteria(table, crit));
+				});
+			} else {
+				return execute(r2dbcSqlBuilder.deleteByCriteria(table, crit));
+			}
+		});
+	}
+
+	private <S extends T> Function<S, Mono<? extends S>> preDeleteFunction() {
+		return entity -> {
+			if (preDeleteListeners != null) {
+				return Flux.fromIterable(preDeleteListeners).sort(Comparator.comparing(OrderedListener::getOrder)).flatMap(preDeleteListener -> {
+					return preDeleteListener.preDelete(entity).onErrorStop().doOnError(err -> {
+						log.error(err.getMessage(), err);
+					});
+				}).last();
+			} else {
+				return Mono.just(entity);
+			}
+		};
 	}
 
 	@Override
@@ -456,10 +474,6 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 
 	public void setPreDeleteListeners(List<PreDeleteListener> preDeleteListeners) {
 		this.preDeleteListeners = preDeleteListeners;
-	}
-
-	public void setPostDeleteListeners(List<PostDeleteListener> postDeleteListeners) {
-		this.postDeleteListeners = postDeleteListeners;
 	}
 
 	public void setBatchSize(int batchSize) {
