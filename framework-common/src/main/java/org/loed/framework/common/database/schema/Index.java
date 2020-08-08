@@ -1,4 +1,4 @@
-package org.loed.framework.mybatis.inspector.model;
+package org.loed.framework.common.database.schema;
 
 /**
  * @author thomason

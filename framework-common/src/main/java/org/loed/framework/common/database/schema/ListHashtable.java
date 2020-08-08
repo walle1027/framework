@@ -2,7 +2,7 @@
  * Created on Nov 23, 2004
  *
  */
-package org.loed.framework.mybatis.inspector.model;
+package org.loed.framework.common.database.schema;
 
 import java.util.ArrayList;
 import java.util.Hashtable;

@@ -1,5 +1,6 @@
 package org.loed.framework.r2dbc.autoconfigure;
 
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.relational.core.dialect.Dialect;
 
@@ -13,7 +14,8 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 @Documented
-@Import(R2dbcDbInspectorConfiguration.class)
+@Import({R2dbcDbInspectorConfiguration.class})
+@EnableConfigurationProperties(R2dbcProperties.class)
 public @interface R2dbcDbInspector {
 	/**
 	 * 是否自动启用

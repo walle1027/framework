@@ -4,7 +4,7 @@
  * TODO To change the template for this generated file go to
  * Window - Preferences - Java - Code Style - Code Templates
  */
-package org.loed.framework.mybatis.inspector.model;
+package org.loed.framework.common.database.schema;
 
 import java.util.List;
 

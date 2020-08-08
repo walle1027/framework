@@ -1,7 +1,5 @@
-package org.loed.framework.mybatis.inspector.model;
+package org.loed.framework.common.database.schema;
 
-
-import org.loed.framework.mybatis.inspector.DatabaseResolver;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,18 +16,26 @@ public class Table {
 	public static final String FKTABLE_NAME = "FKTABLE_NAME";
 	public static final String FKCOLUMN_NAME = "FKCOLUMN_NAME";
 	public static final String KEY_SEQ = "KEY_SEQ";
-	// 表的所有列
-	@SuppressWarnings("unchecked")
+	private String schema;
+	/**
+	 * 表的所有列
+	 */
 	List<Column> columns = new ArrayList();
-	// 表的主键列
-	@SuppressWarnings("unchecked")
-	List primaryKeyColumns = new ArrayList();
-	private String schema = DatabaseResolver.getInstance().schema;
-	// 表在数据库里面的名称
+	/**
+	 * 表的主键列
+	 */
+	List<Column> primaryKeyColumns = new ArrayList();
+	/**
+	 * 表在数据库里面的名称
+	 */
 	private String tableName;
-	// 表的外键
+	/**
+	 * 表的外键
+	 */
 	private String foreignKey;
-	//索引
+	/**
+	 * 索引
+	 */
 	private List<Index> indices;
 	/**
 	 * the name of the owner of the synonym if this table is a synonym
@@ -53,11 +59,11 @@ public class Table {
 	}
 
 	@SuppressWarnings("unchecked")
-	public List getPrimaryKeyColumns() {
+	public List<Column> getPrimaryKeyColumns() {
 		return primaryKeyColumns;
 	}
 
-	public void setPrimaryKeyColumns(List primaryKeyColumns) {
+	public void setPrimaryKeyColumns(List<Column> primaryKeyColumns) {
 		this.primaryKeyColumns = primaryKeyColumns;
 	}
 

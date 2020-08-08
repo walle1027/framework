@@ -1,16 +1,14 @@
-package org.loed.framework.mybatis.inspector.model;
+package org.loed.framework.common.database.schema;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author yangtao
  */
+@Data
+@Slf4j
 public class Column {
-	/**
-	 * Get static reference to Log4J Logger
-	 */
-	private static Log _log = LogFactory.getLog(Column.class);
 	/**
 	 * Reference to the containing table
 	 */
@@ -18,40 +16,39 @@ public class Column {
 	/**
 	 * The java.sql.Types type
 	 */
-	private final int sqlType;
+	private int sqlType;
 	/**
 	 * The sql typename. provided by JDBC driver
 	 */
-	@SuppressWarnings("unused")
-	private final String sqlTypeName;
+	private String sqlTypeName;
 	/**
 	 * The name of the column
 	 */
-	private final String sqlName;
+	private String sqlName;
 	/**
-	 * @todo-javadoc Describe the column
+	 * size of the column
 	 */
-	private final int size;
+	private int size;
 	/**
-	 * @todo-javadoc Describe the column
+	 * digits of the column
 	 */
-	private final int decimalDigits;
+	private int decimalDigits;
 	/**
 	 * True if the column is nullable
 	 */
-	private final boolean nullable;
+	private boolean nullable;
 	/**
 	 * True if the column is indexed
 	 */
-	private final boolean indexed;
+	private boolean indexed;
 	/**
 	 * True if the column is unique
 	 */
-	private final boolean unique;
+	private boolean unique;
 	/**
 	 * Null if the DB reports no default value
 	 */
-	private final String defaultValue;
+	private String defaultValue;
 	/**
 	 * True if the column is a primary key
 	 */
@@ -60,8 +57,14 @@ public class Column {
 	 * True if the column is a foreign key
 	 */
 	private boolean foreignKey;
-	// 每列的别名
+	/**
+	 * 每列的注释
+	 */
 	private String comment = "";
+
+	public Column(Table table) {
+		this.table = table;
+	}
 
 	/**
 	 * Describe what the DbColumn constructor does
@@ -92,71 +95,6 @@ public class Column {
 		indexed = isIndexed;
 		unique = isUnique;
 		this.defaultValue = defaultValue;
-		_log.debug(sqlName + " isPk -> " + primaryKey);
-
-	}
-
-	public Table getTable() {
-		return table;
-	}
-
-	public int getSqlType() {
-		return sqlType;
-	}
-
-	public String getSqlTypeName() {
-		return sqlTypeName;
-	}
-
-	public String getSqlName() {
-		return sqlName;
-	}
-
-	public int getSize() {
-		return size;
-	}
-
-	public int getDecimalDigits() {
-		return decimalDigits;
-	}
-
-	public boolean isNullable() {
-		return nullable;
-	}
-
-	public boolean isIndexed() {
-		return indexed;
-	}
-
-	public boolean isUnique() {
-		return unique;
-	}
-
-	public String getDefaultValue() {
-		return defaultValue;
-	}
-
-	public boolean isPrimaryKey() {
-		return primaryKey;
-	}
-
-	public void setPrimaryKey(boolean primaryKey) {
-		this.primaryKey = primaryKey;
-	}
-
-	public boolean isForeignKey() {
-		return foreignKey;
-	}
-
-	public void setForeignKey(boolean foreignKey) {
-		this.foreignKey = foreignKey;
-	}
-
-	public String getComment() {
-		return comment;
-	}
-
-	public void setComment(String comment) {
-		this.comment = comment;
+		log.debug(sqlName + " isPk -> " + primaryKey);
 	}
 }
