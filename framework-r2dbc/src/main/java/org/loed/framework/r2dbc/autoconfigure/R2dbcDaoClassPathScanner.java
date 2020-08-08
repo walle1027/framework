@@ -62,6 +62,7 @@ public class R2dbcDaoClassPathScanner extends ClassPathBeanDefinitionScanner {
 		});
 	}
 
+	@Override
 	protected boolean isCandidateComponent(AnnotatedBeanDefinition beanDefinition) {
 		return true;
 	}

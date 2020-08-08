@@ -4,10 +4,12 @@ import io.r2dbc.spi.ConnectionFactory;
 import org.loed.framework.r2dbc.autoconfigure.R2dbcDaoScanner;
 import org.loed.framework.r2dbc.dao.R2dbcSqlBuilder;
 import org.loed.framework.r2dbc.dao.dialect.MysqlR2dbcSqlBuilder;
-import org.loed.framework.r2dbc.listener.impl.DefaultPostInsertListener;
+import org.loed.framework.r2dbc.listener.TestPostInsertListener;
 import org.loed.framework.r2dbc.listener.impl.DefaultPreInsertListener;
+import org.loed.framework.r2dbc.listener.impl.DefaultPreUpdateListener;
 import org.loed.framework.r2dbc.listener.spi.PostInsertListener;
 import org.loed.framework.r2dbc.listener.spi.PreInsertListener;
+import org.loed.framework.r2dbc.listener.spi.PreUpdateListener;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -54,13 +56,18 @@ public class R2dbcApplication {
 	}
 
 	@Bean
-	PostInsertListener defaultPostInsertListener() {
-		return new DefaultPostInsertListener();
+	PreUpdateListener defaultPreUpdateListener() {
+		return new DefaultPreUpdateListener();
 	}
 
 	@Bean
-	PostInsertListener defaultPostInsertListener2() {
-		return new DefaultPostInsertListener();
+	PostInsertListener testPostInsertListener() {
+		return new TestPostInsertListener();
+	}
+
+	@Bean
+	PostInsertListener testPostInsertListener2() {
+		return new TestPostInsertListener();
 	}
 
 	@Bean
