@@ -19,7 +19,7 @@ import java.util.function.BiFunction;
  * @since 2015/2/21 11:13
  */
 @SuppressWarnings("ALL")
-public class JPAClassRowMapper<T> implements BiFunction<Row, RowMetadata,T> {
+public class JPAClassRowMapper<T> implements BiFunction<Row, RowMetadata, T> {
 	private Logger logger = LoggerFactory.getLogger(getClass());
 	private Class<T> clazz;
 	/*对象的所有属性集合*/
@@ -114,7 +114,25 @@ public class JPAClassRowMapper<T> implements BiFunction<Row, RowMetadata,T> {
 			field.setAccessible(true);
 		}
 		try {
-			field.set(object, value);
+			//add type convert
+			Class<?> type = field.getType();
+			if (value != null) {
+				Class<?> valueClass = value.getClass();
+				if (Objects.equals(type.getName(), valueClass.getName())) {
+					field.set(object, value);
+				} else {
+					int fieldType = DataType.getDataType(type);
+					try {
+						//fixme enum type not supperted
+						Object convertedValue = DataType.toType(value, fieldType);
+						field.set(object, convertedValue);
+					} catch (Exception e) {
+						logger.error("convert value:" + value + " to type:" + fieldType + " error, caused by:" + e.getMessage(), e);
+					}
+				}
+			} else {
+				field.set(object, value);
+			}
 		} catch (IllegalAccessException e) {
 			logger.error("不可能抛出的异常:{}", e);
 		}
@@ -142,7 +160,7 @@ public class JPAClassRowMapper<T> implements BiFunction<Row, RowMetadata,T> {
 			} else if (clazz.getName().equals("java.util.Set")) {
 				return new HashSet<>();
 			}
-			return  clazz.newInstance();
+			return clazz.newInstance();
 		} catch (InstantiationException e) {
 			e.printStackTrace();
 		} catch (IllegalAccessException e) {

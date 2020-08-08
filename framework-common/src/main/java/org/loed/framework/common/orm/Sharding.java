@@ -1,4 +1,4 @@
-package org.loed.framework.common.database;
+package org.loed.framework.common.orm;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;

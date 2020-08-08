@@ -6,7 +6,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.ibatis.annotations.*;
 import org.loed.framework.common.ORMapping;
 import org.loed.framework.common.context.SystemContext;
-import org.loed.framework.common.database.Table;
+import org.loed.framework.common.orm.Table;
 import org.loed.framework.common.lambda.SFunction;
 import org.loed.framework.common.po.BasePO;
 import org.loed.framework.common.po.CommonPO;

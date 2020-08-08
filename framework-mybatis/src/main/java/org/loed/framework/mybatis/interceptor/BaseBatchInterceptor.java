@@ -5,7 +5,7 @@ import org.apache.commons.lang3.tuple.Triple;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.plugin.Invocation;
 import org.loed.framework.common.ORMapping;
-import org.loed.framework.common.database.Table;
+import org.loed.framework.common.orm.Table;
 import org.loed.framework.mybatis.BatchOperation;
 import org.loed.framework.mybatis.BatchOperationException;
 import org.loed.framework.mybatis.BatchType;

@@ -4,7 +4,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.loed.framework.common.ORMapping;
 import org.loed.framework.common.RoutingDataSource;
 import org.loed.framework.common.ThreadPoolExecutor;
-import org.loed.framework.common.database.Table;
+import org.loed.framework.common.orm.Table;
 import org.loed.framework.common.lock.ZKDistributeLock;
 import org.loed.framework.jdbc.database.DatabaseResolver;
 import org.loed.framework.jdbc.database.dialect.Dialect;
@@ -175,7 +175,7 @@ public class DbInspector {
 								shardingTable.setShardingCount(table.getShardingCount());
 								if (table.getColumns() != null) {
 									shardingTable.setColumns(table.getColumns().stream().map(c -> {
-										org.loed.framework.common.database.Column column = new org.loed.framework.common.database.Column(shardingTable);
+										org.loed.framework.common.orm.Column column = new org.loed.framework.common.orm.Column(shardingTable);
 										column.setColumnDefinition(c.getColumnDefinition());
 										column.setDefaultValue(c.getDefaultValue());
 										column.setIndexed(c.isIndexed());
@@ -196,7 +196,7 @@ public class DbInspector {
 								}
 								if (table.getIndices() != null) {
 									shardingTable.setIndices(table.getIndices().stream().map(idx -> {
-										org.loed.framework.common.database.Index index = new org.loed.framework.common.database.Index(table);
+										org.loed.framework.common.orm.Index index = new org.loed.framework.common.orm.Index(table);
 										index.setTable(shardingTable);
 										index.setColumnList(idx.getColumnList());
 										index.setName(idx.getName());
@@ -268,8 +268,8 @@ public class DbInspector {
 		try {
 			String tableName = table.getSqlName();
 			org.loed.framework.jdbc.database.model.Table dbTable = resolver.getTable(connection, tableName);
-			List<org.loed.framework.common.database.Column> tableColumns = table.getColumns() == null ? Collections.EMPTY_LIST : table.getColumns();
-			List<org.loed.framework.common.database.Index> indexList = table.getIndices() == null ? Collections.EMPTY_LIST : table.getIndices();
+			List<org.loed.framework.common.orm.Column> tableColumns = table.getColumns() == null ? Collections.EMPTY_LIST : table.getColumns();
+			List<org.loed.framework.common.orm.Index> indexList = table.getIndices() == null ? Collections.EMPTY_LIST : table.getIndices();
 			if (dbTable == null) {
 				List<String> createTables = dialect.buildCreateTableClause(table);
 				if (CollectionUtils.isNotEmpty(createTables)) {

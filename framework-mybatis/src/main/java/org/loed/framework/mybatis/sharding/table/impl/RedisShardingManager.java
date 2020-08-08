@@ -2,7 +2,7 @@ package org.loed.framework.mybatis.sharding.table.impl;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.loed.framework.common.database.Table;
+import org.loed.framework.common.orm.Table;
 import org.loed.framework.mybatis.sharding.ShardingManager;
 import org.loed.framework.mybatis.sharding.table.po.IdMapping;
 import org.loed.framework.mybatis.sharding.table.po.ShardingMapping;

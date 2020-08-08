@@ -17,7 +17,7 @@ import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
 import org.loed.framework.common.ORMapping;
 import org.loed.framework.common.SpringUtils;
-import org.loed.framework.common.database.Table;
+import org.loed.framework.common.orm.Table;
 import org.loed.framework.mybatis.BatchOperation;
 import org.loed.framework.mybatis.BatchType;
 import org.loed.framework.mybatis.MybatisUtils;

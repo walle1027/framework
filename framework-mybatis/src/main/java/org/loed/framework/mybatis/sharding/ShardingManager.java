@@ -3,7 +3,7 @@ package org.loed.framework.mybatis.sharding;
 
 import org.apache.commons.lang3.StringUtils;
 import org.loed.framework.common.consistenthash.ConsistentHash;
-import org.loed.framework.common.database.Table;
+import org.loed.framework.common.orm.Table;
 import org.loed.framework.mybatis.sharding.table.TableConsistentHash;
 import org.loed.framework.mybatis.sharding.table.TableNode;
 import org.loed.framework.mybatis.sharding.table.po.IdMapping;

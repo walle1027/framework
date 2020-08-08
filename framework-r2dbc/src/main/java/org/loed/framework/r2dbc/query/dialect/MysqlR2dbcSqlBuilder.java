@@ -1,13 +1,12 @@
 package org.loed.framework.r2dbc.query.dialect;
 
-import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.loed.framework.common.ORMapping;
-import org.loed.framework.common.database.Column;
-import org.loed.framework.common.database.Join;
-import org.loed.framework.common.database.Table;
+import org.loed.framework.common.orm.Column;
+import org.loed.framework.common.orm.Join;
+import org.loed.framework.common.orm.Table;
 import org.loed.framework.common.query.Condition;
 import org.loed.framework.common.query.Criteria;
 import org.loed.framework.common.query.QueryBuilder;
@@ -33,7 +32,6 @@ import java.util.stream.Collectors;
  * @version 1.0
  * @since 2020/7/24 9:59 上午
  */
-@Data
 @Slf4j
 public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 
@@ -243,6 +241,11 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 		query.setStatement(builder.toString());
 		query.setParams(paramMap);
 		return query;
+	}
+
+	@Override
+	public boolean isQuote() {
+		return this.quote;
 	}
 
 	@Override

@@ -3,6 +3,7 @@ package org.loed.framework.common.database;
 import org.junit.Test;
 import org.loed.framework.common.ORMapping;
 import org.loed.framework.common.database.po.User;
+import org.loed.framework.common.orm.Table;
 import org.loed.framework.jdbc.database.dialect.Dialect;
 import org.loed.framework.jdbc.database.dialect.impl.MysqlDialect;
 

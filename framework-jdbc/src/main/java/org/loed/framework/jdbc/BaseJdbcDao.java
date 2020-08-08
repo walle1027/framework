@@ -4,7 +4,7 @@ import org.loed.framework.common.ORMapping;
 import org.loed.framework.common.query.Pagination;
 import org.loed.framework.common.SqlBuilder;
 import org.loed.framework.common.context.SystemContext;
-import org.loed.framework.common.database.Table;
+import org.loed.framework.common.orm.Table;
 import org.loed.framework.common.po.BasePO;
 import org.loed.framework.common.query.Criteria;
 import org.loed.framework.common.util.ReflectionUtils;

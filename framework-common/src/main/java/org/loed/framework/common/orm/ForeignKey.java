@@ -4,7 +4,7 @@
  * TODO To change the template for this generated file go to
  * Window - Preferences - Java - Code Style - Code Templates
  */
-package org.loed.framework.common.database;
+package org.loed.framework.common.orm;
 
 /**
  * @author thomason
