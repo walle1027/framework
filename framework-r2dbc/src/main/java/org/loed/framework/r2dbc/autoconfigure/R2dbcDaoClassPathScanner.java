@@ -3,7 +3,7 @@ package org.loed.framework.r2dbc.autoconfigure;
 import org.apache.commons.lang3.StringUtils;
 import org.loed.framework.r2dbc.dao.R2dbcDao;
 import org.loed.framework.r2dbc.dao.R2dbcDaoFactoryBean;
-import org.loed.framework.r2dbc.dao.R2dbcSqlBuilder;
+import org.loed.framework.r2dbc.query.R2dbcSqlBuilder;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinitionHolder;
 import org.springframework.beans.factory.config.RuntimeBeanReference;

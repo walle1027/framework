@@ -1,4 +1,4 @@
-package org.loed.framework.r2dbc.dao.dialect;
+package org.loed.framework.r2dbc.query.dialect;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -15,9 +15,9 @@ import org.loed.framework.common.query.SortProperty;
 import org.loed.framework.common.util.DataType;
 import org.loed.framework.common.util.ReflectionUtils;
 import org.loed.framework.common.util.StringHelper;
-import org.loed.framework.r2dbc.dao.R2dbcParam;
-import org.loed.framework.r2dbc.dao.R2dbcQuery;
-import org.loed.framework.r2dbc.dao.R2dbcSqlBuilder;
+import org.loed.framework.r2dbc.query.R2dbcParam;
+import org.loed.framework.r2dbc.query.R2dbcQuery;
+import org.loed.framework.r2dbc.query.R2dbcSqlBuilder;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.lang.NonNull;
 

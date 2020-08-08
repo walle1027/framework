@@ -1,8 +1,7 @@
-package org.loed.framework.r2dbc.dao;
+package org.loed.framework.r2dbc.query;
 
 import lombok.Data;
 
-import java.util.List;
 import java.util.Map;
 
 /**

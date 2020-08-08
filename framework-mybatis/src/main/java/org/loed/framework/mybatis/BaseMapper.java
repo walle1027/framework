@@ -11,10 +11,14 @@ import org.loed.framework.common.lambda.SFunction;
 import org.loed.framework.common.po.BasePO;
 import org.loed.framework.common.po.CommonPO;
 import org.loed.framework.common.po.Identify;
-import org.loed.framework.common.query.*;
+import org.loed.framework.common.query.Condition;
+import org.loed.framework.common.query.Criteria;
+import org.loed.framework.common.query.Operator;
+import org.loed.framework.common.query.Pagination;
 import org.loed.framework.common.util.ReflectionUtils;
 import org.loed.framework.mybatis.listener.MybatisListenerContainer;
 import org.loed.framework.mybatis.listener.spi.*;
+import org.springframework.data.domain.PageRequest;
 
 import java.io.Serializable;
 import java.lang.reflect.ParameterizedType;
@@ -432,18 +436,18 @@ public interface BaseMapper<T extends Identify> {
 	 * @param request 查询条件
 	 * @return 分页查询结果
 	 */
-	default Pagination<T> findPage(PageRequest request) {
-		if (request.isNeedPaging()) {
-			PageHelper.startPage(request.getPageNo(), request.getPageSize(), request.isNeedCount());
+	default Pagination<T> findPage(PageRequest request, Criteria<T> criteria) {
+		if (request.isPaged()) {
+			PageHelper.startPage(request.getPageNumber() + 1, request.getPageSize());
 		}
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
-		List<T> list = this.findByCriteria(request.getCriteria() == null ? Criteria.from(entityClass) : request.getCriteria());
+		List<T> list = this.findByCriteria(criteria == null ? Criteria.from(entityClass) : criteria);
 		PageInfo<T> pageInfo = new PageInfo<>(list);
 		Pagination<T> response = new Pagination<>();
 		response.setTotal(pageInfo.getTotal());
 		response.setRows(pageInfo.getList());
 		response.setPageSize(request.getPageSize());
-		response.setPageNo(request.getPageNo());
+		response.setPageNo(request.getPageNumber());
 		return response;
 	}
 
@@ -461,7 +465,7 @@ public interface BaseMapper<T extends Identify> {
 		return _countByCriteria(entityClass, criteria, new HashMap<>());
 	}
 
-	default boolean checkRepeat(Serializable id, SFunction<T,?> lamda, Object propValue) {
+	default boolean checkRepeat(Serializable id, SFunction<T, ?> lamda, Object propValue) {
 		Criteria<T> criteria = new Criteria<>();
 		criteria.and(lamda).is(propValue);
 		criteria.and(Identify::getId).isNot(propValue);

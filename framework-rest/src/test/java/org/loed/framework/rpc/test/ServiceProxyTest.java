@@ -4,12 +4,12 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.loed.framework.common.Result;
-import org.loed.framework.common.query.PageRequest;
 import org.loed.framework.common.util.SerializeUtils;
 import org.loed.framework.rpc.test.service.Student;
 import org.loed.framework.rpc.test.service.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.junit4.SpringRunner;
 import reactor.core.publisher.Mono;
 
@@ -87,11 +87,7 @@ public class ServiceProxyTest {
 		idList.add(1L);
 		idList.add(2L);
 		idList.add(3L);
-		PageRequest request = new PageRequest();
-		request.setPageNo(1);
-		request.setPageSize(100);
-		request.setNeedCount(true);
-		request.setNeedPaging(true);
+		PageRequest request = PageRequest.of(0, 100);
 		List<Student> studentList = studentService.getStudentList(idList, request);
 		for (Student student : studentList) {
 			System.out.println(SerializeUtils.toJson(student));
@@ -105,11 +101,7 @@ public class ServiceProxyTest {
 		idList[1] = 2L;
 		idList[2] = 3L;
 		idList[3] = 4L;
-		PageRequest request = new PageRequest();
-		request.setPageNo(1);
-		request.setPageSize(100);
-		request.setNeedCount(true);
-		request.setNeedPaging(true);
+		PageRequest request = PageRequest.of(0, 100);
 		List<Student> studentList = studentService.getStudentList2(idList, request);
 		for (Student student : studentList) {
 			System.out.println(SerializeUtils.toJson(student));

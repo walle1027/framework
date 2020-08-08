@@ -17,6 +17,9 @@ import org.loed.framework.common.query.Pagination;
 import org.loed.framework.common.util.ReflectionUtils;
 import org.loed.framework.r2dbc.listener.OrderedListener;
 import org.loed.framework.r2dbc.listener.spi.*;
+import org.loed.framework.r2dbc.query.R2dbcParam;
+import org.loed.framework.r2dbc.query.R2dbcQuery;
+import org.loed.framework.r2dbc.query.R2dbcSqlBuilder;
 import org.reactivestreams.Publisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.r2dbc.core.DatabaseClient;
@@ -349,7 +352,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 
 	@Override
 	public Mono<T> findOne(@NonNull Criteria<T> criteria) {
-		PageRequest request = PageRequest.of(1, 1);
+		PageRequest request = PageRequest.of(0, 1);
 		return findPage(criteria, request).flatMap(pagination -> {
 			return pagination.getRows() == null ? Mono.empty() : Mono.just(pagination.getRows().get(0));
 		});
@@ -397,17 +400,11 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	}
 
 	@Override
-	public Flux<T> select(@NonNull String sql, @NonNull Map<String, Object> params) {
-		DatabaseClient.GenericExecuteSpec execute = databaseClient.execute(sql);
-		if (params != null && params.size() > 0) {
-			for (Map.Entry<String, Object> entry : params.entrySet()) {
-				String key = entry.getKey();
-				Object value = entry.getValue();
-				execute = execute.bind(key, value);
-			}
-		}
-
-		return null;
+	public Flux<T> select(@NonNull String sql, @NonNull Map<String, R2dbcParam> params) {
+		R2dbcQuery query = new R2dbcQuery();
+		query.setStatement(sql);
+		query.setParams(params);
+		return query(query);
 	}
 
 	private Mono<Integer> execute(R2dbcQuery query) {

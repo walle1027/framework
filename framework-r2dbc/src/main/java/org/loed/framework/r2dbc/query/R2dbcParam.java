@@ -1,4 +1,4 @@
-package org.loed.framework.r2dbc.dao;
+package org.loed.framework.r2dbc.query;
 
 import lombok.Data;
 

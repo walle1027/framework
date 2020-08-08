@@ -1,4 +1,4 @@
-package org.loed.framework.r2dbc.dao;
+package org.loed.framework.r2dbc.query;
 
 import org.apache.commons.lang3.StringUtils;
 import org.loed.framework.common.database.Column;
@@ -7,6 +7,7 @@ import org.loed.framework.common.query.Condition;
 import org.loed.framework.common.query.Criteria;
 import org.loed.framework.common.query.Operator;
 import org.loed.framework.common.util.ReflectionUtils;
+import org.loed.framework.r2dbc.query.R2dbcQuery;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.lang.NonNull;
 

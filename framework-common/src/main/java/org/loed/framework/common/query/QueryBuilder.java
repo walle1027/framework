@@ -13,38 +13,31 @@ import java.util.List;
  */
 public class QueryBuilder {
 	private static final String BLANK = " ";
-	//	private int setLastIndex = -1;
-//	private int selectLastIndex = -1;
-//	private int tablesLastIndex = -1;
-//	private int whereLastIndex = -1;
-//	private int orderByLastIndex = -1;
-	private List<String> selectList = new ArrayList<>();
+	private final List<String> selectList = new ArrayList<>();
 	private String table;
-	private List<String> joinList = new ArrayList<>();
-	private List<String> whereList = new ArrayList<>();
-	private List<String> orderByList = new ArrayList<>();
-	private List<String> updateList = new ArrayList<>();
+	private final List<String> joinList = new ArrayList<>();
+	private final List<String> whereList = new ArrayList<>();
+	private final List<String> orderByList = new ArrayList<>();
+	private final List<String> updateList = new ArrayList<>();
 	private StatementType statementType;
 
 	private enum StatementType {
-		select, update, delete
+		/**
+		 * 删除语句
+		 */
+		delete,
+		/**
+		 * 查询语句
+		 */
+		select,
+		/**
+		 * 更新语句
+		 */
+		update
 	}
 
 	public QueryBuilder select(String... selects) {
 		this.statementType = StatementType.select;
-//		for (String select : selects) {
-//			if (selectLastIndex < 0) {
-//				sql.insert(0, "select" + BLANK);
-//				selectLastIndex = ("select" + BLANK).length() - 1;
-//				String selectToInsert = BLANK + select + BLANK;
-//				sql.insert(selectLastIndex, selectToInsert);
-//				selectLastIndex = selectLastIndex + selectToInsert.length();
-//			} else {
-//				String selectToInsert = BLANK + "," + select + BLANK;
-//				sql.insert(selectLastIndex, selectToInsert);
-//				selectLastIndex = selectLastIndex + selectToInsert.length();
-//			}
-//		}
 		for (String select : selects) {
 			selectList.add(BLANK + select + BLANK);
 		}
@@ -52,109 +45,42 @@ public class QueryBuilder {
 	}
 
 	public QueryBuilder from(String fromClause) {
-//		if (tablesLastIndex > 0) {
-//			throw new RuntimeException("from clause already exists using left join or join or right join instead");
-//		}
-//		String fromClauseToInsert = BLANK + "from" + BLANK + fromClause + BLANK;
-//		if (selectLastIndex < 0) {
-//			sql.insert(0, fromClauseToInsert);
-//			tablesLastIndex = fromClauseToInsert.length() - 1;
-//		} else {
-//			sql.insert(selectLastIndex, BLANK + "from" + BLANK + fromClause);
-//			tablesLastIndex = selectLastIndex + (BLANK + "from" + BLANK + fromClause).length();
-//		}
 		this.table = BLANK + fromClause + BLANK;
 		return this;
 	}
 
 	public QueryBuilder leftJoin(String joinClause) {
-//		if (tablesLastIndex < 0) {
-//			throw new RuntimeException("from clause not exists ,please set the from clause firstly");
-//		}
-//		String joinClauseToInsert = BLANK + "left join " + joinClause + BLANK;
-//		sql.insert(tablesLastIndex, joinClauseToInsert);
-//		tablesLastIndex = tablesLastIndex + joinClauseToInsert.length();
 		this.joinList.add(BLANK + "left join" + BLANK + joinClause + BLANK);
 		return this;
 	}
 
 	public QueryBuilder rightJoin(String joinClause) {
-//		if (tablesLastIndex < 0) {
-//			throw new RuntimeException("from clause not exists ,please set the from clause firstly");
-//		}
-//		String joinClauseToInsert = BLANK + "right join " + joinClause + BLANK;
-//		sql.insert(tablesLastIndex, joinClauseToInsert);
-//		tablesLastIndex = tablesLastIndex + joinClauseToInsert.length();
 		this.joinList.add(BLANK + "right join" + BLANK + joinClause + BLANK);
 		return this;
 	}
 
 	public QueryBuilder innerJoin(String joinClause) {
-//		if (tablesLastIndex < 0) {
-//			throw new RuntimeException("from clause not exists ,please set the from clause firstly");
-//		}
-//		String joinClauseToInsert = BLANK + "inner join " + joinClause + BLANK;
-//		sql.insert(tablesLastIndex, joinClauseToInsert);
-//		tablesLastIndex = tablesLastIndex + joinClauseToInsert.length();
 		this.joinList.add(BLANK + "inner join" + BLANK + joinClause + BLANK);
 		return this;
 	}
 
 	public QueryBuilder where(String clause) {
-//		if (whereLastIndex < 0) {
-//			//fist
-//			sql.insert(tablesLastIndex, BLANK + "where" + BLANK);
-//			whereLastIndex = tablesLastIndex + (BLANK + "where" + BLANK).length();
-//			String whereToInsert = BLANK + where + BLANK;
-//			sql.insert(whereLastIndex, whereToInsert);
-//			whereLastIndex = whereLastIndex + whereToInsert.length();
-//		} else {
-//			String whereToInsert = BLANK + (joint == null ? "" : joint.name()) + BLANK + where + BLANK;
-//			sql.insert(whereLastIndex, whereToInsert);
-//			whereLastIndex = whereLastIndex + whereToInsert.length();
-//		}
 		this.whereList.add(BLANK + clause + BLANK);
 		return this;
 	}
 
 	public QueryBuilder orderBy(String order) {
-//		if (orderByLastIndex < 0) {
-//			//fist
-//			sql.insert(whereLastIndex, BLANK + "order by" + BLANK);
-//			orderByLastIndex = whereLastIndex + (BLANK + "order by" + BLANK).length();
-//			String orderToInsert = BLANK + order + BLANK;
-//			sql.insert(orderByLastIndex, orderToInsert);
-//			whereLastIndex = orderByLastIndex + orderToInsert.length();
-//		} else {
-//			String orderToInsert = BLANK + order + BLANK;
-//			sql.insert(orderByLastIndex, orderToInsert);
-//			orderByLastIndex = orderByLastIndex + orderToInsert.length();
-//		}
 		this.orderByList.add(BLANK + order + BLANK);
 		return this;
 	}
 
 	public QueryBuilder update(String tableName) {
-//		String updateToAppend = "update" + BLANK + tableName + BLANK;
-//		sql.append(updateToAppend);
-//		tablesLastIndex = updateToAppend.length() - 1;
 		this.table = tableName;
 		this.statementType = StatementType.update;
 		return this;
 	}
 
 	public QueryBuilder set(String... columns) {
-//		for (String column : columns) {
-//			if (setLastIndex < 0) {
-//				String columnToInsert = BLANK + column + BLANK;
-//				sql.insert(tablesLastIndex, columnToInsert);
-//				setLastIndex = tablesLastIndex + columnToInsert.length();
-//			} else {
-//				String columnToInsert = BLANK + "," + column + BLANK;
-//				sql.insert(selectLastIndex, columnToInsert);
-//				setLastIndex = setLastIndex + columnToInsert.length();
-//			}
-//		}
 		for (String column : columns) {
 			this.updateList.add(BLANK + column + BLANK);
 		}
@@ -162,9 +88,6 @@ public class QueryBuilder {
 	}
 
 	public QueryBuilder delete(String tableName) {
-//		String deleteToAppend = "delete from" + BLANK + tableName + BLANK;
-//		sql.append(deleteToAppend);
-//		tablesLastIndex = deleteToAppend.length() - 1;
 		this.table = BLANK + tableName + BLANK;
 		this.statementType = StatementType.delete;
 		return this;

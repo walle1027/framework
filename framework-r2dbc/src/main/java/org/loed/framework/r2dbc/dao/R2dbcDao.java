@@ -5,6 +5,7 @@ import org.loed.framework.common.po.IsDeleted;
 import org.loed.framework.common.po.TenantId;
 import org.loed.framework.common.query.Criteria;
 import org.loed.framework.common.query.Pagination;
+import org.loed.framework.r2dbc.query.R2dbcParam;
 import org.reactivestreams.Publisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.lang.NonNull;
@@ -237,5 +238,5 @@ public interface R2dbcDao<T, ID> {
 	 * @param params sql 查询参数
 	 * @return 查询结果
 	 */
-	Flux<T> select(@NonNull String sql, @NonNull Map<String, Object> params);
+	Flux<T> select(@NonNull String sql, @NonNull Map<String, R2dbcParam> params);
 }

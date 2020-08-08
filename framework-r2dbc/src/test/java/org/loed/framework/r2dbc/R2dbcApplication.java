@@ -2,8 +2,8 @@ package org.loed.framework.r2dbc;
 
 import io.r2dbc.spi.ConnectionFactory;
 import org.loed.framework.r2dbc.autoconfigure.R2dbcDaoScanner;
-import org.loed.framework.r2dbc.dao.R2dbcSqlBuilder;
-import org.loed.framework.r2dbc.dao.dialect.MysqlR2dbcSqlBuilder;
+import org.loed.framework.r2dbc.query.R2dbcSqlBuilder;
+import org.loed.framework.r2dbc.query.dialect.MysqlR2dbcSqlBuilder;
 import org.loed.framework.r2dbc.listener.TestPostInsertListener;
 import org.loed.framework.r2dbc.listener.impl.DefaultPreInsertListener;
 import org.loed.framework.r2dbc.listener.impl.DefaultPreUpdateListener;
