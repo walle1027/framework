@@ -5,6 +5,7 @@ import org.loed.framework.common.po.IsDeleted;
 import org.loed.framework.common.po.TenantId;
 import org.loed.framework.common.query.Criteria;
 import org.loed.framework.common.query.Pagination;
+import org.loed.framework.r2dbc.query.R2dbcParam;
 import org.reactivestreams.Publisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.lang.NonNull;
@@ -28,7 +29,7 @@ public interface R2dbcDao<T, ID> {
 	 * @param <S>    对象的子类
 	 * @return 新增后的对象
 	 */
-	<S extends T> Mono<S> insert(S entity);
+	<S extends T> Mono<S> insert(@NonNull S entity);
 
 	/**
 	 * 批量新增对象
@@ -37,7 +38,7 @@ public interface R2dbcDao<T, ID> {
 	 * @param <S>      对象的子类
 	 * @return 新增后的对象
 	 */
-	<S extends T> Flux<S> batchInsert(Iterable<S> entities);
+	<S extends T> Flux<S> batchInsert(@NonNull Iterable<S> entities);
 
 	/**
 	 * 批量新增对象
@@ -46,7 +47,7 @@ public interface R2dbcDao<T, ID> {
 	 * @param <S>          对象的子类
 	 * @return 新增后的对象
 	 */
-	<S extends T> Flux<S> batchInsert(Publisher<S> entityStream);
+	<S extends T> Flux<S> batchInsert(@NonNull Publisher<S> entityStream);
 
 	/**
 	 * 按照主键更新一个对象
@@ -57,7 +58,7 @@ public interface R2dbcDao<T, ID> {
 	 * @param <S>    更新对象的子类
 	 * @return 更新后的对象
 	 */
-	<S extends T> Mono<S> update(S entity);
+	<S extends T> Mono<S> update(@NonNull S entity);
 
 	/**
 	 * 更新一个对象，只更新非空属性
@@ -68,7 +69,7 @@ public interface R2dbcDao<T, ID> {
 	 * @param <S>    对象的子类
 	 * @return 更新后的对象
 	 */
-	<S extends T> Mono<S> updateSelective(S entity);
+	<S extends T> Mono<S> updateSelective(@NonNull S entity);
 
 	/**
 	 * 更新一个对象，只更新指定的属性
@@ -92,7 +93,7 @@ public interface R2dbcDao<T, ID> {
 	 * @param <S>     对象的子类
 	 * @return 更新后的对象
 	 */
-	<S extends T> Mono<S> updateWithout(S entity, Collection<SFunction<T, ?>> columns);
+	<S extends T> Mono<S> updateWithout(@NonNull S entity, @Nullable Collection<SFunction<T, ?>> columns);
 
 	/**
 	 * 按照主键批量更新对象
@@ -103,7 +104,7 @@ public interface R2dbcDao<T, ID> {
 	 * @param <S>      对象的类型
 	 * @return 更新后的对象
 	 */
-	<S extends T> Flux<S> batchUpdate(Iterable<S> entities);
+	<S extends T> Flux<S> batchUpdate(@NonNull Iterable<S> entities);
 
 	/**
 	 * 按照主键批量更新对象
@@ -114,7 +115,7 @@ public interface R2dbcDao<T, ID> {
 	 * @param <S>          对象的类型
 	 * @return 更新后的对象
 	 */
-	<S extends T> Flux<S> batchUpdate(Publisher<S> entityStream);
+	<S extends T> Flux<S> batchUpdate(@NonNull Publisher<S> entityStream);
 
 	/**
 	 * 根据主键查询对象
@@ -124,7 +125,7 @@ public interface R2dbcDao<T, ID> {
 	 * @param id 主键
 	 * @return 对象
 	 */
-	Mono<T> get(ID id);
+	Mono<T> get(@NonNull ID id);
 
 	/**
 	 * 根据主键查询对象
@@ -134,7 +135,7 @@ public interface R2dbcDao<T, ID> {
 	 * @param idPublisher 主键的流
 	 * @return 对象
 	 */
-	Mono<T> get(Publisher<ID> idPublisher);
+	Mono<T> get(@NonNull Publisher<ID> idPublisher);
 
 	/**
 	 * 判断对象是否存在
@@ -144,7 +145,7 @@ public interface R2dbcDao<T, ID> {
 	 * @param id 主键
 	 * @return 是否存在 true 存在，false 不存在
 	 */
-	Mono<Boolean> existsById(ID id);
+	Mono<Boolean> existsById(@NonNull ID id);
 
 	/**
 	 * 判断对象是否存在
@@ -154,7 +155,7 @@ public interface R2dbcDao<T, ID> {
 	 * @param idPublisher 主键的流
 	 * @return 是否存在 true 存在，false 不存在
 	 */
-	Mono<Boolean> existsById(Publisher<ID> idPublisher);
+	Mono<Boolean> existsById(@NonNull Publisher<ID> idPublisher);
 
 	/**
 	 * 按照主键删除对象
@@ -165,7 +166,7 @@ public interface R2dbcDao<T, ID> {
 	 * @param id 主键
 	 * @return 影响的行数
 	 */
-	Mono<Integer> delete(ID id);
+	Mono<Integer> delete(@NonNull ID id);
 
 	/**
 	 * 按照主键删除对象
@@ -176,7 +177,7 @@ public interface R2dbcDao<T, ID> {
 	 * @param idPublisher 主键的流
 	 * @return 影响的行数
 	 */
-	Mono<Integer> delete(Publisher<ID> idPublisher);
+	Mono<Integer> delete(@NonNull Publisher<ID> idPublisher);
 
 	/**
 	 * 按照动态条件删除对象
@@ -187,7 +188,7 @@ public interface R2dbcDao<T, ID> {
 	 * @param criteria 动态条件
 	 * @return 影响的行数
 	 */
-	Mono<Integer> deleteByCriteria(Criteria<T> criteria);
+	Mono<Integer> deleteByCriteria(@NonNull Criteria<T> criteria);
 
 	/**
 	 * 按照动态条件查询对象(返回多个结果)
@@ -197,7 +198,7 @@ public interface R2dbcDao<T, ID> {
 	 * @param criteria 动态条件
 	 * @return 查询的对象的集合
 	 */
-	Flux<T> find(Criteria<T> criteria);
+	Flux<T> find(@NonNull Criteria<T> criteria);
 
 	/**
 	 * 按照动态条件查询对象(返回一个结果)
@@ -207,7 +208,7 @@ public interface R2dbcDao<T, ID> {
 	 * @param criteria 动态条件
 	 * @return 查询的对象
 	 */
-	Mono<T> findOne(Criteria<T> criteria);
+	Mono<T> findOne(@NonNull Criteria<T> criteria);
 
 	/**
 	 * 按照动态条件查询记录数
@@ -217,7 +218,7 @@ public interface R2dbcDao<T, ID> {
 	 * @param criteria 动态条件
 	 * @return 记录数
 	 */
-	Mono<Long> count(Criteria<T> criteria);
+	Mono<Long> count(@NonNull Criteria<T> criteria);
 
 	/**
 	 * 按照动态条件查询记录，并且分页
@@ -228,7 +229,7 @@ public interface R2dbcDao<T, ID> {
 	 * @param pageRequest 分页参数
 	 * @return 分页查询结果
 	 */
-	Mono<Pagination<T>> findPage(Criteria<T> criteria, PageRequest pageRequest);
+	Mono<Pagination<T>> findPage(@NonNull Criteria<T> criteria, @NonNull PageRequest pageRequest);
 
 	/**
 	 * 执行一个自定义的查询语句
@@ -237,5 +238,5 @@ public interface R2dbcDao<T, ID> {
 	 * @param params sql 查询参数
 	 * @return 查询结果
 	 */
-	Flux<T> select(String sql, Map<String, Object> params);
+	Flux<T> select(@NonNull String sql, @NonNull Map<String, R2dbcParam> params);
 }

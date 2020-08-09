@@ -2,10 +2,10 @@ package org.loed.framework.common;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.loed.framework.common.database.Join;
-import org.loed.framework.common.database.Relation;
-import org.loed.framework.common.database.Sharding;
-import org.loed.framework.common.database.Table;
+import org.loed.framework.common.orm.Join;
+import org.loed.framework.common.orm.Relation;
+import org.loed.framework.common.orm.Sharding;
+import org.loed.framework.common.orm.Table;
 import org.loed.framework.common.po.CreateBy;
 import org.loed.framework.common.po.CreateTime;
 import org.loed.framework.common.po.IsDeleted;
@@ -59,7 +59,7 @@ public class ORMapping {
 				String indexName = t.name();
 				String columnList = t.columnList();
 				boolean unique = t.unique();
-				org.loed.framework.common.database.Index index = new org.loed.framework.common.database.Index(table);
+				org.loed.framework.common.orm.Index index = new org.loed.framework.common.orm.Index(table);
 				index.setName(indexName);
 				index.setColumnList(columnList);
 				index.setUnique(unique);
@@ -67,12 +67,12 @@ public class ORMapping {
 			});
 			//处理列
 			List<Field> fields = ReflectionUtils.getDeclaredFields(k);
-			List<org.loed.framework.common.database.Column> columns = fields.stream().filter(f -> {
+			List<org.loed.framework.common.orm.Column> columns = fields.stream().filter(f -> {
 				Column columnAnno = f.getAnnotation(Column.class);
 				return columnAnno != null;
 			}).map(field -> {
 				Column columnAnno = field.getAnnotation(Column.class);
-				org.loed.framework.common.database.Column column = new org.loed.framework.common.database.Column(table);
+				org.loed.framework.common.orm.Column column = new org.loed.framework.common.orm.Column(table);
 				column.setJavaName(field.getName());
 				Class<?> type = field.getType();
 				column.setJavaType(type);
@@ -133,7 +133,7 @@ public class ORMapping {
 			Sharding sharding = k.getAnnotation(Sharding.class);
 			if (sharding != null) {
 				Set<String> columnSet = Arrays.stream(sharding.columns()).collect(Collectors.toSet());
-				List<org.loed.framework.common.database.Column> shardingColumns = table.getColumns().stream().
+				List<org.loed.framework.common.orm.Column> shardingColumns = table.getColumns().stream().
 						filter(r -> columnSet.contains(r.getSqlName())).collect(Collectors.toList());
 				if (shardingColumns.size() > 0) {
 					table.setSharding(true);
@@ -180,7 +180,7 @@ public class ORMapping {
 				String mappedBy = oneToMany.mappedBy();
 				if (StringUtils.isNotBlank(mappedBy)) {
 					Field targetField = ReflectionUtils.getDeclaredField(targetEntity, mappedBy);
-					List<org.loed.framework.common.database.JoinColumn> joinColumns = getJoinColumns(targetEntity, targetField);
+					List<org.loed.framework.common.orm.JoinColumn> joinColumns = getJoinColumns(targetEntity, targetField);
 					switchJoinColumn(table, join, joinColumns);
 				} else {
 					List<Field> declaredFields = ReflectionUtils.getDeclaredFields(targetEntity);
@@ -189,7 +189,7 @@ public class ORMapping {
 					if (targetFieldByType == null) {
 						return;
 					}
-					List<org.loed.framework.common.database.JoinColumn> joinColumns = getJoinColumns(targetEntity, targetFieldByType);
+					List<org.loed.framework.common.orm.JoinColumn> joinColumns = getJoinColumns(targetEntity, targetFieldByType);
 					switchJoinColumn(table, join, joinColumns);
 				}
 			});
@@ -198,7 +198,7 @@ public class ORMapping {
 	}
 
 	private static void createJoin(Table table, Field field, Class<?> targetEntity, Join join) {
-		List<org.loed.framework.common.database.JoinColumn> joinColumns = getJoinColumns(targetEntity, field);
+		List<org.loed.framework.common.orm.JoinColumn> joinColumns = getJoinColumns(targetEntity, field);
 		if (CollectionUtils.isNotEmpty(joinColumns)) {
 			javax.persistence.Table targetTable = (javax.persistence.Table) targetEntity.getAnnotation(javax.persistence.Table.class);
 			if (targetTable == null) {
@@ -210,7 +210,7 @@ public class ORMapping {
 		}
 	}
 
-	private static void switchJoinColumn(Table table, Join join, List<org.loed.framework.common.database.JoinColumn> joinColumns) {
+	private static void switchJoinColumn(Table table, Join join, List<org.loed.framework.common.orm.JoinColumn> joinColumns) {
 		if (CollectionUtils.isNotEmpty(joinColumns)) {
 			joinColumns.forEach(joinColumn -> {
 				String columnName = joinColumn.getName();
@@ -223,8 +223,8 @@ public class ORMapping {
 		}
 	}
 
-	private static List<org.loed.framework.common.database.JoinColumn> getJoinColumns(Class clazz, Field field) {
-		List<org.loed.framework.common.database.JoinColumn> columns = new ArrayList<>();
+	private static List<org.loed.framework.common.orm.JoinColumn> getJoinColumns(Class clazz, Field field) {
+		List<org.loed.framework.common.orm.JoinColumn> columns = new ArrayList<>();
 		JoinColumns joinColumns = field.getAnnotation(JoinColumns.class);
 		if (joinColumns == null) {
 			JoinColumn joinColumn = field.getAnnotation(JoinColumn.class);
@@ -233,9 +233,9 @@ public class ORMapping {
 			}
 			String joinName = joinColumn.name();
 			if (StringUtils.isNotBlank(joinColumn.referencedColumnName())) {
-				columns.add(new org.loed.framework.common.database.JoinColumn(joinName, joinColumn.referencedColumnName()));
+				columns.add(new org.loed.framework.common.orm.JoinColumn(joinName, joinColumn.referencedColumnName()));
 			} else {
-				columns.add(new org.loed.framework.common.database.JoinColumn(joinName));
+				columns.add(new org.loed.framework.common.orm.JoinColumn(joinName));
 			}
 			//verify the joinColumn,this may not need
 			/*fields.stream().filter(f -> f.getAnnotation(Column.class) != null).forEach(f->{
@@ -258,9 +258,9 @@ public class ORMapping {
 				for (JoinColumn value : values) {
 					String joinName = value.name();
 					if (StringUtils.isNotBlank(value.referencedColumnName())) {
-						columns.add(new org.loed.framework.common.database.JoinColumn(joinName, value.referencedColumnName()));
+						columns.add(new org.loed.framework.common.orm.JoinColumn(joinName, value.referencedColumnName()));
 					} else {
-						columns.add(new org.loed.framework.common.database.JoinColumn(joinName));
+						columns.add(new org.loed.framework.common.orm.JoinColumn(joinName));
 					}
 					/*fields.stream().filter(f -> f.getAnnotation(Column.class) != null).forEach(f->{
 						Column column = f.getAnnotation(Column.class);

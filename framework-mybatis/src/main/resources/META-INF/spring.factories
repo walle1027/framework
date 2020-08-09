@@ -1,4 +1,4 @@
 # Auto Configure
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
   org.loed.framework.mybatis.autoconfigure.MybatisAutoConfiguration,\
-  org.loed.framework.mybatis.autoconfigure.PageHelperAutoConfiguration
+  org.loed.framework.mybatis.autoconfigure.PageHelperAutoConfiguration,

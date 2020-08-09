@@ -9,6 +9,7 @@ import org.loed.framework.common.util.ReflectionUtils;
 import org.springframework.lang.NonNull;
 
 import javax.persistence.criteria.JoinType;
+import javax.persistence.criteria.Path;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -131,6 +132,14 @@ public class Criteria<T> implements Serializable {
 		return builder;
 	}
 
+	public <S> JoinBuilder<T, S> right(SFunction<T, S> lambda) {
+		String prop = LambdaUtils.getPropFromLambda(lambda);
+		JoinBuilder<T, S> builder = new JoinBuilder<>(this, JoinType.RIGHT, prop);
+		builder.chains = new ArrayList<>();
+		builder.chains.add(builder);
+		return builder;
+	}
+
 	public ConditionSpec<T> or(SFunction<T, ?> lambda) {
 		SerializedLambda resolve = LambdaUtils.resolve(lambda);
 		String prop = ReflectionUtils.methodToProperty(resolve.getImplMethodName());
@@ -209,6 +218,32 @@ public class Criteria<T> implements Serializable {
 			builder.append(prop);
 			this.chains = null;
 			return new ConditionSpec<T>(criteria, Joint.or, builder.toString());
+		}
+
+		public Criteria<T> asc(SFunction<T, ?> lambda) {
+			String prop = LambdaUtils.getPropFromLambda(lambda);
+			StringBuilder builder = new StringBuilder();
+			for (JoinBuilder<T, ?> chain : this.chains) {
+				builder.append(chain.prop);
+				builder.append(".");
+			}
+			builder.append(prop);
+			this.chains = null;
+			this.criteria.sort(new SortProperty(builder.toString(), Sort.ASC));
+			return this.criteria;
+		}
+
+		public Criteria<T> desc(SFunction<T, ?> lambda) {
+			String prop = LambdaUtils.getPropFromLambda(lambda);
+			StringBuilder builder = new StringBuilder();
+			for (JoinBuilder<T, ?> chain : this.chains) {
+				builder.append(chain.prop);
+				builder.append(".");
+			}
+			builder.append(prop);
+			this.chains = null;
+			this.criteria.sort(new SortProperty(builder.toString(), Sort.DESC));
+			return this.criteria;
 		}
 	}
 

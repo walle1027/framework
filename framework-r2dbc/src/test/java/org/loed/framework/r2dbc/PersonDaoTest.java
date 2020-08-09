@@ -1,5 +1,6 @@
 package org.loed.framework.r2dbc;
 
+import org.apache.logging.log4j.util.Strings;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -10,6 +11,7 @@ import org.loed.framework.common.query.Criteria;
 import org.loed.framework.r2dbc.dao.PersonDao;
 import org.loed.framework.r2dbc.po.CommonPO;
 import org.loed.framework.r2dbc.po.Person;
+import org.loed.framework.r2dbc.po.Sex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -17,6 +19,10 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.LineNumberReader;
 import java.util.*;
 
 /**
@@ -45,6 +51,7 @@ public class PersonDaoTest {
 		String id = UUID.randomUUID().toString().replace("-", "");
 		person.setId(id);
 		person.setName("test");
+		person.setSex(Sex.Female);
 		Mono<String> idMono = personDao.insert(person)
 				.subscriberContext(context -> {
 					return context.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, contextMap);
@@ -84,6 +91,7 @@ public class PersonDaoTest {
 
 	@After
 	public void tearDown() throws Exception {
-		personDao.deleteByCriteria(Criteria.from(Person.class));
+		Mono<Void> delete = personDao.deleteByCriteria(Criteria.from(Person.class)).then();
+		StepVerifier.create(delete.log()).expectNext().verifyComplete();
 	}
 }

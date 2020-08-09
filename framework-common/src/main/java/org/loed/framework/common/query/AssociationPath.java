@@ -1,6 +1,6 @@
 package org.loed.framework.common.query;
 
-import org.loed.framework.common.database.Table;
+import org.loed.framework.common.orm.Table;
 
 import java.io.Serializable;
 

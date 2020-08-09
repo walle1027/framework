@@ -1,8 +1,8 @@
 package org.loed.framework.rpc.test.service;
 
 import org.loed.framework.common.Result;
-import org.loed.framework.common.query.PageRequest;
 import org.loed.framework.rpc.ServiceProxy;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
