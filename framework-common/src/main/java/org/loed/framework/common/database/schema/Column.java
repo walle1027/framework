@@ -12,7 +12,7 @@ public class Column {
 	/**
 	 * Reference to the containing table
 	 */
-	private final Table table;
+	private Table table;
 	/**
 	 * The java.sql.Types type
 	 */
@@ -61,6 +61,9 @@ public class Column {
 	 * 每列的注释
 	 */
 	private String comment = "";
+
+	public Column() {
+	}
 
 	public Column(Table table) {
 		this.table = table;

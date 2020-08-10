@@ -2,6 +2,7 @@ package org.loed.framework.r2dbc;
 
 import io.r2dbc.spi.ConnectionFactory;
 import org.loed.framework.r2dbc.autoconfigure.R2dbcDaoScanner;
+import org.loed.framework.r2dbc.autoconfigure.R2dbcDbInspector;
 import org.loed.framework.r2dbc.listener.TestPreDeleteListener;
 import org.loed.framework.r2dbc.listener.spi.PreDeleteListener;
 import org.loed.framework.r2dbc.query.R2dbcSqlBuilder;
@@ -25,6 +26,7 @@ import org.springframework.transaction.ReactiveTransactionManager;
  */
 @SpringBootApplication
 @R2dbcDaoScanner(basePackages = "org.loed.framework.r2dbc.dao")
+@R2dbcDbInspector(basePackages = "org.loed.framework.r2dbc.po")
 public class R2dbcApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(R2dbcApplication.class, args);

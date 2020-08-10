@@ -10,10 +10,16 @@ import org.loed.framework.common.database.schema.Index;
 import org.loed.framework.common.lock.ZKDistributeLock;
 import org.loed.framework.common.orm.Table;
 import org.loed.framework.r2dbc.inspector.dialect.DatabaseDialect;
+import org.loed.framework.r2dbc.routing.RoutingConnectionFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.r2dbc.R2dbcProperties;
+import org.springframework.boot.context.properties.bind.BindResult;
+import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
+import org.springframework.context.EnvironmentAware;
+import org.springframework.core.env.Environment;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.io.support.ResourcePatternResolver;
@@ -36,15 +42,16 @@ import java.util.stream.Collectors;
  * @since 2020/8/8 12:43 下午
  */
 @Slf4j
-public class R2dbcDbInspector implements ApplicationEventPublisherAware, InitializingBean {
+public class R2dbcDbInspector implements ApplicationEventPublisherAware, EnvironmentAware, InitializingBean {
 	private static final String RESOURCE_PATTERN = "/**/*.class";
 	private static final String PACKAGE_INFO_SUFFIX = ".package-info";
 	private final ResourcePatternResolver resourcePatternResolver = new PathMatchingResourcePatternResolver();
 	private final ConnectionFactory connectionFactory;
+	private final DatabaseDialect dialect;
 
 	private ApplicationEventPublisher applicationEventPublisher;
 
-	private final DatabaseDialect dialect;
+	private Environment environment;
 
 	@Autowired(required = false)
 	private ZKDistributeLock zkDistributeLock;
@@ -83,7 +90,16 @@ public class R2dbcDbInspector implements ApplicationEventPublisherAware, Initial
 		if (CollectionUtils.isEmpty(tables)) {
 			return;
 		}
-		processOneDataSource(tables).sort().collectList().map(ddls -> {
+		String schema = "";
+		if (connectionFactory instanceof RoutingConnectionFactory) {
+			//TODO getDatabaseName
+
+		} else {
+			BindResult<R2dbcProperties> bind = Binder.get(environment).bind("spring.r2dbc", R2dbcProperties.class);
+			R2dbcProperties r2dbcProperties = bind.orElseGet(null);
+			schema = r2dbcProperties.getName();
+		}
+		processOneDataSource(schema, tables).collectList().map(ddls -> {
 			System.out.println(" _______  .______           __  .__   __.      _______..______    _______   ______ .___________.  ______   .______      \n" +
 					"|       \\ |   _  \\         |  | |  \\ |  |     /       ||   _  \\  |   ____| /      ||           | /  __  \\  |   _  \\     \n" +
 					"|  .--.  ||  |_)  |  ______|  | |   \\|  |    |   (----`|  |_)  | |  |__   |  ,----'`---|  |----`|  |  |  | |  |_)  |    \n" +
@@ -93,36 +109,45 @@ public class R2dbcDbInspector implements ApplicationEventPublisherAware, Initial
 					"");
 			List<String> mergedDdls = new ArrayList<>();
 			for (List<String> ddl : ddls) {
-				for (String s : ddl) {
-					log.info(s);
-					mergedDdls.add(s);
-				}
+				mergedDdls.addAll(ddl);
 			}
-			String join = String.join(";", mergedDdls);
-			return Mono.from(connectionFactory.create()).flatMap(connection -> {
-				return Mono.from(connection.createBatch().add(join).execute());
-			}).flatMap(result -> {
-				return Mono.from(result.getRowsUpdated());
-			}).map(rows -> {
-				log.info("rows updated " + rows);
-				applicationEventPublisher.publishEvent(new DbInspectFinishEnvent(tables));
-				return rows;
-			});
-		}).defaultIfEmpty(Mono.just(0)).subscribe();
+			return mergedDdls;
+		}).flatMap(ddls -> {
+			for (String ddl : ddls) {
+				System.out.println(ddl + ";");
+			}
+			if (CollectionUtils.isNotEmpty(ddls)) {
+				if (execute) {
+					return Mono.from(connectionFactory.create()).flatMap(connection -> {
+						return Mono.from(connection.createStatement(String.join(";", ddls)).execute());
+					}).flatMap(result -> {
+						return Mono.from(result.getRowsUpdated());
+					});
+				} else {
+					return Mono.just(ddls.size());
+				}
+			} else {
+				return Mono.just(0);
+			}
+		}).defaultIfEmpty(0).doOnNext(count -> {
+			applicationEventPublisher.publishEvent(new DbInspectFinishEnvent(count));
+		}).subscribe();
 	}
 
-	protected Flux<List<String>> processOneDataSource(List<Table> tables) {
+	protected Flux<List<String>> processOneDataSource(final String databaseName, List<Table> tables) {
 		return Mono.from(connectionFactory.create()).flatMapMany(connection -> {
 			return Flux.fromIterable(tables).flatMap(jpa -> {
 				List<org.loed.framework.common.orm.Index> jpaIndices = jpa.getIndices();
-				return dialect.getTable(connection, jpa.getSqlName()).map(table -> {
+				connectionFactory.getMetadata().getName();
+
+				return dialect.getTable(connection, null, databaseName, jpa.getSqlName()).map(table -> {
 					List<Column> dbColumns = table.getColumns();
 					Map<String, Column> columnMap = dbColumns.stream().collect(Collectors.toMap(Column::getSqlName, v -> v, (a, b) -> a));
 					List<org.loed.framework.common.orm.Column> jpaColumns = jpa.getColumns();
 					List<String> ddlList = new ArrayList<>();
 					for (org.loed.framework.common.orm.Column jpaColumn : jpaColumns) {
 						String sqlName = jpaColumn.getSqlName();
-						if (columnMap.containsKey(sqlName)) {
+						if (!columnMap.containsKey(sqlName)) {
 							ddlList.add(dialect.addColumn(jpaColumn));
 						}
 					}
@@ -217,5 +242,10 @@ public class R2dbcDbInspector implements ApplicationEventPublisherAware, Initial
 
 	public void setExecute(boolean execute) {
 		this.execute = execute;
+	}
+
+	@Override
+	public void setEnvironment(@NonNull Environment environment) {
+		this.environment = environment;
 	}
 }

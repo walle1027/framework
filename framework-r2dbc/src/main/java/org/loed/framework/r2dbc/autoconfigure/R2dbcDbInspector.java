@@ -1,8 +1,9 @@
 package org.loed.framework.r2dbc.autoconfigure;
 
+import org.loed.framework.r2dbc.inspector.dialect.DatabaseDialect;
+import org.loed.framework.r2dbc.inspector.dialect.impl.MysqlDialect;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Import;
-import org.springframework.data.relational.core.dialect.Dialect;
 
 import java.lang.annotation.*;
 
@@ -14,14 +15,8 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 @Documented
-@Import({R2dbcDbInspectorConfiguration.class})
-@EnableConfigurationProperties(R2dbcProperties.class)
+@Import({R2dbcDbInspectorConfiguration.class, R2dbcDbInspectorRegister.class})
 public @interface R2dbcDbInspector {
-	/**
-	 * 是否自动启用
-	 */
-	boolean enabled() default true;
-
 	/**
 	 * Alias for the {@link #basePackages()} attribute. Allows for more concise
 	 * annotation declarations e.g.:

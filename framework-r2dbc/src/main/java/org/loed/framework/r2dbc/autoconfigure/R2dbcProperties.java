@@ -12,12 +12,14 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Data
 public class R2dbcProperties {
 
+	private boolean quote = true;
+
 	private Inspector inspector = new Inspector();
 
 	@Data
 	public static class Inspector {
-		private boolean enabled;
-		private boolean execute;
+		private boolean enabled = true;
+		private boolean execute = true;
 	}
 
 }

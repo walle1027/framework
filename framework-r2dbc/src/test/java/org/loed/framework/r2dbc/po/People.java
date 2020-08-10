@@ -5,6 +5,7 @@ import org.loed.framework.common.po.CreateTime;
 import org.loed.framework.common.po.LastModifyTime;
 
 import javax.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -13,7 +14,8 @@ import java.time.LocalDateTime;
  * @since 2020/8/5 1:01 下午
  */
 @Data
-@Table(name = "t_people")
+@Table(name = "t_people", indexes = {@Index(name = "idx_race", columnList = "race")})
+//@Table(name = "t_people")
 public class People {
 	@Id
 	@GeneratedValue(strategy = GenerationType.AUTO)
@@ -28,6 +30,10 @@ public class People {
 	private Byte sex;
 	@Column
 	private String race;
+	@Column(length = 18, scale = 6)
+	private BigDecimal height;
+	@Column(length = 18, scale = 6)
+	private BigDecimal weight;
 	@Column
 	@CreateTime
 	private LocalDateTime createTime;
