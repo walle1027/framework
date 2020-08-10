@@ -130,7 +130,7 @@ public class R2dbcDbInspector implements ApplicationEventPublisherAware, Environ
 				return Mono.just(0);
 			}
 		}).defaultIfEmpty(0).doOnNext(count -> {
-			applicationEventPublisher.publishEvent(new DbInspectFinishEnvent(count));
+			applicationEventPublisher.publishEvent(new DbInspectFinishEvent(count));
 		}).subscribe();
 	}
 

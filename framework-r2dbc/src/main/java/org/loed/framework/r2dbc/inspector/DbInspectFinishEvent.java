@@ -7,8 +7,8 @@ import org.springframework.context.ApplicationEvent;
  * @version 1.0
  * @since 2020/8/8 3:06 下午
  */
-public class DbInspectFinishEnvent extends ApplicationEvent {
-	public DbInspectFinishEnvent(Object source) {
+public class DbInspectFinishEvent extends ApplicationEvent {
+	public DbInspectFinishEvent(Object source) {
 		super(source);
 	}
 }
