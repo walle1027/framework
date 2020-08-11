@@ -86,7 +86,7 @@ public class PersonDaoTest {
 					return context.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, contextMap);
 				});
 
-		StepVerifier.create(map).expectNext(1L).verifyComplete();
+		StepVerifier.create(map).expectNextCount(1L).verifyComplete();
 	}
 
 	@After
