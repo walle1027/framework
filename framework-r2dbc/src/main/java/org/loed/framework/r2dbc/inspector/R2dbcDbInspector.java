@@ -9,7 +9,9 @@ import org.loed.framework.common.database.schema.Column;
 import org.loed.framework.common.database.schema.Index;
 import org.loed.framework.common.lock.ZKDistributeLock;
 import org.loed.framework.common.orm.Table;
-import org.loed.framework.r2dbc.inspector.dialect.DatabaseDialect;
+import org.loed.framework.common.util.SerializeUtils;
+import org.loed.framework.r2dbc.R2dbcDialect;
+import org.loed.framework.r2dbc.routing.R2dbcPropertiesProvider;
 import org.loed.framework.r2dbc.routing.RoutingConnectionFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,7 +49,8 @@ public class R2dbcDbInspector implements ApplicationEventPublisherAware, Environ
 	private static final String PACKAGE_INFO_SUFFIX = ".package-info";
 	private final ResourcePatternResolver resourcePatternResolver = new PathMatchingResourcePatternResolver();
 	private final ConnectionFactory connectionFactory;
-	private final DatabaseDialect dialect;
+
+	private DdlProvider ddlProvider;
 
 	private ApplicationEventPublisher applicationEventPublisher;
 
@@ -60,9 +63,8 @@ public class R2dbcDbInspector implements ApplicationEventPublisherAware, Environ
 	private boolean execute = true;
 	private List<String> packagesToScan;
 
-	public R2dbcDbInspector(ConnectionFactory connectionFactory, DatabaseDialect dialect) {
+	public R2dbcDbInspector(ConnectionFactory connectionFactory) {
 		this.connectionFactory = connectionFactory;
-		this.dialect = dialect;
 	}
 
 	@Override
@@ -75,6 +77,8 @@ public class R2dbcDbInspector implements ApplicationEventPublisherAware, Environ
 			log.info("scan packages is empty , inspector will terminate");
 			return;
 		}
+		this.ddlProvider = createDdlProvider();
+
 		if (zkDistributeLock != null) {
 			Collections.sort(packagesToScan);
 			String lockPath = StringUtils.replace(org.apache.commons.lang3.StringUtils.join(packagesToScan, ","), ".", "_");
@@ -140,7 +144,7 @@ public class R2dbcDbInspector implements ApplicationEventPublisherAware, Environ
 				List<org.loed.framework.common.orm.Index> jpaIndices = jpa.getIndices();
 				connectionFactory.getMetadata().getName();
 
-				return dialect.getTable(connection, null, databaseName, jpa.getSqlName()).map(table -> {
+				return ddlProvider.getTable(connection, null, databaseName, jpa.getSqlName()).map(table -> {
 					List<Column> dbColumns = table.getColumns();
 					Map<String, Column> columnMap = dbColumns.stream().collect(Collectors.toMap(Column::getSqlName, v -> v, (a, b) -> a));
 					List<org.loed.framework.common.orm.Column> jpaColumns = jpa.getColumns();
@@ -148,7 +152,7 @@ public class R2dbcDbInspector implements ApplicationEventPublisherAware, Environ
 					for (org.loed.framework.common.orm.Column jpaColumn : jpaColumns) {
 						String sqlName = jpaColumn.getSqlName();
 						if (!columnMap.containsKey(sqlName)) {
-							ddlList.add(dialect.addColumn(jpaColumn));
+							ddlList.add(ddlProvider.addColumn(jpaColumn));
 						}
 					}
 					List<Index> dbIndices = table.getIndices();
@@ -157,18 +161,18 @@ public class R2dbcDbInspector implements ApplicationEventPublisherAware, Environ
 						for (org.loed.framework.common.orm.Index jpaIndex : jpaIndices) {
 							String indexName = jpaIndex.getName();
 							if (!map.containsKey(indexName)) {
-								ddlList.add(dialect.addIndex(jpaIndex));
+								ddlList.add(ddlProvider.addIndex(jpaIndex));
 							}
 						}
 					}
 					return ddlList;
 				}).switchIfEmpty(Mono.fromSupplier(() -> {
 					List<String> ddlList = new ArrayList<>();
-					String createTable = dialect.createTable(jpa);
+					String createTable = ddlProvider.createTable(jpa);
 					ddlList.add(createTable);
 					if (jpaIndices != null) {
 						for (org.loed.framework.common.orm.Index index : jpaIndices) {
-							ddlList.add(dialect.addIndex(index));
+							ddlList.add(ddlProvider.addIndex(index));
 						}
 					}
 					return ddlList;
@@ -225,6 +229,24 @@ public class R2dbcDbInspector implements ApplicationEventPublisherAware, Environ
 			}
 		}
 		return classNames;
+	}
+
+	private DdlProvider createDdlProvider() {
+		org.springframework.boot.autoconfigure.r2dbc.R2dbcProperties r2dbcProperties = null;
+		if (connectionFactory instanceof RoutingConnectionFactory) {
+			R2dbcPropertiesProvider r2dbcPropertiesProvider =  ((RoutingConnectionFactory) connectionFactory).getPropertiesProvider();
+			r2dbcProperties = r2dbcPropertiesProvider.getAllProperties().get(0);
+		} else {
+			r2dbcProperties = Binder.get(environment).bind("spring.r2dbc", org.springframework.boot.autoconfigure.r2dbc.R2dbcProperties.class).orElse(new org.springframework.boot.autoconfigure.r2dbc.R2dbcProperties());
+		}
+		R2dbcDialect dialect = R2dbcDialect.autoGuessDialect(r2dbcProperties.getUrl());
+		org.loed.framework.r2dbc.autoconfigure.R2dbcProperties properties = Binder.get(environment).bind(org.loed.framework.r2dbc.autoconfigure.R2dbcProperties.PREFIX, org.loed.framework.r2dbc.autoconfigure.R2dbcProperties.class)
+				.orElse(new org.loed.framework.r2dbc.autoconfigure.R2dbcProperties());
+		DdlProvider ddlProvider = DdlProviderFactory.getInstance().getDdlProvider(dialect, properties);
+		if (ddlProvider == null) {
+			throw new RuntimeException("can't find R2dbcSqlBuilder from properties:" + SerializeUtils.toJson(r2dbcProperties));
+		}
+		return ddlProvider;
 	}
 
 	@Override

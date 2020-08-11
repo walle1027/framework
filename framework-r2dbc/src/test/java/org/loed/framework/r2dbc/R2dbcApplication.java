@@ -83,9 +83,4 @@ public class R2dbcApplication {
 	ReactiveTransactionManager transactionManager(ConnectionFactory connectionFactory) {
 		return new R2dbcTransactionManager(connectionFactory);
 	}
-
-	@Bean
-	R2dbcSqlBuilder mysql() {
-		return new MysqlR2dbcSqlBuilder(true);
-	}
 }

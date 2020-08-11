@@ -33,7 +33,7 @@ public class People {
 	@Column(length = 18, scale = 6)
 	private BigDecimal height;
 	@Column(length = 18, scale = 6)
-	private BigDecimal weight;
+	private Double weight;
 	@Column
 	@CreateTime
 	private LocalDateTime createTime;

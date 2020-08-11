@@ -4,10 +4,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.loed.framework.common.ORMapping;
 import org.loed.framework.common.context.ReactiveSystemContext;
-import org.loed.framework.common.orm.Column;
-import org.loed.framework.common.orm.Table;
 import org.loed.framework.common.lambda.LambdaUtils;
 import org.loed.framework.common.lambda.SFunction;
+import org.loed.framework.common.orm.Column;
+import org.loed.framework.common.orm.Table;
 import org.loed.framework.common.po.IsDeleted;
 import org.loed.framework.common.po.TenantId;
 import org.loed.framework.common.query.Condition;
@@ -27,10 +27,12 @@ import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuples;
 
 import javax.persistence.GenerationType;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
+import java.math.BigInteger;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -98,10 +100,11 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 		DatabaseClient.GenericExecuteSpec execute = bind(query);
 		GenerationType idGenerationType = table.getIdGenerationType();
 		if (idGenerationType.equals(GenerationType.AUTO)) {
-			return execute.map(row -> {
-				//TODO check the auto increase Id
-				return (ID) row.get("insertedId");
-			}).one().map(id -> {
+			return execute.map((r, m) -> {
+				return (ID) r.get(0, idClass);
+			}).all().doOnError(err -> {
+				log.info(err.getMessage(), err);
+			}).last().map(id -> {
 				//set the id
 				ReflectionUtils.setFieldValue(entity, idColumn.getJavaName(), id);
 				return entity;
@@ -143,14 +146,36 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	protected <S extends T> Flux<S> doBatchInsert(List<S> entityList) {
 		R2dbcQuery query = r2dbcSqlBuilder.batchInsert(entityList, table);
 		DatabaseClient.GenericExecuteSpec execute = bind(query);
-		return execute.fetch().rowsUpdated().doOnError(err -> {
-			log.error(err.getMessage(), err);
-		}).switchIfEmpty(Mono.fromSupplier(() -> {
-			return -1;
-		})).flatMapMany(rows -> {
-			log.debug("rows updated :" + rows);
-			return Flux.fromIterable(entityList);
-		});
+		if (table.getIdGenerationType() == GenerationType.AUTO) {
+			//hacked by mysql
+			return execute.map((r, m) -> {
+				return Tuples.of(r.get(0, idClass), r.get(1, Long.class));
+			}).first().flatMapMany(tuple -> {
+				ID id = tuple.getT1();
+				long count = tuple.getT2();
+				for (int i = 0; i < count; i++) {
+					S entity = entityList.get(i);
+					if (id instanceof Long) {
+						ReflectionUtils.setFieldValue(entity, idColumn.getJavaName(), (Long) id + i);
+					} else if (id instanceof BigInteger) {
+						ReflectionUtils.setFieldValue(entity, idColumn.getJavaName(), ((BigInteger) id).add(BigInteger.valueOf(i)));
+					} else if (id instanceof Integer) {
+						ReflectionUtils.setFieldValue(entity, idColumn.getJavaName(), (Integer) id + i);
+					}
+				}
+				return Flux.fromIterable(entityList);
+			});
+		} else {
+			return execute.fetch().rowsUpdated().doOnError(err -> {
+				log.error(err.getMessage(), err);
+			}).switchIfEmpty(Mono.fromSupplier(() -> {
+				return -1;
+			})).flatMapMany(rows -> {
+				log.debug("rows updated :" + rows);
+				return Flux.fromIterable(entityList);
+			});
+		}
+
 	}
 
 	private <S extends T> Function<S, Mono<? extends S>> preInsertFunction() {

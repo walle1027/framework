@@ -20,6 +20,7 @@ import org.loed.framework.r2dbc.query.R2dbcSqlBuilder;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.lang.NonNull;
 
+import javax.persistence.GenerationType;
 import javax.persistence.criteria.JoinType;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -59,6 +60,9 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 			builder.append(":").append(column.getJavaName()).append(",");
 		});
 		builder.deleteCharAt(builder.length() - 1).append(")");
+		if (table.getIdGenerationType() == GenerationType.AUTO) {
+			builder.append("; select last_insert_id()");
+		}
 		query.setParams(params);
 		query.setStatement(builder.toString());
 		return query;
@@ -89,6 +93,9 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 			builder.deleteCharAt(builder.length() - 1).append(")").append(",");
 		}
 		builder.deleteCharAt(builder.length() - 1);
+		if (table.getIdGenerationType() == GenerationType.AUTO) {
+			builder.append("; select last_insert_id(),row_count()");
+		}
 		query.setStatement(builder.toString());
 		query.setParams(params);
 		return query;

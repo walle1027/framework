@@ -80,6 +80,7 @@ public class ORMapping {
 				GeneratedValue generatedValue = field.getAnnotation(GeneratedValue.class);
 				if (generatedValue != null) {
 					column.setIdGenerationType(generatedValue.strategy());
+					column.getTable().setIdGenerationType(generatedValue.strategy());
 				}
 				//TODO 计算是否fk
 				column.setLength(columnAnno.length());

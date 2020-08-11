@@ -1,4 +1,4 @@
-package org.loed.framework.r2dbc.inspector.dialect.impl;
+package org.loed.framework.r2dbc.inspector.dialect;
 
 import dev.miku.r2dbc.mysql.constant.DataTypes;
 import io.r2dbc.spi.Connection;
@@ -12,7 +12,7 @@ import org.loed.framework.common.database.schema.Table;
 import org.loed.framework.common.orm.Column;
 import org.loed.framework.common.orm.Index;
 import org.loed.framework.common.util.DataType;
-import org.loed.framework.r2dbc.inspector.dialect.DatabaseDialect;
+import org.loed.framework.r2dbc.inspector.DdlProvider;
 import org.springframework.data.r2dbc.convert.ColumnMapRowMapper;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
  * @since 2020/8/8 12:42 下午
  */
 @Slf4j
-public class MysqlDialect implements DatabaseDialect {
+public class MysqlProvider implements DdlProvider {
 	private static final String[] KEYWORDS = new String[]{
 			"ADD", "ALL", "ALTER",
 			"ANALYZE", "AND", "AS",
@@ -112,6 +112,10 @@ public class MysqlDialect implements DatabaseDialect {
 	};
 
 	private boolean quote;
+
+	public MysqlProvider(boolean quote) {
+		this.quote = quote;
+	}
 
 	@Override
 	public Mono<Table> getTable(Connection connection, @Nullable String catalog, @Nullable String schema, @NonNull String tableName) {

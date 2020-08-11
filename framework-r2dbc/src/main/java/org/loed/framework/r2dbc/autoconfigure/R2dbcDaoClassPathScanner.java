@@ -3,10 +3,11 @@ package org.loed.framework.r2dbc.autoconfigure;
 import org.apache.commons.lang3.StringUtils;
 import org.loed.framework.r2dbc.dao.R2dbcDao;
 import org.loed.framework.r2dbc.dao.R2dbcDaoFactoryBean;
-import org.loed.framework.r2dbc.query.R2dbcSqlBuilder;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinitionHolder;
 import org.springframework.beans.factory.config.RuntimeBeanReference;
+import org.springframework.beans.factory.support.AbstractBeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.GenericBeanDefinition;
 import org.springframework.context.annotation.ClassPathBeanDefinitionScanner;
@@ -66,6 +67,7 @@ public class R2dbcDaoClassPathScanner extends ClassPathBeanDefinitionScanner {
 	protected boolean isCandidateComponent(AnnotatedBeanDefinition beanDefinition) {
 		return true;
 	}
+
 	/**
 	 * Calls the parent search that will search and register all the candidates.
 	 * Then the registered objects are post processed to set them as
@@ -76,11 +78,10 @@ public class R2dbcDaoClassPathScanner extends ClassPathBeanDefinitionScanner {
 		Set<BeanDefinitionHolder> beanDefinitions = super.doScan(basePackages);
 
 		if (beanDefinitions.isEmpty()) {
-			logger.warn("No soa service was found in '" + Arrays.toString(basePackages) + "' package. Please check your configuration.");
+			logger.warn("No dao interface found in '" + Arrays.toString(basePackages) + "' package. Please check your configuration.");
 		} else {
 			processBeanDefinitions(beanDefinitions);
 		}
-
 		return beanDefinitions;
 	}
 
@@ -96,12 +97,13 @@ public class R2dbcDaoClassPathScanner extends ClassPathBeanDefinitionScanner {
 			if (StringUtils.isBlank(beanClassName)) {
 				return;
 			}
+			definition.setAutowireMode(AbstractBeanDefinition.AUTOWIRE_BY_TYPE);
+			definition.setScope(BeanDefinition.SCOPE_SINGLETON);
 			// the mapper interface is the original class of the bean
 			// but, the actual class of the bean is MapperFactoryBean
 			definition.setLazyInit(true);
-			definition.getConstructorArgumentValues().addIndexedArgumentValue(0,beanClassName);
-			definition.getConstructorArgumentValues().addIndexedArgumentValue(1,new RuntimeBeanReference(DatabaseClient.class));
-			definition.getConstructorArgumentValues().addIndexedArgumentValue(2,new RuntimeBeanReference(R2dbcSqlBuilder.class));
+			definition.getConstructorArgumentValues().addIndexedArgumentValue(0, beanClassName);
+			definition.getConstructorArgumentValues().addIndexedArgumentValue(1, new RuntimeBeanReference(DatabaseClient.class));
 			definition.setBeanClass(R2dbcDaoFactoryBean.class);
 		}
 	}

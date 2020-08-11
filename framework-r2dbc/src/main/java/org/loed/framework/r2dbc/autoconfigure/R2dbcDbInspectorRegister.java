@@ -2,7 +2,7 @@ package org.loed.framework.r2dbc.autoconfigure;
 
 import io.r2dbc.spi.ConnectionFactory;
 import org.apache.commons.lang3.StringUtils;
-import org.loed.framework.r2dbc.inspector.dialect.DatabaseDialect;
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.RuntimeBeanReference;
 import org.springframework.beans.factory.support.AbstractBeanDefinition;
@@ -10,6 +10,8 @@ import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.GenericBeanDefinition;
 import org.springframework.boot.context.properties.bind.BindResult;
 import org.springframework.boot.context.properties.bind.Binder;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.context.annotation.ImportBeanDefinitionRegistrar;
 import org.springframework.core.annotation.AnnotationAttributes;
@@ -26,9 +28,11 @@ import java.util.List;
  * @version 1.0
  * @since 2020/8/9 1:23 下午
  */
-public class R2dbcDbInspectorRegister implements ImportBeanDefinitionRegistrar, EnvironmentAware {
+public class R2dbcDbInspectorRegister implements ImportBeanDefinitionRegistrar, EnvironmentAware, ApplicationContextAware {
 
 	private Environment environment;
+
+	private ApplicationContext applicationContext;
 
 	@Override
 	public void registerBeanDefinitions(AnnotationMetadata annotationMetadata, @NonNull BeanDefinitionRegistry registry) {
@@ -59,7 +63,6 @@ public class R2dbcDbInspectorRegister implements ImportBeanDefinitionRegistrar, 
 		beanDefinition.setNonPublicAccessAllowed(true);
 		beanDefinition.setBeanClass(org.loed.framework.r2dbc.inspector.R2dbcDbInspector.class);
 		beanDefinition.getConstructorArgumentValues().addIndexedArgumentValue(0, new RuntimeBeanReference(ConnectionFactory.class));
-		beanDefinition.getConstructorArgumentValues().addIndexedArgumentValue(1, new RuntimeBeanReference(DatabaseDialect.class));
 
 		beanDefinition.getPropertyValues().addPropertyValue("packagesToScan", basePackages);
 		beanDefinition.getPropertyValues().addPropertyValue("enabled", properties.getInspector().isEnabled());
@@ -70,5 +73,10 @@ public class R2dbcDbInspectorRegister implements ImportBeanDefinitionRegistrar, 
 	@Override
 	public void setEnvironment(@NonNull Environment environment) {
 		this.environment = environment;
+	}
+
+	@Override
+	public void setApplicationContext(@NonNull ApplicationContext applicationContext) throws BeansException {
+		this.applicationContext = applicationContext;
 	}
 }

@@ -1,4 +1,4 @@
-package org.loed.framework.r2dbc.inspector.dialect;
+package org.loed.framework.r2dbc.inspector;
 
 import io.r2dbc.spi.Connection;
 import org.loed.framework.common.database.schema.Table;
@@ -11,7 +11,7 @@ import reactor.core.publisher.Mono;
  * @version 1.0
  * @since 2020/8/8 11:57 上午
  */
-public interface DatabaseDialect {
+public interface DdlProvider {
 	/**
 	 * 根据 catalog schema tableName 查询表结构定义
 	 *
