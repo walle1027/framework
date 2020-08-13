@@ -1,4 +1,4 @@
-package org.loed.framework.common.web;
+package org.loed.framework.common.web.mvc;
 
 import org.loed.framework.common.Result;
 import org.loed.framework.common.i18n.I18nProvider;
@@ -20,7 +20,7 @@ public class DefaultExceptionHandler {
 	@Autowired
 	private I18nProvider i18nProvider;
 
-	private Logger logger = LoggerFactory.getLogger(DefaultExceptionHandler.class);
+	private final Logger logger = LoggerFactory.getLogger(DefaultExceptionHandler.class);
 
 	@ExceptionHandler
 	public Result<Void> handleException(HttpServletRequest request, Throwable e) {

@@ -1,7 +1,7 @@
 package org.loed.framework.mybatis.listener.impl;
 
 
-import org.loed.framework.common.context.SystemContext;
+import org.loed.framework.common.context.SystemContextHolder;
 import org.loed.framework.common.po.CreateBy;
 import org.loed.framework.common.po.CreateTime;
 import org.loed.framework.common.po.IsDeleted;
@@ -51,7 +51,7 @@ public class DefaultPreInsertListener implements PreInsertListener {
 					}
 				}
 			} else if (field.getAnnotation(CreateBy.class) != null) {
-				ReflectionUtils.setFieldValue(object, field, SystemContext.getAccountId());
+				ReflectionUtils.setFieldValue(object, field, SystemContextHolder.getAccountId());
 			} else if (field.getAnnotation(CreateTime.class) != null) {
 				ReflectionUtils.setFieldValue(object, field, new Date());
 			} else if (field.getAnnotation(Version.class) != null) {
@@ -60,7 +60,7 @@ public class DefaultPreInsertListener implements PreInsertListener {
 				//TODO 枚举类型
 				ReflectionUtils.setFieldValue(object, field, 0);
 			} else if (field.getAnnotation(TenantId.class) != null) {
-				ReflectionUtils.setFieldValue(object, field, SystemContext.getTenantCode());
+				ReflectionUtils.setFieldValue(object, field, SystemContextHolder.getTenantCode());
 			}
 		}
 	}

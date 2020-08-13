@@ -2,8 +2,11 @@ package org.loed.framework.common.i18n;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.loed.framework.common.*;
-import org.loed.framework.common.context.SystemContext;
+import org.loed.framework.common.BusinessException;
+import org.loed.framework.common.Message;
+import org.loed.framework.common.Result;
+import org.loed.framework.common.SystemConstant;
+import org.loed.framework.common.context.SystemContextHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.validation.BindException;
@@ -113,7 +116,7 @@ public interface I18nProvider {
 	 * @return 值
 	 */
 	default String getText(String key) {
-		return getText(key, null, SystemContext.getLocale());
+		return getText(key, null, SystemContextHolder.getLocale());
 	}
 
 	/**
@@ -135,7 +138,7 @@ public interface I18nProvider {
 	 * @return 值
 	 */
 	default String getText(String key, Object[] args) {
-		return getText(key, args, SystemContext.getLocale());
+		return getText(key, args, SystemContextHolder.getLocale());
 	}
 
 	/**

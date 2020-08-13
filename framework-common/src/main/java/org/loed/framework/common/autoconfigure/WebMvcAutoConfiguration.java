@@ -4,9 +4,11 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.loed.framework.common.context.SystemContext;
 import org.loed.framework.common.context.SystemContextHolder;
+import org.loed.framework.common.web.mvc.DefaultExceptionHandler;
 import org.loed.framework.common.web.mvc.ResponseBodyWrapFactoryBean;
 import org.loed.framework.common.web.mvc.filter.SystemContextFilter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.web.servlet.DispatcherServletAutoConfiguration;
 import org.springframework.boot.web.client.RestTemplateCustomizer;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -25,6 +27,12 @@ import java.util.List;
 @ConditionalOnBean(DispatcherServletAutoConfiguration.class)
 @Configuration
 public class WebMvcAutoConfiguration {
+
+	@Bean
+	@ConditionalOnMissingBean
+	public DefaultExceptionHandler defaultExceptionHandler() {
+		return new DefaultExceptionHandler();
+	}
 
 	@Bean
 	@Conditional({ResponseBodyWrapperCondition.class})

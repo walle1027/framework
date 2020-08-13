@@ -21,6 +21,8 @@ public interface SystemConstant {
 	//错误消息
 	int MSG_ERROR = 2;
 
+	String RESPONSE_WRAPPED ="ResponseWrapped";
+
 	//*******************http请求响应类型**************/
 	String RESPONSE_TYPE_JSON = "json";
 	String RESPONSE_TYPE_XML = "xml";

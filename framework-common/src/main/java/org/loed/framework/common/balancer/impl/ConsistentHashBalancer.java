@@ -18,7 +18,7 @@ public class ConsistentHashBalancer implements ConditionBalancer<Balanceable, St
 
 	protected Lock lock = new ReentrantLock();
 
-	private ConsistentHash consistentHash;
+	private ConsistentHash<ConsistentHasBalanceAdapter> consistentHash;
 
 	@Override
 	public Balanceable select() {
@@ -28,14 +28,14 @@ public class ConsistentHashBalancer implements ConditionBalancer<Balanceable, St
 
 	@Override
 	public void updateProfiles(Collection<Balanceable> nodeList) {
+		lock.lock();
 		try {
-			lock.lock();
 			if (consistentHash == null) {
-				consistentHash = new ConsistentHash();
+				consistentHash = new ConsistentHash<>();
 			}
 			consistentHash.clear();
 			for (Balanceable balanceable : nodeList) {
-				consistentHash.add(new ConstiantHasBalanceAdapter(balanceable));
+				consistentHash.add(new ConsistentHasBalanceAdapter(balanceable));
 			}
 		} finally {
 			lock.unlock();
@@ -43,24 +43,24 @@ public class ConsistentHashBalancer implements ConditionBalancer<Balanceable, St
 	}
 
 	@Override
-	public void setWhiteList(Collection whiteList) {
+	public void setWhiteList(Collection<String> whiteList) {
 
 	}
 
 	@Override
 	public Balanceable select(String condition) {
-		ConstiantHasBalanceAdapter constiantHasBalanceAdapter = (ConstiantHasBalanceAdapter) consistentHash.get(condition);
-		if (constiantHasBalanceAdapter == null) {
+		ConsistentHasBalanceAdapter consistentHasBalanceAdapter = consistentHash.get(condition);
+		if (consistentHasBalanceAdapter == null) {
 			return null;
 		}
-		return constiantHasBalanceAdapter.getBalanceable();
+		return consistentHasBalanceAdapter.getBalanceable();
 	}
 
-	public static class ConstiantHasBalanceAdapter implements Balanceable, ConsistentHashNode {
+	public static class ConsistentHasBalanceAdapter implements Balanceable, ConsistentHashNode {
 
 		private Balanceable balanceable;
 
-		public ConstiantHasBalanceAdapter(Balanceable balanceable) {
+		public ConsistentHasBalanceAdapter(Balanceable balanceable) {
 			this.balanceable = balanceable;
 		}
 

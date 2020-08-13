@@ -31,9 +31,9 @@ public class WebFluxAutoConfiguration {
 	@Bean
 	public WebClientCustomizer systemContextWebClientCustomizer() {
 		return builder -> {
-			builder.filter((request, next) -> ReactiveSystemContext.getSystemContext().flatMap(systemContext -> {
+			builder.filter((request, next) -> ReactiveSystemContext.getSystemContext().flatMap(context -> {
 				HttpHeaders headers = request.headers();
-				List<Pair<String, String>> pairs = systemContext.toHeaders();
+				List<Pair<String, String>> pairs = context.toHeaders();
 				if (!pairs.isEmpty()) {
 					for (Pair<String, String> pair : pairs) {
 						headers.add(pair.getKey(), pair.getValue());

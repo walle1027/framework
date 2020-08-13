@@ -2,7 +2,7 @@ package org.loed.framework;
 
 import org.junit.Before;
 import org.loed.framework.common.ServiceLocator;
-import org.loed.framework.common.context.SystemContext;
+import org.loed.framework.common.context.SystemContextHolder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 
@@ -19,9 +19,9 @@ public class TestBase {
 
 	@Before
 	public void setUp() throws Exception {
-		SystemContext.setUserId("wishstar");
-		SystemContext.setTenantCode("default");
-		SystemContext.setUserName("杨涛");
+		SystemContextHolder.setUserId("wishstar");
+		SystemContextHolder.setTenantCode("default");
+		SystemContextHolder.setUserName("杨涛");
 		ServiceLocator.setApplicationContext(applicationContext);
 	}
 }

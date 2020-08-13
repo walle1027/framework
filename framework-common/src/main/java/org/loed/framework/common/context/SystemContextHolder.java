@@ -5,8 +5,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
-import static org.loed.framework.common.context.SystemContext.*;
-
 /**
  * @author thomason
  * @version 1.0
@@ -18,7 +16,7 @@ public class SystemContextHolder {
 	 */
 	private static final transient ThreadLocal<SystemContext> contextMap = new ThreadLocal<>();
 
-	private static final Logger logger = LoggerFactory.getLogger(SystemContext.class);
+	private static final Logger logger = LoggerFactory.getLogger(SystemContextHolder.class);
 
 
 	/**
@@ -32,7 +30,7 @@ public class SystemContextHolder {
 			systemContext = new SystemContext();
 			contextMap.set(systemContext);
 		}
-		return systemContext.getContextMap();
+		return SystemContextHolder.getContextMap();
 	}
 
 	public static SystemContext getSystemContext() {
@@ -90,161 +88,158 @@ public class SystemContextHolder {
 	}
 
 	public static String getUserToken() {
-		return get(CONTEXT_USER_TOKEN);
+		return get(SystemContext.CONTEXT_USER_TOKEN);
 	}
-
 
 	public static void setUserToken(String token) {
-		set(CONTEXT_USER_TOKEN, token);
+		set(SystemContext.CONTEXT_USER_TOKEN, token);
 	}
-
 
 	public static String getUserId() {
-		return get(CONTEXT_USER_ID);
+		return get(SystemContext.CONTEXT_USER_ID);
 	}
 
-
 	public static void setUserId(String userId) {
-		set(CONTEXT_USER_ID, userId);
+		set(SystemContext.CONTEXT_USER_ID, userId);
 	}
 
 
 	public static String getUserName() {
-		return get(CONTEXT_USER_NAME);
+		return get(SystemContext.CONTEXT_USER_NAME);
 	}
 
 
 	public static void setUserName(String userName) {
-		set(CONTEXT_USER_NAME, userName);
+		set(SystemContext.CONTEXT_USER_NAME, userName);
 	}
 
 
 	public static String getUserAgent() {
-		return get(CONTEXT_USER_AGENT);
+		return get(SystemContext.CONTEXT_USER_AGENT);
 	}
 
 
 	public static void setUserAgent(String userAgent) {
-		set(CONTEXT_USER_AGENT, userAgent);
+		set(SystemContext.CONTEXT_USER_AGENT, userAgent);
 	}
 
 
 	public static String getAccountId() {
-		return get(CONTEXT_ACCOUNT_ID);
+		return get(SystemContext.CONTEXT_ACCOUNT_ID);
 	}
 
 
 	public static void setAccountId(String accountId) {
-		set(CONTEXT_ACCOUNT_ID, accountId);
+		set(SystemContext.CONTEXT_ACCOUNT_ID, accountId);
 	}
 
 
 	public static String getAccountName() {
-		return get(CONTEXT_ACCOUNT_NAME);
+		return get(SystemContext.CONTEXT_ACCOUNT_NAME);
 	}
 
 
 	public static void setAccountName(String accountName) {
-		set(CONTEXT_ACCOUNT_NAME, accountName);
+		set(SystemContext.CONTEXT_ACCOUNT_NAME, accountName);
 	}
 
 
 	public static String getAppId() {
-		return get(CONTEXT_APP_ID);
+		return get(SystemContext.CONTEXT_APP_ID);
 	}
 
 
 	public static void setAppId(String appId) {
-		set(CONTEXT_APP_ID, appId);
+		set(SystemContext.CONTEXT_APP_ID, appId);
 	}
 
 
 	public static String getAppVersion() {
-		return get(CONTEXT_APP_VERSION);
+		return get(SystemContext.CONTEXT_APP_VERSION);
 	}
 
 
 	public static void setAppVersion(String appVersion) {
-		set(CONTEXT_APP_VERSION, appVersion);
+		set(SystemContext.CONTEXT_APP_VERSION, appVersion);
 	}
 
 
 	public static Integer getTimeZone() {
-		String timeZone = get(CONTEXT_TIME_ZONE);
+		String timeZone = get(SystemContext.CONTEXT_TIME_ZONE);
 		return timeZone == null ? null : Integer.parseInt(timeZone);
 	}
 
 
 	public static void setTimeZone(Integer timeZone) {
-		set(CONTEXT_TIME_ZONE, timeZone + "");
+		set(SystemContext.CONTEXT_TIME_ZONE, timeZone + "");
 	}
 
 
 	public static String getServerHost() {
-		return get(CONTEXT_SERVER_HOST);
+		return get(SystemContext.CONTEXT_SERVER_HOST);
 	}
 
 
 	public static void setServerHost(String serverHost) {
-		set(CONTEXT_SERVER_HOST, serverHost);
+		set(SystemContext.CONTEXT_SERVER_HOST, serverHost);
 	}
 
 
 	public static String getPlatform() {
-		return get(CONTEXT_PLATFORM);
+		return get(SystemContext.CONTEXT_PLATFORM);
 	}
 
 
 	public static void setPlatform(String device) {
-		set(CONTEXT_PLATFORM, device);
+		set(SystemContext.CONTEXT_PLATFORM, device);
 	}
 
 
 	public static String getDevice() {
-		return get(CONTEXT_DEVICE);
+		return get(SystemContext.CONTEXT_DEVICE);
 	}
 
 
 	public static void setDevice(String device) {
-		set(CONTEXT_DEVICE, device);
+		set(SystemContext.CONTEXT_DEVICE, device);
 	}
 
 
 	public static String getTenantCode() {
-		String tenantCode = get(CONTEXT_TENANT_CODE);
+		String tenantCode = get(SystemContext.CONTEXT_TENANT_CODE);
 		if (tenantCode == null || tenantCode.isEmpty()) {
-			return DEFAULT_TENANT_CODE;
+			return SystemContext.DEFAULT_TENANT_CODE;
 		}
 		return tenantCode;
 	}
 
 
 	public static void setTenantCode(String tenantCode) {
-		set(CONTEXT_TENANT_CODE, tenantCode);
+		set(SystemContext.CONTEXT_TENANT_CODE, tenantCode);
 	}
 
 
 	public static String getLocale() {
-		String locale = get(CONTEXT_LOCALE);
+		String locale = get(SystemContext.CONTEXT_LOCALE);
 		if (locale == null || locale.isEmpty()) {
-			return DEFAULT_LOCALE;
+			return SystemContext.DEFAULT_LOCALE;
 		}
 		return locale;
 	}
 
 
 	public static void setLocale(String locale) {
-		set(CONTEXT_LOCALE, locale);
+		set(SystemContext.CONTEXT_LOCALE, locale);
 	}
 
 
 	public static String getClientIp() {
-		return get(CONTEXT_CLIENT_IP);
+		return get(SystemContext.CONTEXT_CLIENT_IP);
 	}
 
 
 	public static void setClientIp(String clientIp) {
-		set(CONTEXT_CLIENT_IP, clientIp);
+		set(SystemContext.CONTEXT_CLIENT_IP, clientIp);
 	}
 
 	public static void clean() {

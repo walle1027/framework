@@ -3,7 +3,7 @@ package org.loed.framework.mybatis.datasource.routing;
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 import org.apache.commons.collections4.CollectionUtils;
 import org.loed.framework.common.RoutingDataSource;
-import org.loed.framework.common.context.SystemContext;
+import org.loed.framework.common.context.SystemContextHolder;
 import org.loed.framework.mybatis.datasource.meta.DatabaseMetaInfo;
 import org.loed.framework.mybatis.datasource.meta.DatabaseMetaInfoProvider;
 import org.loed.framework.mybatis.datasource.readwriteisolate.ReadWriteContext;
@@ -181,7 +181,7 @@ public abstract class AbstractRoutingDataSource implements RoutingDataSource, Di
 	}
 
 	private String getHorizontalShardingValue() {
-		return SystemContext.get(horizontalShardingKey);
+		return SystemContextHolder.get(horizontalShardingKey);
 	}
 
 	@Override

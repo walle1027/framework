@@ -5,7 +5,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.loed.framework.common.CopyOnWriteMap;
 import org.loed.framework.common.SystemConstant;
-import org.loed.framework.common.context.SystemContext;
+import org.loed.framework.common.context.SystemContextHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,8 +60,8 @@ public class FileRoutingTemplateLoader implements TemplateLoader {
 	public Object findTemplateSource(String name) throws IOException {
 		String path = null;
 		try {
-			String appVersion = SystemContext.getAppVersion();
-			path = SystemContext.getTenantCode() + "/" + appVersion + "/" + name;
+			String appVersion = SystemContextHolder.getAppVersion();
+			path = SystemContextHolder.getTenantCode() + "/" + appVersion + "/" + name;
 			if (routingMap.containsKey(path)) {
 				return routingMap.get(path);
 			}
@@ -72,8 +72,8 @@ public class FileRoutingTemplateLoader implements TemplateLoader {
 					return file;
 				}
 			}*/
-			logger.debug("template:" + name + " for tenant:[" + SystemContext.getTenantCode() + "] and version:[" + appVersion + "] don'st exists");
-			path = SystemContext.getTenantCode() + "/" + SystemConstant.DEFAULT_VERSION + "/" + name;
+			logger.debug("template:" + name + " for tenant:[" + SystemContextHolder.getTenantCode() + "] and version:[" + appVersion + "] don'st exists");
+			path = SystemContextHolder.getTenantCode() + "/" + SystemConstant.DEFAULT_VERSION + "/" + name;
 			if (routingMap.containsKey(path)) {
 				return routingMap.get(path);
 			}
@@ -84,7 +84,7 @@ public class FileRoutingTemplateLoader implements TemplateLoader {
 					return file;
 				}
 			}*/
-			logger.debug("template:" + name + " for tenant:[" + SystemContext.getTenantCode() + "] and version:[basic] don'st exists");
+			logger.debug("template:" + name + " for tenant:[" + SystemContextHolder.getTenantCode() + "] and version:[basic] don'st exists");
 			path = SystemConstant.DEFAULT_TENANT_CODE + "/" + appVersion + "/" + name;
 			if (routingMap.containsKey(path)) {
 				return routingMap.get(path);
@@ -96,7 +96,7 @@ public class FileRoutingTemplateLoader implements TemplateLoader {
 					return file;
 				}
 			}*/
-			logger.debug("template:" + name + " for tenant:" + SystemContext.getTenantCode() + " don'st exists");
+			logger.debug("template:" + name + " for tenant:" + SystemContextHolder.getTenantCode() + " don'st exists");
 			path = SystemConstant.DEFAULT_TENANT_CODE + "/" + SystemConstant.DEFAULT_VERSION + "/" + name;
 			if (routingMap.containsKey(path)) {
 				return routingMap.get(path);
@@ -122,7 +122,7 @@ public class FileRoutingTemplateLoader implements TemplateLoader {
 				}
 			}*/
 			/*path = null;
-			String lastTemplateDir = SystemContext.get(LAST_TEMPLATE_DIR);
+			String lastTemplateDir = SystemContextHolder.get(LAST_TEMPLATE_DIR);
 			if (StringUtils.isNotEmpty(lastTemplateDir)) {
 				String realPath = getTemplatePath(lastTemplateDir + "/" + name);
 				if (realPath != null) {

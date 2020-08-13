@@ -2,7 +2,7 @@ package org.loed.framework.common.web.freemarker;
 
 import freemarker.cache.URLTemplateLoader;
 import org.loed.framework.common.SystemConstant;
-import org.loed.framework.common.context.SystemContext;
+import org.loed.framework.common.context.SystemContextHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,25 +22,25 @@ public class ClassRoutingTemplateLoader extends URLTemplateLoader {
 	@Override
 	protected URL getURL(String name) {
 		String fullPath = null;
-		String appVersion = SystemContext.getAppVersion();
-		fullPath = templateLoaderPath + "/" + SystemContext.getTenantCode() + "/" + appVersion + "/" + name;
+		String appVersion = SystemContextHolder.getAppVersion();
+		fullPath = templateLoaderPath + "/" + SystemContextHolder.getTenantCode() + "/" + appVersion + "/" + name;
 		URL url = Thread.currentThread().getContextClassLoader().getResource(fullPath);
 		if (url != null) {
 			return url;
 		}
-		logger.debug("template:" + name + " for tenant:[" + SystemContext.getTenantCode() + "] and version:[" + appVersion + "] don'st exists");
-		fullPath = templateLoaderPath + "/" + SystemContext.getTenantCode() + "/" + SystemConstant.DEFAULT_VERSION + "/" + name;
+		logger.debug("template:" + name + " for tenant:[" + SystemContextHolder.getTenantCode() + "] and version:[" + appVersion + "] don'st exists");
+		fullPath = templateLoaderPath + "/" + SystemContextHolder.getTenantCode() + "/" + SystemConstant.DEFAULT_VERSION + "/" + name;
 		url = Thread.currentThread().getContextClassLoader().getResource(fullPath);
 		if (url != null) {
 			return url;
 		}
-		logger.debug("template:" + name + " for tenant:[" + SystemContext.getTenantCode() + "] and version:[basic] don'st exists");
+		logger.debug("template:" + name + " for tenant:[" + SystemContextHolder.getTenantCode() + "] and version:[basic] don'st exists");
 		fullPath = templateLoaderPath + "/" + SystemConstant.DEFAULT_TENANT_CODE + "/" + appVersion + "/" + name;
 		url = Thread.currentThread().getContextClassLoader().getResource(fullPath);
 		if (url != null) {
 			return url;
 		}
-		logger.debug("template:" + name + " for tenant:" + SystemContext.getTenantCode() + " don'st exists");
+		logger.debug("template:" + name + " for tenant:" + SystemContextHolder.getTenantCode() + " don'st exists");
 		fullPath = templateLoaderPath + "/" + SystemConstant.DEFAULT_TENANT_CODE + "/" + SystemConstant.DEFAULT_VERSION + "/" + name;
 		url = Thread.currentThread().getContextClassLoader().getResource(fullPath);
 		if (url != null) {

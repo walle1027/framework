@@ -1,17 +1,16 @@
 package org.loed.framework.common.autoconfigure;
 
 import org.apache.commons.lang3.StringUtils;
-import org.loed.framework.common.*;
+import org.loed.framework.common.PoolExecutors;
+import org.loed.framework.common.ServiceLocator;
+import org.loed.framework.common.SpringUtils;
+import org.loed.framework.common.ThreadPoolExecutor;
 import org.loed.framework.common.lock.ZKDistributeLock;
 import org.loed.framework.common.mapping.MapperFactoryBean;
-import org.loed.framework.common.web.DefaultExceptionHandler;
-import org.loed.framework.common.web.mvc.ResponseBodyWrapFactoryBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -20,7 +19,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.io.support.ResourcePatternResolver;
-import org.springframework.web.servlet.DispatcherServlet;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
@@ -73,12 +71,6 @@ public class GenericAutoConfiguration {
 		int queueCapacity = threadPoolProperties.getQueueCapacity();
 		int keepAliveSeconds = threadPoolProperties.getKeepAliveSeconds();
 		return PoolExecutors.newThreadPool("defaultThreadPool", coreSize, maxSize, queueCapacity, keepAliveSeconds);
-	}
-
-	@Bean
-	@ConditionalOnMissingBean
-	public DefaultExceptionHandler defaultExceptionHandler() {
-		return new DefaultExceptionHandler();
 	}
 
 	@Bean

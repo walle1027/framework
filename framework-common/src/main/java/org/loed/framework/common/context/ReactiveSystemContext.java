@@ -38,6 +38,10 @@ public class ReactiveSystemContext {
 		return getSystemContext().map(SystemContext::getTenantCode);
 	}
 
+	public static Mono<String> getLocale() {
+		return getSystemContext().map(SystemContext::getLocale);
+	}
+
 	public static class NoSystemContextException extends RuntimeException {
 		public NoSystemContextException() {
 		}

@@ -1,7 +1,7 @@
 package org.loed.framework.mybatis.listener.impl;
 
 
-import org.loed.framework.common.context.SystemContext;
+import org.loed.framework.common.context.SystemContextHolder;
 import org.loed.framework.common.po.LastModifyBy;
 import org.loed.framework.common.po.LastModifyTime;
 import org.loed.framework.common.util.ReflectionUtils;
@@ -36,7 +36,7 @@ public class DefaultPreUpdateListener implements PreUpdateListener {
 //		if (object instanceof CommonPO) {
 //			CommonPO po = (CommonPO) object;
 //			if (po.getUpdateBy() == null) {
-//				po.setUpdateBy(SystemContext.getAccountId());
+//				po.setUpdateBy(SystemContextHolder.getAccountId());
 //			}
 //			if (po.getUpdateTime() == null) {
 //				po.setUpdateTime(new Date());
@@ -49,7 +49,7 @@ public class DefaultPreUpdateListener implements PreUpdateListener {
 //			}
 //			if (po.getCreateBy() == null) {
 //				try {
-//					po.setUpdateBy(Long.valueOf(SystemContext.getAccountId()));
+//					po.setUpdateBy(Long.valueOf(SystemContextHolder.getAccountId()));
 //				} catch (Exception e) {
 //					//TODO
 //				}
@@ -62,7 +62,7 @@ public class DefaultPreUpdateListener implements PreUpdateListener {
 		List<Field> fields = ReflectionUtils.getDeclaredFields(object);
 		for (Field field : fields) {
 			if (field.getAnnotation(LastModifyBy.class) != null) {
-				ReflectionUtils.setFieldValue(object, field, SystemContext.getAccountId());
+				ReflectionUtils.setFieldValue(object, field, SystemContextHolder.getAccountId());
 			} else if (field.getAnnotation(LastModifyTime.class) != null) {
 				ReflectionUtils.setFieldValue(object, field, new Date());
 			}

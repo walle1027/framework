@@ -137,14 +137,14 @@ public final class SystemContext {
 			log.error("key:" + key + " or value:" + value + " is null,i can't set it into the context map");
 			return;
 		}
-		if (key.length() > SystemContext.MAX_SIZE) {
-			throw new RuntimeException("key is more than " + SystemContext.MAX_SIZE + ", i can't set it into the context map");
+		if (key.length() > MAX_SIZE) {
+			throw new RuntimeException("key is more than " + MAX_SIZE + ", i can't set it into the context map");
 		}
-		if (value.length() > SystemContext.MAX_SIZE) {
-			throw new RuntimeException("value is more than " + SystemContext.MAX_SIZE + ", i can't set it into the context map");
+		if (value.length() > MAX_SIZE) {
+			throw new RuntimeException("value is more than " + MAX_SIZE + ", i can't set it into the context map");
 		}
 		Map<String, String> contextMap = getContextMap();
-		if (contextMap.size() > SystemContext.MAX_CAPACITY) {
+		if (contextMap.size() > MAX_CAPACITY) {
 			throw new RuntimeException("the context map is full, can't set anything");
 		}
 		contextMap.put(key, value);
@@ -321,14 +321,14 @@ public final class SystemContext {
 				log.warn("header:" + key + "'s value:" + value + " is empty,will not add to headers");
 				continue;
 			}
-			if (!StringUtils.startsWithIgnoreCase(key, SystemContext.CONTEXT_PREFIX)) {
+			if (!StringUtils.startsWithIgnoreCase(key, CONTEXT_PREFIX)) {
 				continue;
 			}
 			if (log.isDebugEnabled()) {
 				log.debug("adding header{" + key + ":" + value + "}");
 			}
-			if (StringUtils.equalsIgnoreCase(key, SystemContext.CONTEXT_ACCOUNT_NAME)
-					|| StringUtils.equalsIgnoreCase(key, SystemContext.CONTEXT_USER_NAME)) {
+			if (StringUtils.equalsIgnoreCase(key, CONTEXT_ACCOUNT_NAME)
+					|| StringUtils.equalsIgnoreCase(key, CONTEXT_USER_NAME)) {
 				pairs.add(convertKey(key, value, true));
 			} else {
 				pairs.add(convertKey(key, value, false));

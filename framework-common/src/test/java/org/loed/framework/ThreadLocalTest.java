@@ -1,7 +1,7 @@
 package org.loed.framework;
 
 import org.junit.Test;
-import org.loed.framework.common.context.SystemContext;
+import org.loed.framework.common.context.SystemContextHolder;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -26,13 +26,13 @@ public class ThreadLocalTest {
 				@Override
 				public void run() {
 					try {
-						SystemContext.setTenantCode("safdasdf");
+						SystemContextHolder.setTenantCode("safdasdf");
 						Thread.sleep(10L);
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					} finally {
 						countDownLatch.countDown();
-						SystemContext.clean();
+						SystemContextHolder.clean();
 					}
 				}
 			});

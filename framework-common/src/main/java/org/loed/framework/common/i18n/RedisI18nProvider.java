@@ -1,7 +1,6 @@
 package org.loed.framework.common.i18n;
 
-import org.loed.framework.common.context.SystemContext;
-import org.loed.framework.common.i18n.I18nProvider;
+import org.loed.framework.common.context.SystemContextHolder;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.text.MessageFormat;
@@ -137,13 +136,11 @@ public class RedisI18nProvider implements I18nProvider {
 	 * @return 构建后的key
 	 */
 	private String buildKey(String key, String locale) {
-		StringBuilder builder = new StringBuilder();
-		builder.append(SystemContext.getTenantCode());
-		builder.append(I18N_KEY_SEPARATOR);
-		builder.append(key);
-		builder.append(I18N_KEY_SEPARATOR);
-		builder.append(locale);
-		return builder.toString();
+		return SystemContextHolder.getTenantCode() +
+				I18N_KEY_SEPARATOR +
+				key +
+				I18N_KEY_SEPARATOR +
+				locale;
 	}
 
 	public StringRedisTemplate getRedisTemplate() {

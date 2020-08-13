@@ -5,9 +5,9 @@ import com.github.pagehelper.PageInfo;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.ibatis.annotations.*;
 import org.loed.framework.common.ORMapping;
-import org.loed.framework.common.context.SystemContext;
-import org.loed.framework.common.orm.Table;
+import org.loed.framework.common.context.SystemContextHolder;
 import org.loed.framework.common.lambda.SFunction;
+import org.loed.framework.common.orm.Table;
 import org.loed.framework.common.po.BasePO;
 import org.loed.framework.common.po.CommonPO;
 import org.loed.framework.common.po.Identify;
@@ -248,7 +248,7 @@ public interface BaseMapper<T extends Identify> {
 				T object = entityClass.newInstance();
 				((CommonPO) object).setId((String) id);
 				((CommonPO) object).setIsDeleted(1);
-				((CommonPO) object).setUpdateBy(SystemContext.getAccountId());
+				((CommonPO) object).setUpdateBy(SystemContextHolder.getAccountId());
 				((CommonPO) object).setUpdateTime(new Date());
 				Set<String> set = new HashSet<>();
 				set.add("updateTime");
@@ -361,7 +361,7 @@ public interface BaseMapper<T extends Identify> {
 		if (ReflectionUtils.isSubClass(entityClass, CommonPO.class)) {
 			Map<String, Object> columnMap = new HashMap<>();
 			columnMap.put("isDeleted", 0);
-			columnMap.put("updateBy", SystemContext.getAccountId());
+			columnMap.put("updateBy", SystemContextHolder.getAccountId());
 			columnMap.put("updateTime", new Date());
 			return _updateByCriteria(entityClass, criteria, columnMap, new HashMap<>());
 		} else {
@@ -401,7 +401,7 @@ public interface BaseMapper<T extends Identify> {
 			criteria.criterion(new Condition("isDeleted", Operator.equal, 0));
 		}
 		if (ReflectionUtils.isSubClass(entityClass, BasePO.class)) {
-			criteria.criterion(new Condition("tenantCode", Operator.equal, SystemContext.getTenantCode()));
+			criteria.criterion(new Condition("tenantCode", Operator.equal, SystemContextHolder.getTenantCode()));
 		}
 		return _findByCriteria(entityClass, criteria, new HashMap<>());
 	}
@@ -460,7 +460,7 @@ public interface BaseMapper<T extends Identify> {
 			criteria.criterion(new Condition("isDeleted", Operator.equal, 0));
 		}
 		if (ReflectionUtils.isSubClass(entityClass, BasePO.class)) {
-			criteria.criterion(new Condition("tenantCode", Operator.equal, SystemContext.getTenantCode()));
+			criteria.criterion(new Condition("tenantCode", Operator.equal, SystemContextHolder.getTenantCode()));
 		}
 		return _countByCriteria(entityClass, criteria, new HashMap<>());
 	}

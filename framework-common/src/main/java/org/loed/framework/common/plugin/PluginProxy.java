@@ -5,7 +5,7 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.Signature;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.loed.framework.common.ServiceLocator;
-import org.loed.framework.common.context.SystemContext;
+import org.loed.framework.common.context.SystemContextHolder;
 import org.loed.framework.common.plugin.impl.HttpPlugin;
 import org.loed.framework.common.plugin.impl.InternalPlugin;
 import org.loed.framework.common.util.ReflectionUtils;
@@ -50,7 +50,7 @@ public class PluginProxy {
 		String methodName = signature.getName();
 		String methodSignature = ReflectionUtils.buildMethodSignature(targetClass, methodName, parameterTypes);
 		Plugin plugin;
-		plugin = provider.getPlugin(SystemContext.getTenantCode(), methodSignature);
+		plugin = provider.getPlugin(SystemContextHolder.getTenantCode(), methodSignature);
 		if (plugin != null) {
 			return pluginResult(jp, plugin);
 		}
@@ -61,7 +61,7 @@ public class PluginProxy {
 
 	private Object pluginResult(ProceedingJoinPoint jp, Plugin plugin) throws Exception {
 		if (logger.isDebugEnabled()) {
-			logger.debug("tenantCode:" + SystemContext.getTenantCode() + ", method:" + plugin.getSignature() + " has plugin:" + plugin);
+			logger.debug("tenantCode:" + SystemContextHolder.getTenantCode() + ", method:" + plugin.getSignature() + " has plugin:" + plugin);
 		}
 		//http请求
 		Object[] args = jp.getArgs();

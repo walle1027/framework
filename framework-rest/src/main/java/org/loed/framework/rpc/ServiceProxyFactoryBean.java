@@ -4,8 +4,10 @@ import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.loed.framework.common.*;
-import org.loed.framework.common.context.SystemContext;
+import org.loed.framework.common.BusinessException;
+import org.loed.framework.common.Message;
+import org.loed.framework.common.SpringUtils;
+import org.loed.framework.common.SystemConstant;
 import org.loed.framework.common.util.ReflectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -164,7 +166,6 @@ public class ServiceProxyFactoryBean<T> implements FactoryBean<T>, MethodInterce
 		}
 
 		try {
-			Map<String, String> contextMap = SystemContext.getContextMap();
 			Mono<ClientResponse> exchange = null;
 			if (methodProfile.getHttpMethod() == HttpMethod.GET) {
 				exchange = webClient.get().uri(uriBuilder -> {
@@ -178,13 +179,6 @@ public class ServiceProxyFactoryBean<T> implements FactoryBean<T>, MethodInterce
 					} else {
 						return uriBuilder.build(uriParams);
 					}
-				}).headers(h -> {
-					if (contextMap != null) {
-						for (Map.Entry<String, String> entry : contextMap.entrySet()) {
-							h.add(entry.getKey(), entry.getValue());
-						}
-					}
-					h.addAll(httpHeaders);
 				}).accept(MediaType.APPLICATION_JSON).exchange();
 			} else if (methodProfile.getHttpMethod() == HttpMethod.POST) {
 				MediaType finalContentType = contentType;
@@ -199,13 +193,6 @@ public class ServiceProxyFactoryBean<T> implements FactoryBean<T>, MethodInterce
 					} else {
 						return uriBuilder.build(uriParams);
 					}
-				}).headers(h -> {
-					if (contextMap != null) {
-						for (Map.Entry<String, String> entry : contextMap.entrySet()) {
-							h.add(entry.getKey(), entry.getValue());
-						}
-					}
-					h.addAll(httpHeaders);
 				}).accept(MediaType.APPLICATION_JSON).contentType(contentType);
 
 				if (contentType == MediaType.MULTIPART_FORM_DATA) {
@@ -237,13 +224,6 @@ public class ServiceProxyFactoryBean<T> implements FactoryBean<T>, MethodInterce
 					} else {
 						return uriBuilder.build(uriParams);
 					}
-				}).headers(h -> {
-					if (contextMap != null) {
-						for (Map.Entry<String, String> entry : contextMap.entrySet()) {
-							h.add(entry.getKey(), entry.getValue());
-						}
-					}
-					h.addAll(httpHeaders);
 				}).accept(MediaType.APPLICATION_JSON).contentType(contentType);
 
 				if (contentType == MediaType.MULTIPART_FORM_DATA) {
@@ -268,13 +248,6 @@ public class ServiceProxyFactoryBean<T> implements FactoryBean<T>, MethodInterce
 					} else {
 						return uriBuilder.build(uriParams);
 					}
-				}).headers(h -> {
-					if (contextMap != null) {
-						for (Map.Entry<String, String> entry : contextMap.entrySet()) {
-							h.add(entry.getKey(), entry.getValue());
-						}
-					}
-					h.addAll(httpHeaders);
 				}).accept(MediaType.APPLICATION_JSON).exchange();
 			}
 			if (exchange == null) {
