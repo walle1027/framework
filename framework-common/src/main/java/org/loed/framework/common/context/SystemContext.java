@@ -1,16 +1,19 @@
 package org.loed.framework.common.context;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.*;
 
 /**
  * @author Thomason
  * @version 1.0
  * @since 11-11-5 下午9:14
  */
+@Slf4j
 public final class SystemContext {
 	public static final String DEFAULT_TENANT_CODE = "default";
 	public static final String DEFAULT_LOCALE = "zh_CN";
@@ -85,45 +88,26 @@ public final class SystemContext {
 	 */
 	public static final String CONTEXT_DEVICE = CONTEXT_PREFIX + "device";
 	/**
-	 * 用于保存线程相关信息
-	 */
-	private static final transient ThreadLocal<Map<String, String>> contextMap = new ThreadLocal<>();
-
-	private static final Logger logger = LoggerFactory.getLogger(SystemContext.class);
-
-	/**
 	 * context map 最大容量
 	 */
-	private static final Integer MAX_CAPACITY = 100;
+	public static final Integer MAX_CAPACITY = 100;
 	/**
 	 * context map key 或者 value 最大值
 	 */
-	private static final Integer MAX_SIZE = 1024;
+	public static final Integer MAX_SIZE = 1024;
 
+	private final Map<String, String> contextMap;
 
 	/**
 	 * 构造函数
 	 */
 	public SystemContext() {
 		super();
+		this.contextMap = new HashMap<>();
 	}
 
-	/**
-	 * 从 ThreadLocal中获取名值Map(不包含appCode)
-	 *
-	 * @return 名值Map
-	 */
-	public static Map<String, String> getContextMap() {
-		return contextMap.get();
-	}
-
-	/**
-	 * 从 ThreadLocal 获取名值Map
-	 *
-	 * @param contextMap 名值Map
-	 */
-	public static void setContextMap(Map<String, String> contextMap) {
-		getContextMap().putAll(contextMap);
+	public Map<String, String> getContextMap() {
+		return this.contextMap;
 	}
 
 	/**
@@ -133,8 +117,7 @@ public final class SystemContext {
 	 * @param key 键
 	 * @return 键下的值
 	 */
-	public static String get(String key) {
-		Map<String, String> contextMap = getContextMap();
+	public String get(String key) {
 		if (contextMap == null) {
 			return null;
 		}
@@ -148,153 +131,147 @@ public final class SystemContext {
 	 *
 	 * @param key   键
 	 * @param value 值
-	 * @return 之前的值
 	 */
-
-	public static void set(String key, String value) {
+	public void set(String key, String value) {
 		if (key == null || value == null) {
-			logger.error("key:" + key + " or value:" + value + " is null,i can't set it into the context map");
+			log.error("key:" + key + " or value:" + value + " is null,i can't set it into the context map");
 			return;
 		}
-		if (key.length() > MAX_SIZE) {
-			throw new RuntimeException("key is more than " + MAX_SIZE + ", i can't set it into the context map");
+		if (key.length() > SystemContext.MAX_SIZE) {
+			throw new RuntimeException("key is more than " + SystemContext.MAX_SIZE + ", i can't set it into the context map");
 		}
-		if (value.length() > MAX_SIZE) {
-			throw new RuntimeException("value is more than " + MAX_SIZE + ", i can't set it into the context map");
+		if (value.length() > SystemContext.MAX_SIZE) {
+			throw new RuntimeException("value is more than " + SystemContext.MAX_SIZE + ", i can't set it into the context map");
 		}
 		Map<String, String> contextMap = getContextMap();
-		if (contextMap == null) {
-			contextMap = new HashMap<>();
-			setContextMap(contextMap);
-		}
-		if (contextMap.size() > MAX_CAPACITY) {
+		if (contextMap.size() > SystemContext.MAX_CAPACITY) {
 			throw new RuntimeException("the context map is full, can't set anything");
 		}
 		contextMap.put(key, value);
 	}
 
-	public static String getUserToken() {
+	public String getUserToken() {
 		return get(CONTEXT_USER_TOKEN);
 	}
 
 
-	public static void setUserToken(String token) {
+	public void setUserToken(String token) {
 		set(CONTEXT_USER_TOKEN, token);
 	}
 
 
-	public static String getUserId() {
+	public String getUserId() {
 		return get(CONTEXT_USER_ID);
 	}
 
 
-	public static void setUserId(String userId) {
+	public void setUserId(String userId) {
 		set(CONTEXT_USER_ID, userId);
 	}
 
 
-	public static String getUserName() {
+	public String getUserName() {
 		return get(CONTEXT_USER_NAME);
 	}
 
 
-	public static void setUserName(String userName) {
+	public void setUserName(String userName) {
 		set(CONTEXT_USER_NAME, userName);
 	}
 
 
-	public static String getUserAgent() {
+	public String getUserAgent() {
 		return get(CONTEXT_USER_AGENT);
 	}
 
 
-	public static void setUserAgent(String userAgent) {
+	public void setUserAgent(String userAgent) {
 		set(CONTEXT_USER_AGENT, userAgent);
 	}
 
 
-	public static String getAccountId() {
+	public String getAccountId() {
 		return get(CONTEXT_ACCOUNT_ID);
 	}
 
 
-	public static void setAccountId(String accountId) {
+	public void setAccountId(String accountId) {
 		set(CONTEXT_ACCOUNT_ID, accountId);
 	}
 
 
-	public static String getAccountName() {
+	public String getAccountName() {
 		return get(CONTEXT_ACCOUNT_NAME);
 	}
 
 
-	public static void setAccountName(String accountName) {
+	public void setAccountName(String accountName) {
 		set(CONTEXT_ACCOUNT_NAME, accountName);
 	}
 
 
-	public static String getAppId() {
+	public String getAppId() {
 		return get(CONTEXT_APP_ID);
 	}
 
 
-	public static void setAppId(String appId) {
+	public void setAppId(String appId) {
 		set(CONTEXT_APP_ID, appId);
 	}
 
 
-	public static String getAppVersion() {
+	public String getAppVersion() {
 		return get(CONTEXT_APP_VERSION);
 	}
 
 
-	public static void setAppVersion(String appVersion) {
+	public void setAppVersion(String appVersion) {
 		set(CONTEXT_APP_VERSION, appVersion);
 	}
 
 
-	public static Integer getTimeZone() {
+	public Integer getTimeZone() {
 		String timeZone = get(CONTEXT_TIME_ZONE);
 		return timeZone == null ? null : Integer.parseInt(timeZone);
 	}
 
 
-	public static void setTimeZone(Integer timeZone) {
+	public void setTimeZone(Integer timeZone) {
 		set(CONTEXT_TIME_ZONE, timeZone + "");
 	}
 
 
-	public static String getServerHost() {
+	public String getServerHost() {
 		return get(CONTEXT_SERVER_HOST);
 	}
 
 
-	public static void setServerHost(String serverHost) {
+	public void setServerHost(String serverHost) {
 		set(CONTEXT_SERVER_HOST, serverHost);
 	}
 
 
-	public static String getPlatform() {
+	public String getPlatform() {
 		return get(CONTEXT_PLATFORM);
 	}
 
 
-	public static void setPlatform(String device) {
+	public void setPlatform(String device) {
 		set(CONTEXT_PLATFORM, device);
 	}
 
 
-	public static String getDevice() {
+	public String getDevice() {
 		return get(CONTEXT_DEVICE);
 	}
 
 
-	public static void setDevice(String device) {
+	public void setDevice(String device) {
 		set(CONTEXT_DEVICE, device);
 	}
 
 
-	public static String getTenantCode() {
+	public String getTenantCode() {
 		String tenantCode = get(CONTEXT_TENANT_CODE);
 		if (tenantCode == null || tenantCode.isEmpty()) {
 			return DEFAULT_TENANT_CODE;
@@ -303,12 +280,12 @@ public final class SystemContext {
 	}
 
 
-	public static void setTenantCode(String tenantCode) {
+	public void setTenantCode(String tenantCode) {
 		set(CONTEXT_TENANT_CODE, tenantCode);
 	}
 
 
-	public static String getLocale() {
+	public String getLocale() {
 		String locale = get(CONTEXT_LOCALE);
 		if (locale == null || locale.isEmpty()) {
 			return DEFAULT_LOCALE;
@@ -317,30 +294,70 @@ public final class SystemContext {
 	}
 
 
-	public static void setLocale(String locale) {
+	public void setLocale(String locale) {
 		set(CONTEXT_LOCALE, locale);
 	}
 
 
-	public static String getClientIp() {
+	public String getClientIp() {
 		return get(CONTEXT_CLIENT_IP);
 	}
 
 
-	public static void setClientIp(String clientIp) {
+	public void setClientIp(String clientIp) {
 		set(CONTEXT_CLIENT_IP, clientIp);
 	}
 
-	public static void clean() {
-		contextMap.remove();
+	public List<Pair<String, String>> toHeaders() {
+		if (contextMap.isEmpty()) {
+			return Collections.emptyList();
+		}
+		List<Pair<String, String>> pairs = new ArrayList<>();
+		for (Map.Entry<String, String> entry : contextMap.entrySet()) {
+			String key = entry.getKey();
+			String value = entry.getValue();
+
+			if (StringUtils.isBlank(value)) {
+				log.warn("header:" + key + "'s value:" + value + " is empty,will not add to headers");
+				continue;
+			}
+			if (!StringUtils.startsWithIgnoreCase(key, SystemContext.CONTEXT_PREFIX)) {
+				continue;
+			}
+			if (log.isDebugEnabled()) {
+				log.debug("adding header{" + key + ":" + value + "}");
+			}
+			if (StringUtils.equalsIgnoreCase(key, SystemContext.CONTEXT_ACCOUNT_NAME)
+					|| StringUtils.equalsIgnoreCase(key, SystemContext.CONTEXT_USER_NAME)) {
+				pairs.add(convertKey(key, value, true));
+			} else {
+				pairs.add(convertKey(key, value, false));
+			}
+		}
+		return pairs;
 	}
 
 	/**
-	 * 清除指定的Key对应的元素
+	 * 增加header,可被子类重写
 	 *
-	 * @param key key
+	 * @param name     header name
+	 * @param value    header value
+	 * @param encoding need encoding
 	 */
-	public static void remove(String key) {
-		getContextMap().remove(key);
+	private Pair<String, String> convertKey(String name, String value, boolean encoding) {
+		if (encoding) {
+			try {
+				return Pair.of(name, URLEncoder.encode(value, "utf-8"));
+			} catch (UnsupportedEncodingException e) {
+				if (log.isDebugEnabled()) {
+					log.error("can't convert value:" + value + " to utf-8,will set the raw value");
+				}
+				return Pair.of(name, value);
+			}
+		} else {
+			return Pair.of(name, value);
+		}
 	}
+
+
 }

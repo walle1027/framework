@@ -3,6 +3,8 @@ package org.loed.framework.common.web.mvc.filter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.loed.framework.common.context.SystemContext;
+import org.loed.framework.common.context.SystemContextHolder;
+import org.springframework.core.Ordered;
 
 import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
@@ -17,7 +19,7 @@ import java.util.Enumeration;
  * @since 2020/2/7 11:41 AM
  */
 @Slf4j
-public class SystemContextFilter implements Filter {
+public class SystemContextFilter implements Filter, Ordered {
 	@Override
 	public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain chain) throws IOException, ServletException {
 		HttpServletRequest request = (HttpServletRequest) servletRequest;
@@ -33,49 +35,49 @@ public class SystemContextFilter implements Filter {
 					String headerVal = request.getHeader(curHeader);
 					String requestURI = request.getRequestURI();
 					if (StringUtils.equalsIgnoreCase(curHeader, SystemContext.CONTEXT_ACCOUNT_ID)) {
-						SystemContext.set(SystemContext.CONTEXT_ACCOUNT_ID, headerVal);
+						SystemContextHolder.setAccountId(headerVal);
 						if (log.isDebugEnabled()) {
 							log.debug("request {} has  header: {}, with value {}", requestURI, SystemContext.CONTEXT_ACCOUNT_ID, headerVal);
 						}
 					} else if (StringUtils.equalsIgnoreCase(curHeader, SystemContext.CONTEXT_ACCOUNT_NAME)) {
 						headerVal = URLDecoder.decode(headerVal, "utf-8");
-						SystemContext.set(SystemContext.CONTEXT_ACCOUNT_NAME, headerVal);
+						SystemContextHolder.setAccountName(headerVal);
 						if (log.isDebugEnabled()) {
 							log.debug("request {} has  header: {}, with value {}", requestURI, SystemContext.CONTEXT_ACCOUNT_NAME, headerVal);
 						}
 					} else if (StringUtils.equalsIgnoreCase(curHeader, SystemContext.CONTEXT_USER_ID)) {
-						SystemContext.set(SystemContext.CONTEXT_USER_ID, headerVal);
+						SystemContextHolder.setUserId(headerVal);
 						if (log.isDebugEnabled()) {
 							log.debug("request {} has  header: {}, with value {}", requestURI, SystemContext.CONTEXT_USER_ID, headerVal);
 						}
 					} else if (StringUtils.equalsIgnoreCase(curHeader, SystemContext.CONTEXT_USER_NAME)) {
 						headerVal = URLDecoder.decode(headerVal, "utf-8");
-						SystemContext.set(SystemContext.CONTEXT_USER_NAME, headerVal);
+						SystemContextHolder.setUserName(headerVal);
 						if (log.isDebugEnabled()) {
 							log.debug("request {} has  header: {}, with value {}", requestURI, SystemContext.CONTEXT_USER_NAME, headerVal);
 						}
 					} else if (StringUtils.equalsIgnoreCase(curHeader, SystemContext.CONTEXT_CLIENT_IP)) {
-						SystemContext.set(SystemContext.CONTEXT_CLIENT_IP, headerVal);
+						SystemContextHolder.setClientIp(headerVal);
 						if (log.isDebugEnabled()) {
 							log.debug("request {} has  header: {}, with value {}", requestURI, SystemContext.CONTEXT_CLIENT_IP, headerVal);
 						}
 					} else if (StringUtils.equalsIgnoreCase(curHeader, SystemContext.CONTEXT_USER_AGENT)) {
-						SystemContext.set(SystemContext.CONTEXT_USER_AGENT, headerVal);
+						SystemContextHolder.setUserAgent(headerVal);
 						if (log.isDebugEnabled()) {
 							log.debug("request {} has  header: {}, with value {}", requestURI, SystemContext.CONTEXT_USER_AGENT, headerVal);
 						}
 					} else if (StringUtils.equalsIgnoreCase(curHeader, SystemContext.CONTEXT_TENANT_CODE)) {
-						SystemContext.set(SystemContext.CONTEXT_TENANT_CODE, headerVal);
+						SystemContextHolder.setTenantCode(headerVal);
 						if (log.isDebugEnabled()) {
 							log.debug("request {} has  header: {}, with value {}", requestURI, SystemContext.CONTEXT_TENANT_CODE, headerVal);
 						}
 					} else if (StringUtils.equalsIgnoreCase(curHeader, SystemContext.CONTEXT_LOCALE)) {
-						SystemContext.set(SystemContext.CONTEXT_LOCALE, headerVal);
+						SystemContextHolder.setLocale(headerVal);
 						if (log.isDebugEnabled()) {
 							log.debug("request {} has  header: {}, with value {}", requestURI, SystemContext.CONTEXT_LOCALE, headerVal);
 						}
 					} else {
-						SystemContext.set(curHeader, headerVal);
+						SystemContextHolder.set(curHeader, headerVal);
 					}
 				}
 			}
@@ -83,7 +85,12 @@ public class SystemContextFilter implements Filter {
 		} catch (Throwable ex) {
 			log.error(ex.getMessage(), ex);
 		} finally {
-			SystemContext.clean();
+			SystemContextHolder.clean();
 		}
+	}
+
+	@Override
+	public int getOrder() {
+		return Ordered.LOWEST_PRECEDENCE;
 	}
 }

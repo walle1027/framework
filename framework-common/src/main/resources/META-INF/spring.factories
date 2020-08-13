@@ -4,4 +4,5 @@ org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
   org.loed.framework.common.autoconfigure.I18nAutoConfiguration,\
   org.loed.framework.common.autoconfigure.SequenceAutoConfiguration,\
   org.loed.framework.common.autoconfigure.GenericAutoConfiguration,\
-  org.loed.framework.common.autoconfigure.WebMvcAutoConfiguration
+  org.loed.framework.common.autoconfigure.WebMvcAutoConfiguration,\
+  org.loed.framework.common.autoconfigure.WebFluxAutoConfiguration

@@ -14,6 +14,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class CommonProperties {
 	private String zkAddress;
 	private String mapperConfigLocations = "classpath*:/mapper-configs/**/*.xml";
-	private String systemContextFilterPattern = "*";
+	private boolean contextFilter = true;
+	private boolean autoWrapResponse;
 	private ThreadPoolProperties threadPool = new ThreadPoolProperties();
 }

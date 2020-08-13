@@ -63,7 +63,7 @@ public class RoutingConnectionFactory implements ConnectionFactory, Initializing
 	}
 
 	protected Mono<ConnectionFactory> getTargetConnectionFactory() {
-		return ReactiveSystemContext.getContextMap().map(context -> {
+		return ReactiveSystemContext.getSystemContext().map(context -> {
 			String routingValue = context.get(routingKey);
 			if (StringUtils.isBlank(routingValue)) {
 				throw new RuntimeException("can't find routingValue for routingKey " + routingKey);

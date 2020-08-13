@@ -82,6 +82,15 @@ public class SerializeUtils {
 		return "";
 	}
 
+	public static byte[] toBytes(Object object) {
+		try {
+			return mapper.writeValueAsBytes(object);
+		} catch (IOException e) {
+			logger.error(e.getMessage(), e);
+		}
+		return null;
+	}
+
 	public static <X> X fromJson(String jsonStr, Class<X> x) {
 		try {
 			return mapper.readValue(jsonStr, x);
