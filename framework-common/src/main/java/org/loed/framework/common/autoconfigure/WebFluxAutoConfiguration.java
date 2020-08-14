@@ -4,12 +4,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.loed.framework.common.context.ReactiveSystemContext;
 import org.loed.framework.common.web.flux.ReactiveSystemContextFilter;
+import org.loed.framework.common.web.flux.rewrite.ResponseBodyWrapperFilter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.web.reactive.function.client.WebClientCustomizer;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
+import org.springframework.core.ReactiveAdapterRegistry;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.reactive.config.WebFluxConfigurationSupport;
+import org.springframework.web.server.WebFilter;
 
 import java.util.List;
 
@@ -24,7 +30,8 @@ import java.util.List;
 public class WebFluxAutoConfiguration {
 
 	@Bean
-	public ReactiveSystemContextFilter reactiveSystemContextFilter() {
+	@Order()
+	public WebFilter reactiveSystemContextFilter() {
 		return new ReactiveSystemContextFilter();
 	}
 
@@ -42,5 +49,13 @@ public class WebFluxAutoConfiguration {
 				return next.exchange(request);
 			}));
 		};
+	}
+
+
+	@Bean
+	@Conditional(ResponseBodyWrapperCondition.class)
+	@Order(Ordered.HIGHEST_PRECEDENCE)
+	public WebFilter responseBodyWrapperFilter() {
+		return new ResponseBodyWrapperFilter(ReactiveAdapterRegistry.getSharedInstance());
 	}
 }

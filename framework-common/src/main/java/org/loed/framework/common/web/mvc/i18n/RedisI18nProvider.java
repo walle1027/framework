@@ -1,4 +1,4 @@
-package org.loed.framework.common.i18n;
+package org.loed.framework.common.web.mvc.i18n;
 
 import org.loed.framework.common.context.SystemContextHolder;
 import org.springframework.data.redis.core.StringRedisTemplate;
