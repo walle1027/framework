@@ -5,6 +5,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
+import java.text.MessageFormat;
+
 /**
  * @author thomason
  * @version 1.0
@@ -12,6 +14,14 @@ import reactor.core.publisher.Mono;
  */
 public interface ReactiveI18nProvider {
 	Logger logger = LoggerFactory.getLogger(ReactiveI18nProvider.class);
+
+
+	ReactiveI18nProvider DEFAULT_REACTIVE_I18N_PROVIDER = (key, args, locale) -> {
+		if (key == null) {
+			return Mono.empty();
+		}
+		return Mono.just(MessageFormat.format(key, args));
+	};
 
 	/**
 	 * 取得国际化值

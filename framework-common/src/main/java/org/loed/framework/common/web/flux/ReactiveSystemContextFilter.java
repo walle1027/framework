@@ -24,7 +24,8 @@ import java.util.Map;
 @Slf4j
 public class ReactiveSystemContextFilter implements WebFilter {
 	@Override
-	public Mono<Void> filter(ServerWebExchange exchange, @NonNull WebFilterChain chain) {
+	@NonNull
+	public Mono<Void> filter(@NonNull ServerWebExchange exchange, @NonNull WebFilterChain chain) {
 		HttpHeaders headers = exchange.getRequest().getHeaders();
 		Map<String, String> contextMap = new HashMap<>();
 		headers.forEach((key, value) -> {

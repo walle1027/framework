@@ -35,7 +35,7 @@ public class ReactiveSystemContext {
 	}
 
 	public static Mono<String> getTenantCode() {
-		return getSystemContext().map(SystemContext::getTenantCode);
+		return getSystemContext().map(SystemContext::getTenantCode).defaultIfEmpty(SystemContext.DEFAULT_TENANT_CODE);
 	}
 
 	public static Mono<String> getLocale() {
@@ -45,6 +45,7 @@ public class ReactiveSystemContext {
 	public static class NoSystemContextException extends RuntimeException {
 		public NoSystemContextException() {
 		}
+
 		public NoSystemContextException(String message) {
 			super(message);
 		}

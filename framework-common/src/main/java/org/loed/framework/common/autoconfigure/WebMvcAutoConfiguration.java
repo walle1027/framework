@@ -7,6 +7,8 @@ import org.loed.framework.common.context.SystemContextHolder;
 import org.loed.framework.common.web.mvc.DefaultExceptionHandler;
 import org.loed.framework.common.web.mvc.ResponseBodyWrapFactoryBean;
 import org.loed.framework.common.web.mvc.filter.SystemContextFilter;
+import org.loed.framework.common.web.mvc.i18n.I18nProvider;
+import org.loed.framework.common.web.mvc.i18n.RedisI18nProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.web.servlet.DispatcherServletAutoConfiguration;
@@ -15,6 +17,8 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpHeaders;
 
 import java.util.List;
@@ -32,6 +36,14 @@ public class WebMvcAutoConfiguration {
 	@ConditionalOnMissingBean
 	public DefaultExceptionHandler defaultExceptionHandler() {
 		return new DefaultExceptionHandler();
+	}
+
+	@Bean
+	@ConditionalOnBean(RedisTemplate.class)
+	public I18nProvider redisI18nProvider(StringRedisTemplate redisTemplate) {
+		RedisI18nProvider redisI18nProvider = new RedisI18nProvider();
+		redisI18nProvider.setRedisTemplate(redisTemplate);
+		return redisI18nProvider;
 	}
 
 	@Bean

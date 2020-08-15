@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
  */
 @RestControllerAdvice
 public class DefaultExceptionHandler {
-	@Autowired
+	@Autowired(required = false)
 	private I18nProvider i18nProvider;
 
 	private final Logger logger = LoggerFactory.getLogger(DefaultExceptionHandler.class);
@@ -54,6 +54,9 @@ public class DefaultExceptionHandler {
 		Result<Void> result = new Result<>();
 		result.setCode(SystemConstant.MSG_ERROR);
 		try {
+			if (i18nProvider == null) {
+				i18nProvider = I18nProvider.DEFAULT_I18N_PROVIDER;
+			}
 			if (ex instanceof BusinessException) {
 				List<Message> errors = ((BusinessException) ex).getErrors();
 				int code = SystemConstant.MSG_ERROR;
@@ -84,7 +87,7 @@ public class DefaultExceptionHandler {
 				Set<ConstraintViolation<?>> violationSet = ((ConstraintViolationException) ex).getConstraintViolations();
 				if (CollectionUtils.isNotEmpty(violationSet)) {
 					String message = violationSet.stream().map(v -> {
-						return i18nProvider. getText(v.getMessage());
+						return i18nProvider.getText(v.getMessage());
 					}).collect(Collectors.joining("\n"));
 					result.setMessage(message);
 				}

@@ -33,7 +33,7 @@ import java.util.Set;
 @RestControllerAdvice
 @Slf4j
 public class DefaultExceptionHandler {
-	@Autowired
+	@Autowired(required = false)
 	private ReactiveI18nProvider i18nProvider;
 
 	@ExceptionHandler(Throwable.class)
@@ -42,17 +42,19 @@ public class DefaultExceptionHandler {
 		String value = exchange.getRequest().getURI().toString();
 		log.error(value + " occurs exception caused by :" + ex.getMessage(), ex);
 		exchange.getAttributes().put(SystemConstant.RESPONSE_WRAPPED, true);
-		return resolveException(ex, i18nProvider);
+		return resolveException(ex);
 	}
 
 	/**
 	 * 解析异常类
 	 *
-	 * @param ex           异常类
-	 * @param i18nProvider 国家化异常提供类
+	 * @param ex 异常类
 	 * @return 包装后的结果
 	 */
-	private Mono<Result<Void>> resolveException(Throwable ex, ReactiveI18nProvider i18nProvider) {
+	private Mono<Result<Void>> resolveException(Throwable ex) {
+		if (i18nProvider == null) {
+			i18nProvider = ReactiveI18nProvider.DEFAULT_REACTIVE_I18N_PROVIDER;
+		}
 		if (ex instanceof BusinessException) {
 			List<Message> businessErrors = ((BusinessException) ex).getErrors();
 			if (businessErrors != null) {
@@ -89,7 +91,7 @@ public class DefaultExceptionHandler {
 			}
 		} else if (ex instanceof NestedServletException) {
 			Throwable cause = ex.getCause();
-			return resolveException(cause, i18nProvider);
+			return resolveException(cause);
 		} else {
 			//这里是未知异常，直接报服务器错误
 			Result<Void> result = new Result<>();

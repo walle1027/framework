@@ -4,8 +4,6 @@ import org.loed.framework.common.context.SystemContextHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
-
 /**
  * @author Thomason
  * @version 1.0
@@ -14,11 +12,15 @@ import java.util.Map;
 
 public interface I18nProvider {
 	Logger logger = LoggerFactory.getLogger(I18nProvider.class);
-	ThreadLocal<Map<String, String>> threadLocal = new ThreadLocal<Map<String, String>>();
-	/**
-	 * 默认的区域
-	 */
-	String DEFAULT_LOCALE = "zh_CN";
+
+	I18nProvider DEFAULT_I18N_PROVIDER = (key, args, locale) -> {
+		if (key != null) {
+			return String.format(key, args);
+		} else {
+			return null;
+		}
+	};
+
 	/**
 	 * i18nKey分隔符
 	 */
@@ -66,44 +68,4 @@ public interface I18nProvider {
 	 * @return 值
 	 */
 	String getText(String key, Object[] args, String locale);
-
-//	/**
-//	 * 设置I18nkey值
-//	 *
-//	 * @param key   键
-//	 * @param value 值
-//	 */
-//	void setI18nValue(String key, String value);
-//
-//	/**
-//	 * 设置I18nKey的值
-//	 *
-//	 * @param key    键
-//	 * @param value  值
-//	 * @param locale 区域
-//	 */
-//	void setI18nValue(String key, String value, String locale);
-//
-//	/**
-//	 * 删除一个i18nKey
-//	 *
-//	 * @param key
-//	 */
-//	void removeI18nValue(String key);
-//
-//	/**
-//	 * 删除一个i18nKey
-//	 *
-//	 * @param key
-//	 * @param locale
-//	 */
-//	void removeI18nValue(String key, String locale);
-//
-//	/**
-//	 * 取得所有的key
-//	 *
-//	 * @param locale 语言
-//	 * @return 所有的国际化Key
-//	 */
-//	SortedMap<String, String> getAllKeys(String locale);
 }
