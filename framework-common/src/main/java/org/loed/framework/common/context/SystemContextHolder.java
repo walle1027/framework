@@ -55,10 +55,16 @@ public class SystemContextHolder {
 	 */
 	public static String get(String key) {
 		Map<String, String> contextMap = getContextMap();
-		if (contextMap == null) {
-			return null;
-		}
 		return contextMap.get(key);
+	}
+
+	/**
+	 * 设置当前请求上下文
+	 *
+	 * @param systemContext 系统上下文
+	 */
+	public static void set(SystemContext systemContext) {
+		contextMap.set(systemContext);
 	}
 
 	/**

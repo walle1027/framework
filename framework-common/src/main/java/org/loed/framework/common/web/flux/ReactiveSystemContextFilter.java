@@ -13,8 +13,6 @@ import reactor.core.publisher.Mono;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * @author Thomason
@@ -27,59 +25,59 @@ public class ReactiveSystemContextFilter implements WebFilter {
 	@NonNull
 	public Mono<Void> filter(@NonNull ServerWebExchange exchange, @NonNull WebFilterChain chain) {
 		HttpHeaders headers = exchange.getRequest().getHeaders();
-		Map<String, String> contextMap = new HashMap<>();
+		SystemContext systemContext = new SystemContext();
 		headers.forEach((key, value) -> {
 			if (value == null || value.isEmpty()) {
 				return;
 			}
-			String firstValue = value.get(0);
+			String headerValue = value.get(0);
 			if (StringUtils.equalsIgnoreCase(SystemContext.CONTEXT_USER_TOKEN, key)) {
-				contextMap.put(SystemContext.CONTEXT_USER_TOKEN, firstValue);
+				systemContext.setUserToken(headerValue);
 
 			} else if (StringUtils.equalsIgnoreCase(SystemContext.CONTEXT_ACCOUNT_ID, key)) {
-				contextMap.put(SystemContext.CONTEXT_ACCOUNT_ID, firstValue);
+				systemContext.setAccountId(headerValue);
 
 			} else if (StringUtils.equalsIgnoreCase(SystemContext.CONTEXT_ACCOUNT_NAME, key)) {
 				try {
-					contextMap.put(SystemContext.CONTEXT_ACCOUNT_NAME, URLDecoder.decode(firstValue, "UTF-8"));
+					systemContext.setAccountName(URLDecoder.decode(headerValue, "UTF-8"));
 				} catch (UnsupportedEncodingException e) {
-					log.error("error decode accountName:" + firstValue + " caused by:" + e.getMessage(), e);
+					log.error("error decode accountName:" + headerValue + " caused by:" + e.getMessage(), e);
 				}
 			} else if (StringUtils.equalsIgnoreCase(SystemContext.CONTEXT_USER_ID, key)) {
-				contextMap.put(SystemContext.CONTEXT_USER_ID, firstValue);
+				systemContext.setUserId(headerValue);
 			} else if (StringUtils.equalsIgnoreCase(SystemContext.CONTEXT_USER_NAME, key)) {
 				try {
-					contextMap.put(SystemContext.CONTEXT_USER_NAME, URLDecoder.decode(firstValue, "UTF-8"));
+					systemContext.setUserName(URLDecoder.decode(headerValue, "UTF-8"));
 				} catch (UnsupportedEncodingException e) {
-					log.error("error decode accountName:" + firstValue + " caused by:" + e.getMessage(), e);
+					log.error("error decode accountName:" + headerValue + " caused by:" + e.getMessage(), e);
 				}
 			} else if (StringUtils.equalsIgnoreCase(SystemContext.CONTEXT_CLIENT_IP, key)) {
-				contextMap.put(SystemContext.CONTEXT_CLIENT_IP, firstValue);
+				systemContext.setClientIp(headerValue);
 			} else if (StringUtils.equalsIgnoreCase(SystemContext.CONTEXT_USER_AGENT, key)) {
-				contextMap.put(SystemContext.CONTEXT_USER_AGENT, firstValue);
+				systemContext.setUserAgent(headerValue);
 			} else if (StringUtils.equalsIgnoreCase(SystemContext.CONTEXT_TENANT_CODE, key)) {
-				contextMap.put(SystemContext.CONTEXT_TENANT_CODE, firstValue);
+				systemContext.setTenantCode(headerValue);
 			} else if (StringUtils.equalsIgnoreCase(SystemContext.CONTEXT_APP_ID, key)) {
-				contextMap.put(SystemContext.CONTEXT_APP_ID, firstValue);
+				systemContext.setAppId(headerValue);
 			} else if (StringUtils.equalsIgnoreCase(SystemContext.CONTEXT_APP_VERSION, key)) {
-				contextMap.put(SystemContext.CONTEXT_APP_VERSION, firstValue);
+				systemContext.setAppVersion(headerValue);
 			} else if (StringUtils.equalsIgnoreCase(SystemContext.CONTEXT_LOCALE, key)) {
-				contextMap.put(SystemContext.CONTEXT_LOCALE, firstValue);
+				systemContext.setLocale(headerValue);
 			} else if (StringUtils.equalsIgnoreCase(SystemContext.CONTEXT_TIME_ZONE, key)) {
-				contextMap.put(SystemContext.CONTEXT_TIME_ZONE, firstValue);
+				systemContext.setTimeZone(Integer.parseInt(headerValue));
 			} else if (StringUtils.equalsIgnoreCase(SystemContext.CONTEXT_SERVER_HOST, key)) {
-				contextMap.put(SystemContext.CONTEXT_SERVER_HOST, firstValue);
+				systemContext.setServerHost(headerValue);
 			} else if (StringUtils.equalsIgnoreCase(SystemContext.CONTEXT_PLATFORM, key)) {
-				contextMap.put(SystemContext.CONTEXT_PLATFORM, firstValue);
+				systemContext.setPlatform(headerValue);
 			} else if (StringUtils.equalsIgnoreCase(SystemContext.CONTEXT_DEVICE, key)) {
-				contextMap.put(SystemContext.CONTEXT_DEVICE, firstValue);
+				systemContext.setDevice(headerValue);
 			} else if (StringUtils.startsWithIgnoreCase(key, SystemContext.CONTEXT_PREFIX)) {
-				contextMap.put(key.toLowerCase(), firstValue);
+				systemContext.set(key.toLowerCase(), headerValue);
 			}
 		});
 
 		return chain.filter(exchange).subscriberContext(context -> {
-			return context.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, contextMap);
+			return context.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext);
 		});
 	}
 }

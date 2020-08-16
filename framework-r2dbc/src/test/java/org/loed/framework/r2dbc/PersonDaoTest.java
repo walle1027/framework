@@ -31,13 +31,13 @@ public class PersonDaoTest {
 	@Autowired
 	private PersonDao personDao;
 
-	private Map<String, String> contextMap;
+	private SystemContext systemContext;
 
 	@Before
 	public void setUp() throws Exception {
-		contextMap = new HashMap<>();
-		contextMap.put(SystemContext.CONTEXT_ACCOUNT_ID, "testAccountId");
-		contextMap.put(SystemContext.CONTEXT_TENANT_CODE, "testTenantCode");
+		systemContext = new SystemContext();
+		systemContext.setAccountId("testAccountId");
+		systemContext.setTenantCode("testTenantCode");
 	}
 
 	@Test
@@ -49,7 +49,7 @@ public class PersonDaoTest {
 		person.setSex(Sex.Female);
 		Mono<String> idMono = personDao.insert(person)
 				.subscriberContext(context -> {
-					return context.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, contextMap);
+					return context.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext);
 				}).map(CommonPO::getId);
 		StepVerifier.create(idMono.log()).expectNext(id).verifyComplete();
 	}
@@ -69,7 +69,7 @@ public class PersonDaoTest {
 
 		Flux<String> map = personDao.batchInsert(personList)
 				.subscriberContext(context -> {
-					return context.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, contextMap);
+					return context.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext);
 				}).map(CommonPO::getId).doOnNext(System.out::println);
 		StepVerifier.create(map.log()).expectNextSequence(idList).verifyComplete();
 	}
@@ -78,7 +78,7 @@ public class PersonDaoTest {
 	public void testQuery2() {
 		Mono<Long> map = personDao.count("test")
 				.subscriberContext(context -> {
-					return context.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, contextMap);
+					return context.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext);
 				});
 
 		StepVerifier.create(map).expectNextCount(1L).verifyComplete();

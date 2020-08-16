@@ -15,9 +15,7 @@ import reactor.test.StepVerifier;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author thomason
@@ -30,15 +28,14 @@ public class PeopleDaoTest {
 	@Autowired
 	private PeopleDao peopleDao;
 
-	private Map<String, String> contextMap;
+	private SystemContext systemContext;
 
 	@Before
-	public void setUp() throws Exception {
-		contextMap = new HashMap<>();
-		contextMap.put(SystemContext.CONTEXT_ACCOUNT_ID, "testAccountId");
-		contextMap.put(SystemContext.CONTEXT_TENANT_CODE, "testTenantCode");
+	public void setUp() {
+		systemContext = new SystemContext();
+		systemContext.setAccountId("testAccountId");
+		systemContext.setTenantCode("testTenantCode");
 	}
-
 
 	@Test
 	public void testInsert() {
@@ -50,7 +47,7 @@ public class PeopleDaoTest {
 		people.setWeight(68.2);
 		Mono<String> idMono = peopleDao.insert(people)
 				.subscriberContext(context -> {
-					return context.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, contextMap);
+					return context.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext);
 				}).map(p -> {
 					System.out.println("auto increasement id is:" + p.getId());
 					return p.getName();
