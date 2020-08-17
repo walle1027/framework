@@ -254,7 +254,7 @@ public class ServiceProxyFactoryBean<T> implements FactoryBean<T>, MethodInterce
 				throw new BusinessException(new Message("error exchange", SystemConstant.MSG_ERROR));
 			}
 			Class<?> returnType = method.getReturnType();
-			if (returnType.getName().equals(Flux.class.getName()) /*|| ReflectionUtils.isSubClass(returnType, Flux.class)*/) {
+			if (Flux.class.isAssignableFrom(returnType)) {
 				Type typeArgument = ((ParameterizedType) type).getActualTypeArguments()[0];
 				ParameterizedTypeReference<Object> typeReference = ParameterizedTypeReference.forType(typeArgument);
 				return exchange.flux().flatMap(clientResponse -> clientResponse.bodyToFlux(typeReference)).doOnError(e -> {
@@ -263,7 +263,7 @@ public class ServiceProxyFactoryBean<T> implements FactoryBean<T>, MethodInterce
 					long end = System.currentTimeMillis();
 					logger.info("require remote url:{} cost[{}]ms", methodProfile.getBaseUri() + "/" + methodProfile.getPath(), (end - start));
 				});
-			} else if (returnType.getName().equals(Mono.class.getName()) /*|| ReflectionUtils.isSubClass(returnType, Mono.class)*/) {
+			} else if (Mono.class.isAssignableFrom(returnType)) {
 				Type typeArgument = ((ParameterizedType) type).getActualTypeArguments()[0];
 				ParameterizedTypeReference<Object> typeReference = ParameterizedTypeReference.forType(typeArgument);
 				return exchange.flatMap(clientResponse -> clientResponse.bodyToMono(typeReference)).doOnError(e -> {
@@ -272,7 +272,7 @@ public class ServiceProxyFactoryBean<T> implements FactoryBean<T>, MethodInterce
 					long end = System.currentTimeMillis();
 					logger.info("require remote url:{} cost[{}]ms", methodProfile.getBaseUri() + "/" + methodProfile.getPath(), (end - start));
 				});
-			} else if (returnType.getName().equals(CompletableFuture.class.getName()) /*|| ReflectionUtils.isInterfaceOf(returnType, CompletableFuture.class)*/) {
+			} else if (CompletableFuture.class.isAssignableFrom(returnType)) {
 				Type typeArgument = ((ParameterizedType) type).getActualTypeArguments()[0];
 				ParameterizedTypeReference<Object> typeReference = ParameterizedTypeReference.forType(typeArgument);
 				return exchange.flatMap(clientResponse -> clientResponse.bodyToMono(typeReference)).doOnError(e -> {

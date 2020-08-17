@@ -12,10 +12,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.junit4.SpringRunner;
 import reactor.core.publisher.Mono;
+import reactor.netty.ByteBufMono;
+import reactor.test.StepVerifier;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = RpcTest.class)
@@ -32,9 +36,22 @@ public class ServiceProxyTest {
 
 	@Test
 	public void testGetMono() {
-		Mono<Student> mono = studentService.getStudent2(1L);
-		Student student = mono.block();
-		Assert.assertEquals(student.getName(), "张三");
+		Mono<String> mono = studentService.getStudent2(1L).map(Student::getName);
+		StepVerifier.create(mono.log()).expectNext("test").verifyComplete();
+	}
+
+	@Test
+	public void testGetCompletableFuture() throws ExecutionException, InterruptedException {
+		CompletableFuture<Student> student4 = studentService.getStudent4(1L);
+		String name = student4.thenApply(student -> {
+			return student.getName();
+		}).toCompletableFuture().get();
+		Assert.assertEquals(name, "test");
+	}
+
+	@Test
+	public  void testAssignableFrom(){
+		Assert.assertTrue(Mono.class.isAssignableFrom(ByteBufMono.class));
 	}
 
 	@Test
