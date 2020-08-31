@@ -254,6 +254,7 @@ public class MybatisSqlBuilder {
 					builder.append("(");
 					if (jdbcType.equals(JdbcType.VARCHAR.toString())) {
 						for (Object inValue : collectionValue) {
+							//改为参数注入
 							builder.append("'");
 							builder.append(StringHelper.escapeSql(inValue + ""));
 							builder.append("'");

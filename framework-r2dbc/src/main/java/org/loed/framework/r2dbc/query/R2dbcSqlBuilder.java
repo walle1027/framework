@@ -205,10 +205,10 @@ public interface R2dbcSqlBuilder {
 	/**
 	 * 动态判断属性为空的过滤器
 	 */
-	class NotEmptyFilter implements Predicate<Column> {
+	class NonBlankFilter implements Predicate<Column> {
 		private final Object object;
 
-		public NotEmptyFilter(@NonNull Object object) {
+		public NonBlankFilter(@NonNull Object object) {
 			this.object = object;
 		}
 

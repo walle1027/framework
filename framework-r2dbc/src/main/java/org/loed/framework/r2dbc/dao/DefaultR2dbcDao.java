@@ -15,6 +15,7 @@ import org.loed.framework.common.query.Criteria;
 import org.loed.framework.common.query.Operator;
 import org.loed.framework.common.query.Pagination;
 import org.loed.framework.common.util.ReflectionUtils;
+import org.loed.framework.r2dbc.R2dbcException;
 import org.loed.framework.r2dbc.listener.OrderedListener;
 import org.loed.framework.r2dbc.listener.spi.*;
 import org.loed.framework.r2dbc.query.R2dbcParam;
@@ -24,7 +25,6 @@ import org.reactivestreams.Publisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.r2dbc.core.DatabaseClient;
 import org.springframework.lang.NonNull;
-import org.springframework.lang.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
@@ -212,8 +212,49 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	}
 
 	@Override
-	public <S extends T> Mono<S> updateSelective(@NonNull S entity) {
-		return Mono.just(entity).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, new R2dbcSqlBuilder.NotEmptyFilter(po))).flatMap(postUpdateFunction());
+	public <S extends T> Mono<S> update(S entity, Predicate<Column> predicate) {
+		return Mono.just(entity).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, predicate)).flatMap(postUpdateFunction());
+	}
+
+	@Override
+	public <S extends T> Mono<S> updateWith(S entity, SFunction<T, ?>... columns) {
+		if (columns == null || columns.length == 0) {
+			return Mono.error(new R2dbcException("non columns to update"));
+		}
+		List<String> includes = Arrays.stream(columns).map(LambdaUtils::getPropFromLambda).collect(Collectors.toList());
+		return Mono.just(entity).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, new R2dbcSqlBuilder.IncludeFilter(includes))).flatMap(postUpdateFunction());
+	}
+
+	@Override
+	public <S extends T> Mono<S> updateWithout(S entity, SFunction<T, ?>... columns) {
+		List<String> excludes = columns == null ? null : Arrays.stream(columns).map(LambdaUtils::getPropFromLambda).collect(Collectors.toList());
+		return Mono.just(entity).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, excludes == null ? R2dbcSqlBuilder.ALWAYS_TRUE_FILTER : new R2dbcSqlBuilder.ExcludeFilter(excludes))).flatMap(postUpdateFunction());
+	}
+
+	@Override
+	public <S extends T> Mono<S> updateNonBlank(@NonNull S entity) {
+		return Mono.just(entity).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, new R2dbcSqlBuilder.NonBlankFilter(po))).flatMap(postUpdateFunction());
+	}
+
+	@Override
+	public <S extends T> Mono<S> updateNonBlankAnd(S entity, SFunction<T, ?>... columns) {
+		List<String> includes = (columns == null || columns.length == 0) ? null : Arrays.stream(columns).map(LambdaUtils::getPropFromLambda).collect(Collectors.toList());
+		return Mono.just(entity).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po,
+				includes == null ? new R2dbcSqlBuilder.NonBlankFilter(po) : new R2dbcSqlBuilder.NonBlankFilter(po).or(new R2dbcSqlBuilder.IncludeFilter(includes)))
+		).flatMap(postUpdateFunction());
+	}
+
+	@Override
+	public <S extends T> Flux<S> batchUpdateNonBlank(Iterable<S> entities) {
+		return Flux.fromIterable(entities).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, new R2dbcSqlBuilder.NonBlankFilter(po))).flatMap(postUpdateFunction());
+	}
+
+	@Override
+	public <S extends T> Flux<S> batchUpdateNonBlankAnd(Iterable<S> entities, SFunction<T, ?>... columns) {
+		List<String> includes = (columns == null || columns.length == 0) ? null : Arrays.stream(columns).map(LambdaUtils::getPropFromLambda).collect(Collectors.toList());
+		return Flux.fromIterable(entities).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po,
+				includes == null ? new R2dbcSqlBuilder.NonBlankFilter(po) : new R2dbcSqlBuilder.NonBlankFilter(po).or(new R2dbcSqlBuilder.IncludeFilter(includes)))
+		).flatMap(postUpdateFunction());
 	}
 
 	private <S extends T> Function<S, Mono<? extends S>> preUpdateFunction() {
@@ -249,7 +290,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 		if (id == null) {
 			return Mono.error(new RuntimeException("id is null "));
 		}
-		return Flux.merge(Flux.just(new Condition(idColumn.getJavaName(), Operator.equal, id)), addConditions())
+		return Flux.merge(Flux.just(new Condition(idColumn.getJavaName(), Operator.equal, id)), commonConditions())
 				.collectList().map(conditions -> {
 					return r2dbcSqlBuilder.updateByCriteria(entity, table, Criteria.from(entityClass).criterion(conditions.toArray(new Condition[0])), columnFilter);
 				}).flatMap(r2dbcQuery -> {
@@ -258,20 +299,23 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	}
 
 	@Override
-	public <S extends T> Mono<S> updateWith(@NonNull S entity, @Nullable Collection<SFunction<T, ?>> columns) {
-		List<String> includes = columns == null ? null : columns.stream().map(LambdaUtils::getPropFromLambda).collect(Collectors.toList());
-		return Mono.just(entity).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, includes == null ? R2dbcSqlBuilder.ALWAYS_TRUE_FILTER : new R2dbcSqlBuilder.IncludeFilter(includes))).flatMap(postUpdateFunction());
-	}
-
-	@Override
-	public <S extends T> Mono<S> updateWithout(@NonNull S entity, @Nullable Collection<SFunction<T, ?>> columns) {
-		List<String> excludes = columns == null ? null : columns.stream().map(LambdaUtils::getPropFromLambda).collect(Collectors.toList());
-		return Mono.just(entity).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, excludes == null ? R2dbcSqlBuilder.ALWAYS_TRUE_FILTER : new R2dbcSqlBuilder.ExcludeFilter(excludes))).flatMap(postUpdateFunction());
-	}
-
-	@Override
 	public <S extends T> Flux<S> batchUpdate(@NonNull Iterable<S> entities) {
 		return Flux.fromIterable(entities).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, R2dbcSqlBuilder.ALWAYS_TRUE_FILTER)).flatMap(postUpdateFunction());
+	}
+
+	@Override
+	public <S extends T> Flux<S> batchUpdateWith(Iterable<S> entities, SFunction<T, ?>... columns) {
+		if (columns == null || columns.length == 0) {
+			return Flux.error(new R2dbcException("non columns to update"));
+		}
+		List<String> includes = Arrays.stream(columns).map(LambdaUtils::getPropFromLambda).collect(Collectors.toList());
+		return Flux.fromIterable(entities).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, new R2dbcSqlBuilder.IncludeFilter(includes))).flatMap(postUpdateFunction());
+	}
+
+	@Override
+	public <S extends T> Flux<S> batchUpdateWithout(Iterable<S> entities, SFunction<T, ?>... columns) {
+		List<String> excludes = columns == null ? null : Arrays.stream(columns).map(LambdaUtils::getPropFromLambda).collect(Collectors.toList());
+		return Flux.fromIterable(entities).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, excludes == null ? R2dbcSqlBuilder.ALWAYS_TRUE_FILTER : new R2dbcSqlBuilder.ExcludeFilter(excludes))).flatMap(postUpdateFunction());
 	}
 
 	@Override
@@ -281,7 +325,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 
 	@Override
 	public Mono<T> get(@NonNull ID id) {
-		return Flux.merge(Flux.just(new Condition(idColumn.getJavaName(), Operator.equal, id)), addConditions()).collectList().map(conditions -> {
+		return Flux.merge(Flux.just(new Condition(idColumn.getJavaName(), Operator.equal, id)), commonConditions()).collectList().map(conditions -> {
 			return Criteria.from(entityClass).criterion(conditions.toArray(new Condition[0]));
 		}).flatMap(this::findOne);
 	}
@@ -290,12 +334,12 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	public Mono<T> get(@NonNull Publisher<ID> idPublisher) {
 		return Flux.merge(Flux.from(idPublisher).map(id -> {
 			return new Condition(idColumn.getJavaName(), Operator.equal, id);
-		}), addConditions()).collectList().map(conditions -> {
+		}), commonConditions()).collectList().map(conditions -> {
 			return Criteria.from(entityClass).criterion(conditions.toArray(new Condition[0]));
 		}).flatMap(this::findOne);
 	}
 
-	private Flux<Condition> addConditions() {
+	private Flux<Condition> commonConditions() {
 		List<Field> fields = ReflectionUtils.getDeclaredFields(entityClass);
 		Flux<Condition> flux = Flux.empty();
 		for (Field field : fields) {
@@ -313,7 +357,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 
 	@Override
 	public Mono<Boolean> existsById(@NonNull ID id) {
-		return Flux.merge(Flux.just(new Condition(idColumn.getJavaName(), Operator.equal, id)), addConditions()).collectList().map(conditions -> {
+		return Flux.merge(Flux.just(new Condition(idColumn.getJavaName(), Operator.equal, id)), commonConditions()).collectList().map(conditions -> {
 			return Criteria.from(entityClass).criterion(conditions.toArray(new Condition[0]));
 		}).flatMap(this::count).map(count -> count > 0);
 	}
@@ -322,7 +366,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	public Mono<Boolean> existsById(@NonNull Publisher<ID> idPublisher) {
 		return Flux.from(idPublisher).map(id -> {
 			return new Condition(idColumn.getJavaName(), Operator.equal, id);
-		}).mergeWith(addConditions())
+		}).mergeWith(commonConditions())
 				.collectList().map(conditions -> {
 					return Criteria.from(entityClass).criterion(conditions.toArray(new Condition[0]));
 				}).flatMap(this::count).map(count -> count > 0);
@@ -330,7 +374,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 
 	@Override
 	public Mono<Integer> delete(@NonNull ID id) {
-		return Flux.merge(Flux.just(new Condition(idColumn.getJavaName(), Operator.equal, id)), addConditions()).collectList()
+		return Flux.merge(Flux.just(new Condition(idColumn.getJavaName(), Operator.equal, id)), commonConditions()).collectList()
 				.map(conditions -> {
 					return Criteria.from(entityClass).criterion(conditions.toArray(new Condition[0]));
 				}).flatMap(this::deleteByCriteria);
@@ -340,7 +384,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	public Mono<Integer> delete(@NonNull Publisher<ID> idPublisher) {
 		return Flux.merge(Flux.from(idPublisher).map(id -> {
 			return new Condition(idColumn.getJavaName(), Operator.equal, id);
-		}), addConditions())
+		}), commonConditions())
 				.collectList()
 				.map(conditions -> Criteria.from(entityClass).criterion(conditions.toArray(new Condition[0])))
 				.flatMap(this::deleteByCriteria);
@@ -349,7 +393,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	@Override
 	public Mono<Integer> deleteByCriteria(@NonNull Criteria<T> criteria) {
 		return Mono.just(criteria).flatMap(crit -> {
-					return addConditions().collectList().map(conditions -> {
+					return commonConditions().collectList().map(conditions -> {
 						return crit.criterion(conditions.toArray(new Condition[0]));
 					}).defaultIfEmpty(crit);
 				}
@@ -384,7 +428,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	@Override
 	public Flux<T> find(@NonNull Criteria<T> criteria) {
 		List<Condition> conditions = criteria.getConditions() == null ? Collections.emptyList() : criteria.getConditions();
-		return Flux.merge(Flux.fromIterable(conditions), addConditions()).collectList().map(cnd -> {
+		return Flux.merge(Flux.fromIterable(conditions), commonConditions()).collectList().map(cnd -> {
 			Criteria<T> criteriaNew = Criteria.from(criteria);
 			criteriaNew.setConditions(cnd);
 			return criteriaNew;
@@ -404,7 +448,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	@Override
 	public Mono<Long> count(@NonNull Criteria<T> criteria) {
 		List<Condition> conditions = criteria.getConditions() == null ? Collections.emptyList() : criteria.getConditions();
-		return Flux.merge(Flux.fromIterable(conditions), addConditions()).collectList().map(cnds -> {
+		return Flux.merge(Flux.fromIterable(conditions), commonConditions()).collectList().map(cnds -> {
 			Criteria<T> criteriaNew = Criteria.from(criteria);
 			criteriaNew.setConditions(cnds);
 			return criteriaNew;
@@ -414,6 +458,13 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 					DatabaseClient.GenericExecuteSpec exec = bind(query);
 					return exec.as(Long.class).fetch().one();
 				});
+	}
+
+	@Override
+	public Flux<T> findByProperty(SFunction<T, ?> property, Object value) {
+		Criteria<T> criteria = Criteria.from(entityClass);
+		criteria.and(property).is(value);
+		return find(criteria);
 	}
 
 	@Override
