@@ -468,6 +468,23 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	}
 
 	@Override
+	public Mono<Boolean> isRepeated(ID id, SFunction<T, ?> property, Object value) {
+		Criteria<T> criteria = Criteria.from(entityClass);
+		criteria.and(property).is(value);
+		if (id != null) {
+			Condition condition = new Condition();
+			Column idColumn = table.getColumns().stream().filter(Column::isPk).findFirst().orElseThrow(() -> new R2dbcException("table has no id column"));
+			condition.setPropertyName(idColumn.getJavaName());
+			condition.setOperator(Operator.notEqual);
+			condition.setValue(id);
+			criteria.criterion(condition);
+		}
+		return count(criteria).map(count -> {
+			return count > 0;
+		});
+	}
+
+	@Override
 	public Mono<Pagination<T>> findPage(@NonNull Criteria<T> criteria, @NonNull PageRequest pageRequest) {
 		boolean paged = pageRequest.isPaged();
 		if (paged) {

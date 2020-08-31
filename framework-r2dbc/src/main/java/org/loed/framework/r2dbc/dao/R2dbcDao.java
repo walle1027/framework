@@ -316,6 +316,18 @@ public interface R2dbcDao<T, ID> {
 	Flux<T> findByProperty(@NonNull SFunction<T, ?> property, Object value);
 
 	/**
+	 * 检查对象的某个属性是否重复，如果传入主键，将忽略主键对应的记录
+	 * 如果对象中有{@link TenantId} 会自动增加 过滤条件
+	 * 如果对象中有  {@link IsDeleted} 会自动增加过滤条件
+	 *
+	 * @param id       主键，可以为null，如果为null
+	 * @param property 属性名
+	 * @param value    属性值
+	 * @return 查询的对象的集合
+	 */
+	Mono<Boolean> isRepeated(@Nullable ID id, @NonNull SFunction<T, ?> property, @NonNull Object value);
+
+	/**
 	 * 按照动态条件查询记录，并且分页
 	 * 如果对象中有{@link TenantId} 会自动增加 过滤条件
 	 * 如果对象中有  {@link IsDeleted} 会自动增加过滤条件
