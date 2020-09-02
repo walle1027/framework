@@ -18,8 +18,8 @@ public class ReactiveRedisI18nProvider implements ReactiveI18nProvider {
 
 	@Override
 	public Mono<String> getText(String key, Object[] args, String locale) {
-		return ReactiveSystemContext.getTenantCode().map(tenantCode -> {
-			return buildKey(tenantCode, key, locale);
+		return ReactiveSystemContext.getSystemContext().map(context -> {
+			return buildKey(context.getTenantCode(), key, locale);
 		}).flatMap(cacheKey -> {
 			return stringRedisTemplate.opsForValue().get(cacheKey);
 		}).switchIfEmpty(stringRedisTemplate.opsForValue().get(buildKey(SystemContext.DEFAULT_TENANT_CODE, key, locale)))

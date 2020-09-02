@@ -7,7 +7,7 @@ import org.apache.ibatis.mapping.SqlSource;
 import org.apache.ibatis.plugin.Invocation;
 import org.loed.framework.common.orm.Column;
 import org.loed.framework.common.orm.Table;
-import org.loed.framework.common.util.DataType;
+import org.loed.framework.common.data.DataType;
 import org.loed.framework.common.util.ReflectionUtils;
 import org.loed.framework.common.util.StringHelper;
 

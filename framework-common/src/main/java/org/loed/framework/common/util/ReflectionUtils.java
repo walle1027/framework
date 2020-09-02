@@ -4,6 +4,7 @@ import org.apache.commons.beanutils.ConvertUtils;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.beanutils.converters.DateConverter;
 import org.apache.commons.lang3.StringUtils;
+import org.loed.framework.common.data.DataType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

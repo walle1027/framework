@@ -8,7 +8,7 @@ import org.loed.framework.common.query.Criteria;
 import org.loed.framework.common.query.Pagination;
 import org.loed.framework.r2dbc.query.R2dbcParam;
 import org.reactivestreams.Publisher;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import reactor.core.publisher.Flux;
@@ -272,7 +272,7 @@ public interface R2dbcDao<T, ID> {
 	 * @param criteria 动态条件
 	 * @return 影响的行数
 	 */
-	Mono<Integer> deleteByCriteria(@NonNull Criteria<T> criteria);
+	Mono<Integer> delete(@NonNull Criteria<T> criteria);
 
 	/**
 	 * 按照动态条件查询对象(返回多个结果)
@@ -332,11 +332,11 @@ public interface R2dbcDao<T, ID> {
 	 * 如果对象中有{@link TenantId} 会自动增加 过滤条件
 	 * 如果对象中有  {@link IsDeleted} 会自动增加过滤条件
 	 *
-	 * @param criteria    动态条件
-	 * @param pageRequest 分页参数
+	 * @param criteria 动态条件
+	 * @param pageable 分页参数
 	 * @return 分页查询结果
 	 */
-	Mono<Pagination<T>> findPage(@NonNull Criteria<T> criteria, @NonNull PageRequest pageRequest);
+	Mono<Pagination<T>> findPage(@NonNull Criteria<T> criteria, @NonNull Pageable pageable);
 
 	/**
 	 * 执行一个自定义的查询语句

@@ -16,6 +16,7 @@ import java.util.function.Supplier;
  * @version 1.0
  * @since 2020/4/10 10:28 AM
  */
+@Deprecated
 class CachedBodyOutputMessage implements ReactiveHttpOutputMessage {
 	private final DataBufferFactory bufferFactory;
 

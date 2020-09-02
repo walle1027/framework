@@ -10,7 +10,7 @@ import org.loed.framework.common.orm.Column;
 import org.loed.framework.common.orm.Join;
 import org.loed.framework.common.orm.Table;
 import org.loed.framework.common.query.*;
-import org.loed.framework.common.util.DataType;
+import org.loed.framework.common.data.DataType;
 import org.loed.framework.common.util.ReflectionUtils;
 import org.loed.framework.common.util.StringHelper;
 import org.loed.framework.mybatis.sharding.ShardingManager;

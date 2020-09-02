@@ -2,7 +2,7 @@ package org.loed.framework.r2dbc.dao;
 
 import io.r2dbc.spi.Row;
 import io.r2dbc.spi.RowMetadata;
-import org.loed.framework.common.util.DataType;
+import org.loed.framework.common.data.DataType;
 import org.loed.framework.common.util.ReflectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

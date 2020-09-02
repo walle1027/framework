@@ -37,6 +37,7 @@ import java.util.List;
  * @version 1.0
  * @since 2020/4/10 10:22 AM
  */
+@Deprecated
 public class ResponseBodyWrapperFilter implements WebFilter {
 	private final List<PathPattern> ignorePathPatternList;
 

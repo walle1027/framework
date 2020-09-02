@@ -2,8 +2,10 @@ package org.loed.framework.r2dbc.listener.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import org.loed.framework.common.context.ReactiveSystemContext;
+import org.loed.framework.common.context.SystemContext;
 import org.loed.framework.common.po.LastModifyBy;
 import org.loed.framework.common.po.LastModifyTime;
+import org.loed.framework.common.data.DataType;
 import org.loed.framework.common.util.LocalDateUtils;
 import org.loed.framework.common.util.ReflectionUtils;
 import org.loed.framework.r2dbc.listener.spi.PreUpdateListener;
@@ -35,8 +37,17 @@ public class DefaultPreUpdateListener implements PreUpdateListener {
 		if (fields.size() > 0) {
 			filedFlux = Flux.fromIterable(fields).flatMap(field -> {
 				if (field.getAnnotation(LastModifyBy.class) != null) {
-					return ReactiveSystemContext.getAccountId().map(accountId -> {
-						ReflectionUtils.setFieldValue(object, field, accountId);
+					return ReactiveSystemContext.getSystemContext().defaultIfEmpty(new SystemContext()).map(context -> {
+						if (context.getAccountId() != null) {
+							//TODO convert type
+							try {
+								int targetType = DataType.getDataType(field.getType());
+								Object convertedValue = DataType.toType(context.getAccountId(), DataType.DT_String, targetType);
+								ReflectionUtils.setFieldValue(object, field, convertedValue);
+							} catch (Exception e) {
+								log.error("error set LastModifyBy for field:" + field.getName() + " caused by: " + e.getMessage(), e);
+							}
+						}
 						return true;
 					});
 				} else if (field.getAnnotation(LastModifyTime.class) != null) {
@@ -65,12 +76,17 @@ public class DefaultPreUpdateListener implements PreUpdateListener {
 		List<Method> methods = ReflectionUtils.getDeclaredMethods(object.getClass());
 		Flux<Boolean> methodFlux;
 		if (methods.size() > 0) {
+			//compose this is the setter methods
 			methodFlux = Flux.fromIterable(methods).flatMap(method -> {
 				if (method.getAnnotation(LastModifyBy.class) != null) {
-					return ReactiveSystemContext.getAccountId().map(accountId -> {
+					return ReactiveSystemContext.getSystemContext().defaultIfEmpty(new SystemContext()).map(context -> {
 						try {
-							method.invoke(object, accountId);
-						} catch (IllegalAccessException | InvocationTargetException e) {
+							if (context.getAccountId() != null) {
+								int targetType = DataType.getDataType(method.getParameterTypes()[0]);
+								Object convertedValue = DataType.toType(context.getAccountId(), DataType.DT_String, targetType);
+								method.invoke(object, convertedValue);
+							}
+						} catch (Exception e) {
 							log.error("error invoke method:" + method.getName() + " of class : " + object.getClass() + " caused by " + e.getMessage(), e);
 						}
 						return true;

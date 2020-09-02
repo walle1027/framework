@@ -1,30 +1,30 @@
 {
   "properties": [
     {
-      "name": "org.loed.zkAddress",
+      "name": "org.loed.framework.zkAddress",
       "type": "java.lang.String",
       "description": "zookeeper地址."
     },
     {
-      "name": "org.loed.threadPool.coreSize",
+      "name": "org.loed.framework.threadPool.coreSize",
       "type": "java.lang.Integer",
       "description": "线程数量.",
       "defaultValue": 50
     },
     {
-      "name": "org.loed.threadPool.maxSize",
+      "name": "org.loed.framework.threadPool.maxSize",
       "type": "java.lang.Integer",
       "description": "最大线程数.",
       "defaultValue": 300
     },
     {
-      "name": "org.loed.threadPool.queueCapacity",
+      "name": "org.loed.framework.threadPool.queueCapacity",
       "type": "java.lang.Integer",
       "description": "等待队列长度.",
       "defaultValue": "0x7fffffff"
     },
     {
-      "name": "org.loed.threadPool.keepAliveSeconds",
+      "name": "org.loed.framework.threadPool.keepAliveSeconds",
       "type": "java.lang.Integer",
       "description": "空闲线程存活时间(秒).",
       "defaultValue": 300

@@ -12,7 +12,7 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 @Documented
-@Import({R2dbcDaoRegister.class})
+@Import({R2dbcDaoRegister.class, R2dbcConfigurationSupport.class})
 public @interface R2dbcDaoScanner {
 	/**
 	 * Alias for the {@link #basePackages()} attribute. Allows for more concise

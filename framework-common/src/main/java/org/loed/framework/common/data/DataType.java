@@ -1,16 +1,24 @@
-package org.loed.framework.common.util;
+package org.loed.framework.common.data;
 
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.time.DateUtils;
+import org.loed.framework.common.util.LocalDateUtils;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.Hashtable;
 import java.util.Map;
 
 @SuppressWarnings({"RedundantCast"})
+@Slf4j
 public class DataType {
 	public static final int DT_Unknown = 0;
 	public static final int DT_byte = 1;
@@ -40,6 +48,10 @@ public class DataType {
 	public static final int DT_Date = 23;
 	public static final int DT_Time = 24;
 	public static final int DT_DateTime = 25;
+
+	public static final int DT_LocalDate = 61;
+	public static final int DT_LocalDateTime = 62;
+
 	public static final int DT_Clob = 26;
 	public static final int DT_Blob = 27;
 	// public static final int DT_array = 9;
@@ -57,6 +69,12 @@ public class DataType {
 	public static final int DT_Enum = 42;
 	public static final int DT_UserDefine = 50;
 	private static Map<String, Integer> dataTypeMap = new Hashtable<String, Integer>();
+
+	public static final DateTimeFormatter yyyMMddHHmmssSSS = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+	public static final DateTimeFormatter yyyMMddHHmmss = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+	public static final DateTimeFormatter yyyMMddHHmm = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+	public static final DateTimeFormatter yyyMMddHH = DateTimeFormatter.ofPattern("yyyy-MM-dd HH");
+	public static final DateTimeFormatter yyyMMdd = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
 	static {
 		dataTypeMap.put("byte", DT_byte);
@@ -81,6 +99,8 @@ public class DataType {
 		dataTypeMap.put("Date", DT_Date);
 		dataTypeMap.put("Time", DT_Time);
 		dataTypeMap.put("Timestamp", DT_DateTime);
+		dataTypeMap.put("LocalDateTime", DT_LocalDateTime);
+		dataTypeMap.put("LocalDate", DT_LocalDate);
 		dataTypeMap.put("List", DT_List);
 		dataTypeMap.put("ArrayList", DT_List);
 		dataTypeMap.put("LinkedList", DT_List);
@@ -108,8 +128,8 @@ public class DataType {
 		typeName = deletePrefix(typeName, "java.util.");
 		typeName = deletePrefix(typeName, "java.sql.");
 		typeName = deletePrefix(typeName, "java.math.");
-		//TODO 增加对localDateTime的支持
-//		typeName = deletePrefix(typeName, "java.time.");
+		//增加对localDateTime的支持
+		typeName = deletePrefix(typeName, "java.time.");
 		return typeName;
 	}
 
@@ -273,74 +293,13 @@ public class DataType {
 			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 			switch (targetType) {
 				case DT_Byte:
-					switch (srcType) {
-						case DT_Short:
-							retObj = ((Short) value).byteValue();
-							break;
-						case DT_Integer:
-							retObj = ((Integer) value).byteValue();
-							break;
-						case DT_Long:
-							retObj = ((Long) value).byteValue();
-							break;
-						case DT_BigInteger:
-							retObj = ((BigInteger) value).byteValue();
-							break;
-						case DT_Float:
-							retObj = ((Float) value).byteValue();
-							break;
-						case DT_Double:
-							retObj = ((Double) value).byteValue();
-							break;
-						case DT_BigDecimal:
-							retObj = ((BigDecimal) value).byteValue();
-							break;
-						case DT_Character:
-							retObj = Byte.parseByte(((Character) value).toString());
-							break;
-						case DT_String:
-							retObj = Byte.parseByte((String) value);
-							break;
-						case DT_Boolean:
-							retObj = (byte) ((Boolean) value ? 1 : 0);
-							break;
-					}
+					retObj = convertToByte(srcType, value);
 					break;
 				case DT_Short:
-					switch (srcType) {
-						case DT_Byte:
-							retObj = ((Byte) value).shortValue();
-							break;
-						case DT_Integer:
-							retObj = ((Integer) value).shortValue();
-							break;
-						case DT_Long:
-							retObj = ((Long) value).shortValue();
-							break;
-						case DT_BigInteger:
-							retObj = ((BigInteger) value).shortValue();
-							break;
-						case DT_Float:
-							retObj = ((Float) value).shortValue();
-							break;
-						case DT_Double:
-							retObj = ((Double) value).shortValue();
-							break;
-						case DT_BigDecimal:
-							retObj = ((BigDecimal) value).shortValue();
-							break;
-						case DT_Character:
-							retObj = Short.parseShort(((Character) value).toString());
-							break;
-						case DT_String:
-							retObj = Short.parseShort((String) value);
-							break;
-						case DT_Boolean:
-							retObj = (short) ((Boolean) value ? 1 : 0);
-							break;
-					}
+					retObj = convertToShort(srcType, value);
 					break;
 				case DT_Integer:
+					//TODO extract method
 					switch (srcType) {
 						case DT_Byte:
 							retObj = ((Byte) value).intValue();
@@ -647,7 +606,9 @@ public class DataType {
 								retObj = true;
 							} else if (strValue.equalsIgnoreCase("y")) {
 								retObj = true;
-							} else retObj = strValue.equalsIgnoreCase("是");
+							} else {
+								retObj = strValue.equalsIgnoreCase("是");
+							}
 							break;
 					}
 					break;
@@ -771,7 +732,12 @@ public class DataType {
 							break;
 					}
 					break;
-
+				case DT_LocalDate:
+					retObj = convert2LocalDate(srcType, value);
+					break;
+				case DT_LocalDateTime:
+					retObj = convert2LocalDateTime(srcType, value);
+					break;
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -895,4 +861,124 @@ public class DataType {
 		return dataType == DT_Map;
 	}
 
+
+	private static Byte convertToByte(int srcType, Object value) {
+		switch (srcType) {
+			case DT_Short:
+				return ((Short) value).byteValue();
+			case DT_Integer:
+				return ((Integer) value).byteValue();
+			case DT_Long:
+				return ((Long) value).byteValue();
+			case DT_BigInteger:
+				return ((BigInteger) value).byteValue();
+			case DT_Float:
+				return ((Float) value).byteValue();
+			case DT_Double:
+				return ((Double) value).byteValue();
+			case DT_BigDecimal:
+				return ((BigDecimal) value).byteValue();
+			case DT_Character:
+				return Byte.parseByte(((Character) value).toString());
+			case DT_String:
+				return Byte.parseByte((String) value);
+			case DT_Boolean:
+				return (byte) ((Boolean) value ? 1 : 0);
+			default:
+				log.error("can't convert srcType:" + srcType + " to Byte for value:" + value);
+				return null;
+		}
+	}
+
+	private static Short convertToShort(int srcType, Object value) {
+		switch (srcType) {
+			case DT_Byte:
+				return ((Byte) value).shortValue();
+			case DT_Integer:
+				return ((Integer) value).shortValue();
+			case DT_Long:
+				return ((Long) value).shortValue();
+			case DT_BigInteger:
+				return ((BigInteger) value).shortValue();
+			case DT_Float:
+				return ((Float) value).shortValue();
+			case DT_Double:
+				return ((Double) value).shortValue();
+			case DT_BigDecimal:
+				return ((BigDecimal) value).shortValue();
+			case DT_Character:
+				return Short.parseShort(((Character) value).toString());
+			case DT_String:
+				return Short.parseShort((String) value);
+			case DT_Boolean:
+				return (short) ((Boolean) value ? 1 : 0);
+			default:
+				log.error("can't convert srcType:" + srcType + " to Short for value:" + value);
+				return null;
+		}
+	}
+
+	private static LocalDate convert2LocalDate(int srcType, Object value) {
+		switch (srcType) {
+			case DT_String:
+				return LocalDate.parse(value.toString(), yyyMMdd);
+			case DT_Long:
+			case DT_long:
+				Date dateLong = new Date((Long) value);
+				Calendar c1 = Calendar.getInstance();
+				c1.setTime(dateLong);
+				return LocalDate.of(c1.get(Calendar.YEAR), c1.get(Calendar.MONTH), c1.get(Calendar.DAY_OF_MONTH));
+			case DT_BigInteger:
+				Date date = new Date(((BigInteger) value).longValue());
+				Calendar c2 = Calendar.getInstance();
+				c2.setTime(date);
+				return LocalDate.of(c2.get(Calendar.YEAR), c2.get(Calendar.MONTH), c2.get(Calendar.DAY_OF_MONTH));
+			default:
+				log.error("can't convert srcType:" + srcType + " to LocalDate for value:" + value);
+				return null;
+		}
+	}
+
+	private static LocalDateTime convert2LocalDateTime(int srcType, Object value) {
+		switch (srcType) {
+			case DT_String:
+				try {
+					return LocalDateTime.parse(value.toString(), yyyMMddHHmmssSSS);
+				} catch (DateTimeParseException dept) {
+					log.warn("can't convert value to " + yyyMMddHHmmssSSS.toString());
+				}
+				try {
+					return LocalDateTime.parse(value.toString(), yyyMMddHHmmss);
+				} catch (DateTimeParseException dept) {
+					log.warn("can't convert value to " + yyyMMddHHmmss.toString());
+				}
+				try {
+					return LocalDateTime.parse(value.toString(), yyyMMddHHmm);
+				} catch (DateTimeParseException dept) {
+					log.warn("can't convert value to " + yyyMMddHHmm.toString());
+				}
+				try {
+					return LocalDateTime.parse(value.toString(), yyyMMddHH);
+				} catch (DateTimeParseException dept) {
+					log.warn("can't convert value to " + yyyMMddHH.toString());
+				}
+				try {
+					return LocalDateTime.parse(value.toString(), yyyMMdd);
+				} catch (DateTimeParseException dept) {
+					log.warn("can't convert value to " + yyyMMdd.toString());
+				}
+			case DT_Long:
+			case DT_long:
+				return LocalDateUtils.convertDateToLDT(new Date((Long) value));
+			case DT_BigInteger:
+				Date date = new Date(((BigInteger) value).longValue());
+				Calendar c2 = Calendar.getInstance();
+				c2.setTime(date);
+				return LocalDateTime.of(c2.get(Calendar.YEAR), c2.get(Calendar.MONTH), c2.get(Calendar.DAY_OF_MONTH),
+						c2.get(Calendar.HOUR_OF_DAY), c2.get(Calendar.MINUTE), c2.get(Calendar.SECOND));
+			default:
+				log.error("can't convert srcType:" + srcType + " to LocalDate for value:" + value);
+				return null;
+		}
+	}
 }

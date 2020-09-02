@@ -10,7 +10,7 @@ import org.loed.framework.common.po.CreateBy;
 import org.loed.framework.common.po.CreateTime;
 import org.loed.framework.common.po.IsDeleted;
 import org.loed.framework.common.po.TenantId;
-import org.loed.framework.common.util.DataType;
+import org.loed.framework.common.data.DataType;
 import org.loed.framework.common.util.ReflectionUtils;
 import org.loed.framework.common.util.StringHelper;
 import org.slf4j.Logger;

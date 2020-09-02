@@ -11,13 +11,13 @@ import org.loed.framework.common.query.Condition;
 import org.loed.framework.common.query.Criteria;
 import org.loed.framework.common.query.QueryBuilder;
 import org.loed.framework.common.query.SortProperty;
-import org.loed.framework.common.util.DataType;
+import org.loed.framework.common.data.DataType;
 import org.loed.framework.common.util.ReflectionUtils;
 import org.loed.framework.common.util.StringHelper;
 import org.loed.framework.r2dbc.query.R2dbcParam;
 import org.loed.framework.r2dbc.query.R2dbcQuery;
 import org.loed.framework.r2dbc.query.R2dbcSqlBuilder;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.lang.NonNull;
 
 import javax.persistence.GenerationType;
@@ -192,7 +192,7 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 	}
 
 	@Override
-	public <T> R2dbcQuery findPageByCriteria(@NonNull Table table, @NonNull Criteria<T> criteria, @NonNull PageRequest pageRequest) {
+	public <T> R2dbcQuery findPageByCriteria(@NonNull Table table, @NonNull Criteria<T> criteria, @NonNull Pageable pageable) {
 		R2dbcQuery query = findByCriteria(table, criteria);
 		String statement = query.getStatement();
 		Map<String, R2dbcParam> params = query.getParams();
@@ -200,13 +200,13 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 			params = new HashMap<>();
 		}
 		String prstmt;
-		if (pageRequest.getPageNumber() > 1) {
+		if (pageable.getPageNumber() > 1) {
 			prstmt = statement + BLANK + "limit :pr_limit offset :pr_offset";
-			params.put("pr_limit", new R2dbcParam(Integer.class, pageRequest.getPageSize()));
-			params.put("pr_offset", new R2dbcParam(Long.class, pageRequest.getOffset()));
+			params.put("pr_limit", new R2dbcParam(Integer.class, pageable.getPageSize()));
+			params.put("pr_offset", new R2dbcParam(Long.class, pageable.getOffset()));
 		} else {
 			prstmt = statement + BLANK + "limit :pr_limit";
-			params.put("pr_limit", new R2dbcParam(Integer.class, pageRequest.getPageSize()));
+			params.put("pr_limit", new R2dbcParam(Integer.class, pageable.getPageSize()));
 		}
 		query.setStatement(prstmt);
 		query.setParams(params);

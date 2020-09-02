@@ -2,7 +2,7 @@ package org.loed.framework.common.mapping.config;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.loed.framework.common.util.DataType;
+import org.loed.framework.common.data.DataType;
 import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Field;

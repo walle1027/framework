@@ -31,7 +31,7 @@ public interface ReactiveI18nProvider {
 	 * @return 值
 	 */
 	default Mono<String> getText(String key) {
-		return ReactiveSystemContext.getLocale().flatMap(locale -> getText(key, null, locale));
+		return ReactiveSystemContext.getSystemContext().flatMap(context -> getText(key, null, context.getLocale()));
 	}
 
 	/**
@@ -42,7 +42,7 @@ public interface ReactiveI18nProvider {
 	 * @return 值
 	 */
 	default Mono<String> getText(String key, Object[] args) {
-		return ReactiveSystemContext.getLocale().flatMap(locale -> getText(key, args, locale));
+		return ReactiveSystemContext.getSystemContext().flatMap(context -> getText(key, args, context.getLocale()));
 	}
 
 	/**

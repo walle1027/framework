@@ -15,6 +15,7 @@ import java.util.Optional;
  * @version 1.0
  * @since 2020/4/10 10:29 AM
  */
+@Deprecated
 class BodyInserterContext implements BodyInserter.Context {
 	private final ExchangeStrategies exchangeStrategies;
 

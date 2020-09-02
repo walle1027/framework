@@ -3,7 +3,7 @@ package org.loed.framework.common.mapping.impl;
 import org.loed.framework.common.mapping.Mapper;
 import org.loed.framework.common.mapping.config.MappingConfig;
 import org.loed.framework.common.mapping.config.PropertyConfig;
-import org.loed.framework.common.util.DataType;
+import org.loed.framework.common.data.DataType;
 import org.loed.framework.common.util.ReflectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

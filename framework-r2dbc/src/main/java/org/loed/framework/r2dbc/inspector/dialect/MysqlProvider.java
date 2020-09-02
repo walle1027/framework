@@ -11,7 +11,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.loed.framework.common.database.schema.Table;
 import org.loed.framework.common.orm.Column;
 import org.loed.framework.common.orm.Index;
-import org.loed.framework.common.util.DataType;
+import org.loed.framework.common.data.DataType;
 import org.loed.framework.r2dbc.inspector.DdlProvider;
 import org.springframework.data.r2dbc.convert.ColumnMapRowMapper;
 import org.springframework.lang.NonNull;

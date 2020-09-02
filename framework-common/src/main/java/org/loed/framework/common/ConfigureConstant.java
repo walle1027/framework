@@ -6,22 +6,14 @@ package org.loed.framework.common;
  * @since 2017/9/13 下午10:02
  */
 public interface ConfigureConstant {
-	String default_ns = "org.loed";
+	String default_ns = "org.loed.framework";
 	String dot = ".";
 	//********************redis namespace**********************//
 	String redis_ns = default_ns + dot + "redis";
 	String event_region_name = "event";
-	String soa_region_name = "soa";
-	String i18n_region_name = "i18n";
-	String hibernate_region_name = "hibernate";
-
-	String redis_regions = "regions";
 
 	//********************SOA namespace**********************//
 	String soa_ns = default_ns + dot + "soa";
-	String soa_service_ns = soa_ns + dot + "service";
-	String soa_client_ns = soa_ns + dot + "client";
-	String soa_registry_ns = soa_ns + dot + "registry";
 
 	//********************datasource namespace****************//
 	String datasource_ns = default_ns + dot + "datasource";

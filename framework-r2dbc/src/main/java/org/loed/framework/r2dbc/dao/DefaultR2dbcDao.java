@@ -22,7 +22,7 @@ import org.loed.framework.r2dbc.query.R2dbcParam;
 import org.loed.framework.r2dbc.query.R2dbcQuery;
 import org.loed.framework.r2dbc.query.R2dbcSqlBuilder;
 import org.reactivestreams.Publisher;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.r2dbc.core.DatabaseClient;
 import org.springframework.lang.NonNull;
 import reactor.core.publisher.Flux;
@@ -344,12 +344,19 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 		Flux<Condition> flux = Flux.empty();
 		for (Field field : fields) {
 			if (field.getAnnotation(TenantId.class) != null) {
-				flux = flux.mergeWith(ReactiveSystemContext.getTenantCode().map(tenantCode -> {
-					return new Condition(field.getName(), Operator.equal, tenantCode);
+				flux = flux.mergeWith(ReactiveSystemContext.getSystemContext().map(context -> {
+					return new Condition(field.getName(), Operator.equal, context.getTenantCode());
 				}));
 			}
 			if (field.getAnnotation(IsDeleted.class) != null) {
-				flux = flux.mergeWith(Mono.just(new Condition(field.getName(), Operator.equal, (byte) 0)));
+				Class<?> fieldType = field.getType();
+				if (fieldType.getName().equals(Byte.class.getName()) || fieldType.getName().equals(byte.class.getName())) {
+					flux = flux.mergeWith(Mono.just(new Condition(field.getName(), Operator.equal, (byte) 0)));
+				} else if (fieldType.getName().equals(Integer.class.getName()) || fieldType.getName().equals(int.class.getName())) {
+					flux = flux.mergeWith(Mono.just(new Condition(field.getName(), Operator.equal, 0)));
+				} else {
+					log.error("field type " + fieldType.getName() + " is neither byte nor int ,illegal type");
+				}
 			}
 		}
 		return flux;
@@ -377,7 +384,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 		return Flux.merge(Flux.just(new Condition(idColumn.getJavaName(), Operator.equal, id)), commonConditions()).collectList()
 				.map(conditions -> {
 					return Criteria.from(entityClass).criterion(conditions.toArray(new Condition[0]));
-				}).flatMap(this::deleteByCriteria);
+				}).flatMap(this::delete);
 	}
 
 	@Override
@@ -387,11 +394,11 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 		}), commonConditions())
 				.collectList()
 				.map(conditions -> Criteria.from(entityClass).criterion(conditions.toArray(new Condition[0])))
-				.flatMap(this::deleteByCriteria);
+				.flatMap(this::delete);
 	}
 
 	@Override
-	public Mono<Integer> deleteByCriteria(@NonNull Criteria<T> criteria) {
+	public Mono<Integer> delete(@NonNull Criteria<T> criteria) {
 		return Mono.just(criteria).flatMap(crit -> {
 					return commonConditions().collectList().map(conditions -> {
 						return crit.criterion(conditions.toArray(new Condition[0]));
@@ -439,9 +446,9 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 
 	@Override
 	public Mono<T> findOne(@NonNull Criteria<T> criteria) {
-		PageRequest request = PageRequest.of(0, 1);
-		return findPage(criteria, request).flatMap(pagination -> {
-			return pagination.getRows() == null ? Mono.empty() : Mono.just(pagination.getRows().get(0));
+		Pageable pageable = Pageable.unpaged();
+		return findPage(criteria, pageable).flatMap(pagination -> {
+			return CollectionUtils.isEmpty(pagination.getRows()) ? Mono.empty() : Mono.just(pagination.getRows().get(0));
 		});
 	}
 
@@ -485,15 +492,15 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	}
 
 	@Override
-	public Mono<Pagination<T>> findPage(@NonNull Criteria<T> criteria, @NonNull PageRequest pageRequest) {
-		boolean paged = pageRequest.isPaged();
+	public Mono<Pagination<T>> findPage(@NonNull Criteria<T> criteria, @NonNull Pageable pageable) {
+		boolean paged = pageable.isPaged();
 		if (paged) {
-			return Mono.zip(count(criteria), Mono.just(r2dbcSqlBuilder.findPageByCriteria(table, criteria, pageRequest)).flatMap(r2dbcQuery -> {
+			return Mono.zip(count(criteria), Mono.just(r2dbcSqlBuilder.findPageByCriteria(table, criteria, pageable)).flatMap(r2dbcQuery -> {
 				return query(r2dbcQuery).collectList();
 			})).map(tup -> {
 				Pagination<T> pagination = new Pagination<>();
-				pagination.setPageNo(pageRequest.getPageNumber());
-				pagination.setPageSize(pageRequest.getPageSize());
+				pagination.setPageNo(pageable.getPageNumber());
+				pagination.setPageSize(pageable.getPageSize());
 				pagination.setTotal(tup.getT1());
 				pagination.setRows(tup.getT2());
 				return pagination;
@@ -501,8 +508,8 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 		} else {
 			return find(criteria).collectList().map(result -> {
 				Pagination<T> pagination = new Pagination<>();
-				pagination.setPageNo(pageRequest.getPageNumber());
-				pagination.setPageSize(pageRequest.getPageSize());
+				pagination.setPageNo(1);
+				pagination.setPageSize(result.size());
 				pagination.setTotal(result.size());
 				pagination.setRows(result);
 				return pagination;

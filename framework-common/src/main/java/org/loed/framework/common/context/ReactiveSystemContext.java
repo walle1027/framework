@@ -22,25 +22,25 @@ public class ReactiveSystemContext {
 		});
 	}
 
-	public static Mono<String> getUserToken() throws NoSystemContextException {
-		return getSystemContext().map(SystemContext::getUserToken);
-	}
-
-	public static Mono<String> getUserId() {
-		return getSystemContext().map(SystemContext::getUserId);
-	}
-
-	public static Mono<String> getAccountId() {
-		return getSystemContext().map(SystemContext::getAccountId);
-	}
-
-	public static Mono<String> getTenantCode() {
-		return getSystemContext().map(SystemContext::getTenantCode).defaultIfEmpty(SystemContext.DEFAULT_TENANT_CODE);
-	}
-
-	public static Mono<String> getLocale() {
-		return getSystemContext().map(SystemContext::getLocale);
-	}
+//	public static Mono<String> getUserToken() throws NoSystemContextException {
+//		return getSystemContext().map(SystemContext::getUserToken);
+//	}
+//
+//	public static Mono<String> getUserId() {
+//		return getSystemContext().map(SystemContext::getUserId);
+//	}
+//
+//	public static Mono<String> getAccountId() {
+//		return getSystemContext().defaultIfEmpty(new SystemContext()).map(SystemContext::getAccountId);
+//	}
+//
+//	public static Mono<String> getTenantCode() {
+//		return getSystemContext().map(SystemContext::getTenantCode).defaultIfEmpty(SystemContext.DEFAULT_TENANT_CODE);
+//	}
+//
+//	public static Mono<String> getLocale() {
+//		return getSystemContext().map(SystemContext::getLocale);
+//	}
 
 	public static class NoSystemContextException extends RuntimeException {
 		public NoSystemContextException() {

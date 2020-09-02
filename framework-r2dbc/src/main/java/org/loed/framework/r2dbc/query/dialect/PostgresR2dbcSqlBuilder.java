@@ -5,7 +5,7 @@ import org.loed.framework.common.orm.Table;
 import org.loed.framework.common.query.Criteria;
 import org.loed.framework.r2dbc.query.R2dbcQuery;
 import org.loed.framework.r2dbc.query.R2dbcSqlBuilder;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.function.Predicate;
@@ -50,7 +50,7 @@ public class PostgresR2dbcSqlBuilder implements R2dbcSqlBuilder {
 	}
 
 	@Override
-	public <T> R2dbcQuery findPageByCriteria(Table table, Criteria<T> criteria, PageRequest pageRequest) {
+	public <T> R2dbcQuery findPageByCriteria(Table table, Criteria<T> criteria, Pageable pageable) {
 		return null;
 	}
 
