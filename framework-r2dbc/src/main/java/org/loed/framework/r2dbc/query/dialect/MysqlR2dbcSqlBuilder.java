@@ -4,14 +4,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.loed.framework.common.ORMapping;
+import org.loed.framework.common.data.DataType;
 import org.loed.framework.common.orm.Column;
 import org.loed.framework.common.orm.Join;
 import org.loed.framework.common.orm.Table;
-import org.loed.framework.common.query.Condition;
-import org.loed.framework.common.query.Criteria;
-import org.loed.framework.common.query.QueryBuilder;
-import org.loed.framework.common.query.SortProperty;
-import org.loed.framework.common.data.DataType;
+import org.loed.framework.common.query.*;
 import org.loed.framework.common.util.ReflectionUtils;
 import org.loed.framework.common.util.StringHelper;
 import org.loed.framework.r2dbc.query.R2dbcParam;
@@ -123,11 +120,12 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 			throw new RuntimeException("empty columns to update");
 		}
 		List<Condition> conditions = criteria.getConditions();
+		PropertySelector selector = criteria.getSelector();
 		if (CollectionUtils.isEmpty(conditions)) {
 			log.warn("conditions is empty, the statement:" + builder.toString() + " will update all rows");
 		} else {
 			for (Condition condition : conditions) {
-				buildCondition(params, Collections.emptyMap(), counter, builder, condition, table);
+				buildCondition(params, Collections.emptyMap(), counter, builder, condition, table, selector);
 			}
 		}
 		query.setStatement(builder.toString());
@@ -150,11 +148,12 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 			builder.delete(wrap(table.getSqlName()));
 		}
 		List<Condition> conditions = criteria.getConditions();
+		PropertySelector selector = criteria.getSelector();
 		if (CollectionUtils.isEmpty(conditions)) {
 			log.warn("criteria is empty condition");
 		} else {
 			for (Condition condition : conditions) {
-				buildCondition(paramMap, Collections.emptyMap(), counter, builder, condition, table);
+				buildCondition(paramMap, Collections.emptyMap(), counter, builder, condition, table, selector);
 			}
 		}
 		query.setStatement(builder.toString());
@@ -172,17 +171,27 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 		Map<String, String> tableAliasMap = new ConcurrentHashMap<>();
 		String rootAlias = createTableAlias(tableName, counter);
 		tableAliasMap.put(ROOT_TABLE_ALIAS_KEY, rootAlias);
-		table.getColumns().forEach(column -> {
+		PropertySelector selector = criteria.getSelector();
+		table.getColumns().stream().filter(column -> {
+			if (selector != null) {
+				if (selector.getIncludes() != null) {
+					return selector.getIncludes().contains(column.getJavaName());
+				} else if (selector.getExcludes() != null) {
+					return !selector.getExcludes().contains(column.getJavaName());
+				}
+			}
+			return true;
+		}).forEach(column -> {
 			builder.select(rootAlias + "." + wrap(column.getSqlName()) + " as " + "\"" + column.getJavaName() + "\"");
 		});
 		builder.from(wrap(tableName) + " as " + rootAlias);
 		List<Condition> conditions = criteria.getConditions();
 		if (CollectionUtils.isNotEmpty(conditions)) {
 			for (Condition condition : conditions) {
-				buildCondition(paramMap, tableAliasMap, counter, builder, condition, table);
+				buildCondition(paramMap, tableAliasMap, counter, builder, condition, table, selector);
 			}
 		}
-		buildOrder(tableAliasMap, counter, builder, table, criteria.getSortProperties());
+		buildOrder(tableAliasMap, counter, builder, table, criteria.getSortProperties(), selector);
 		if (log.isDebugEnabled()) {
 			log.debug(builder.toString());
 		}
@@ -225,9 +234,10 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 		tableAliasMap.put(ROOT_TABLE_ALIAS_KEY, rootAlias);
 		builder.select("count(1)").from(wrap(tableName) + " as " + rootAlias);
 		List<Condition> conditions = criteria.getConditions();
+		PropertySelector selector = criteria.getSelector();
 		if (CollectionUtils.isNotEmpty(conditions)) {
 			for (Condition condition : conditions) {
-				buildCondition(paramMap, tableAliasMap, counter, builder, condition, table);
+				buildCondition(paramMap, tableAliasMap, counter, builder, condition, table, selector);
 			}
 		}
 		// do not include order clause
@@ -239,7 +249,7 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 					continue;
 				}
 				//解析级联属性
-				resolvePropertyCascade(tableAliasMap, table, rootAlias, counter, builder, JoinType.LEFT, null, propertyName);
+				resolvePropertyCascade(tableAliasMap, table, rootAlias, counter, builder, JoinType.LEFT, null, propertyName, selector);
 			}
 		}
 		if (log.isDebugEnabled()) {
@@ -260,7 +270,8 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 		return "`";
 	}
 
-	public void buildCondition(Map<String, R2dbcParam> parameterMap, Map<String, String> tableAliasMap, AtomicInteger counter, QueryBuilder sql, Condition condition, Table table) {
+	public void buildCondition(Map<String, R2dbcParam> parameterMap, Map<String, String> tableAliasMap, AtomicInteger counter
+			, QueryBuilder sql, Condition condition, Table table, PropertySelector selector) {
 		if (condition.hasSubCondition()) {
 			if (condition.getJoint() != null) {
 				sql.where(condition.getJoint().name() + BLANK + "(");
@@ -268,15 +279,16 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 				sql.where("(");
 			}
 			for (Condition subCondition : condition.getSubConditions()) {
-				buildCondition(parameterMap, tableAliasMap, counter, sql, subCondition, table);
+				buildCondition(parameterMap, tableAliasMap, counter, sql, subCondition, table, selector);
 			}
 			sql.where(")");
 		} else {
-			buildSingleCondition(parameterMap, tableAliasMap, counter, sql, condition, table);
+			buildSingleCondition(parameterMap, tableAliasMap, counter, sql, condition, table, selector);
 		}
 	}
 
-	private void buildSingleCondition(Map<String, R2dbcParam> parameterMap, Map<String, String> tableAliasMap, AtomicInteger counter, QueryBuilder sql, Condition condition, Table table) {
+	private void buildSingleCondition(Map<String, R2dbcParam> parameterMap, Map<String, String> tableAliasMap, AtomicInteger counter
+			, QueryBuilder sql, Condition condition, Table table, PropertySelector selector) {
 		if (!match(condition)) {
 			log.warn("condition :" + condition + " is not a valid condition,will ignore");
 			return;
@@ -284,16 +296,14 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 		String propertyName = condition.getPropertyName();
 		String joint = (condition.getJoint() == null ? "" : condition.getJoint().name()) + BLANK;
 		Object value = condition.getValue();
-//		Operator operator = condition.getOperator();
 		String rawParamName = StringUtils.replace(propertyName, ".", "_") + "Value";
 		String uniqueParamName = genUniqueParamName(rawParamName, parameterMap);
 		String alias = tableAliasMap.get(ROOT_TABLE_ALIAS_KEY);
-		Column column = resolvePropertyCascade(tableAliasMap, table, alias, counter, sql, condition.getJoinType(), null, propertyName);
+		Column column = resolvePropertyCascade(tableAliasMap, table, alias, counter, sql, condition.getJoinType(), null, propertyName, selector);
 		if (column == null) {
 			throw new RuntimeException("can't find  column from condition:" + condition);
 		}
 		String columnName = column.getSqlName();
-		String jdbcType = column.getSqlTypeName();
 		Class<?> columnType = column.getJavaType();
 		int dataType = DataType.getDataType(columnType);
 		if (condition.isRelativeProperty()) {
@@ -332,7 +342,6 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 					if (((Collection) value).size() < 2) {
 						throw new IllegalArgumentException("parameter " + value + " length less than 2 when use between operator");
 					}
-
 					int i = 0;
 					for (Object v : (Collection<?>) value) {
 						if (i == 0) {
@@ -668,7 +677,8 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 		}
 	}
 
-	public void buildOrder(Map<String, String> tableAliasMap, AtomicInteger counter, QueryBuilder sql, Table table, List<SortProperty> sortProperties) {
+	public void buildOrder(Map<String, String> tableAliasMap, AtomicInteger counter, QueryBuilder sql, Table table
+			, List<SortProperty> sortProperties, PropertySelector selector) {
 		if (CollectionUtils.isNotEmpty(sortProperties)) {
 			for (SortProperty sortProperty : sortProperties) {
 				String propertyName = sortProperty.getPropertyName();
@@ -677,7 +687,7 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 				}
 				String rootAlias = tableAliasMap.get(ROOT_TABLE_ALIAS_KEY);
 				//此处的joinType是瞎猜的，不作数
-				Column column = resolvePropertyCascade(tableAliasMap, table, rootAlias, counter, sql, JoinType.LEFT, null, propertyName);
+				Column column = resolvePropertyCascade(tableAliasMap, table, rootAlias, counter, sql, JoinType.LEFT, null, propertyName, selector);
 				if (column == null) {
 					continue;
 				}
@@ -705,7 +715,8 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 		return newParamName;
 	}
 
-	private Column resolvePropertyCascade(Map<String, String> tableAliasMap, Table table, String parentTableAlias, AtomicInteger counter, QueryBuilder sql, JoinType joinType, String path, String propertyName) {
+	private Column resolvePropertyCascade(Map<String, String> tableAliasMap, Table table, String parentTableAlias
+			, AtomicInteger counter, QueryBuilder sql, JoinType joinType, String path, String propertyName, PropertySelector selector) {
 		if (!propertyName.contains(".")) {
 			return table.getColumns().stream().filter(k -> k.getJavaName().equals(propertyName)).findFirst().orElse(null);
 		}
@@ -756,12 +767,22 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 					break;
 			}
 			//todo 根据列选择器动态选择列 增加查询结果
-			targetTable.getColumns().forEach(column -> {
+			targetTable.getColumns().stream().filter(column -> {
+				if (selector != null) {
+					if (selector.getIncludes() != null) {
+						return selector.getIncludes().contains(k + "." + column.getJavaName());
+					} else if (selector.getExcludes() != null) {
+						return !selector.getExcludes().contains(k + "." + column.getJavaName());
+					}
+				}
+				return true;
+			}).forEach(column -> {
+
 				sql.select(targetAlias + "." + wrap(column.getSqlName()) + BLANK + "as" + BLANK + "\"" + k + "." + column.getJavaName() + "\"");
 			});
 			return targetAlias;
 		});
-		return resolvePropertyCascade(tableAliasMap, targetTable, alias, counter, sql, joinType, key, next);
+		return resolvePropertyCascade(tableAliasMap, targetTable, alias, counter, sql, joinType, key, next, selector);
 	}
 
 	private String createTableAlias(String tableName, AtomicInteger counter) {

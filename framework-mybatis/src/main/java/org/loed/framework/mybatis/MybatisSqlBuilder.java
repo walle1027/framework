@@ -6,11 +6,11 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.type.JdbcType;
 import org.loed.framework.common.ORMapping;
 import org.loed.framework.common.ServiceLocator;
+import org.loed.framework.common.data.DataType;
 import org.loed.framework.common.orm.Column;
 import org.loed.framework.common.orm.Join;
 import org.loed.framework.common.orm.Table;
 import org.loed.framework.common.query.*;
-import org.loed.framework.common.data.DataType;
 import org.loed.framework.common.util.ReflectionUtils;
 import org.loed.framework.common.util.StringHelper;
 import org.loed.framework.mybatis.sharding.ShardingManager;
@@ -37,9 +37,10 @@ public class MybatisSqlBuilder {
 	public final String TENANT_CODE = "tenant_code";
 	private static final String ROOT_TABLE_ALIAS_KEY = "_self";
 
-	private Logger logger = LoggerFactory.getLogger(MybatisSqlBuilder.class);
+	private final Logger logger = LoggerFactory.getLogger(MybatisSqlBuilder.class);
 
-	public void buildCondition(Map<String, Object> parameterMap, Map<String, String> tableAliasMap, AtomicInteger counter, QueryBuilder sql, Condition condition, Table table) {
+	public void buildCondition(Map<String, Object> parameterMap, Map<String, String> tableAliasMap, AtomicInteger counter
+			, QueryBuilder sql, Condition condition, Table table, PropertySelector selector) {
 		if (condition.hasSubCondition()) {
 			if (condition.getJoint() != null) {
 				sql.where(condition.getJoint().name() + BLANK + "(");
@@ -47,15 +48,16 @@ public class MybatisSqlBuilder {
 				sql.where("(");
 			}
 			for (Condition subCondition : condition.getSubConditions()) {
-				buildCondition(parameterMap, tableAliasMap, counter, sql, subCondition, table);
+				buildCondition(parameterMap, tableAliasMap, counter, sql, subCondition, table, selector);
 			}
 			sql.where(")");
 		} else {
-			buildSingleCondition(parameterMap, tableAliasMap, counter, sql, condition, table);
+			buildSingleCondition(parameterMap, tableAliasMap, counter, sql, condition, table, selector);
 		}
 	}
 
-	private void buildSingleCondition(Map<String, Object> parameterMap, Map<String, String> tableAliasMap, AtomicInteger counter, QueryBuilder sql, Condition condition, Table table) {
+	private void buildSingleCondition(Map<String, Object> parameterMap, Map<String, String> tableAliasMap, AtomicInteger counter
+			, QueryBuilder sql, Condition condition, Table table, PropertySelector selector) {
 		if (!match(condition)) {
 			return;
 		}
@@ -67,7 +69,7 @@ public class MybatisSqlBuilder {
 		String rawParamName = StringUtils.replace(propertyName, ".", "_") + "Value";
 		String uniqueParamName = genUniqueMapKey(rawParamName, parameterMap);
 		String alias = tableAliasMap.get(ROOT_TABLE_ALIAS_KEY);
-		Column column = resolvePropertyCascade(tableAliasMap, table, alias, counter, sql, condition.getJoinType(), null, propertyName);
+		Column column = resolvePropertyCascade(tableAliasMap, table, alias, counter, sql, condition.getJoinType(), null, propertyName, selector);
 		if (column == null) {
 			return;
 		}
@@ -127,104 +129,123 @@ public class MybatisSqlBuilder {
 					}
 				} else if (value.getClass().isArray()) {
 					String simpleName = value.getClass().getSimpleName();
-					if ("int[]".equals(simpleName)) {
-						int[] values = (int[]) value;
-						for (int i = 0; i < values.length; i++) {
-							int v = values[i];
-							if (i == 0) {
-								parameterMap.put(betweenKey1, DataType.toType(v, DataType.DT_int, dataType));
+					switch (simpleName) {
+						case "int[]": {
+							int[] values = (int[]) value;
+							for (int i = 0; i < values.length; i++) {
+								int v = values[i];
+								if (i == 0) {
+									parameterMap.put(betweenKey1, DataType.toType(v, DataType.DT_int, dataType));
+								}
+								if (i == 1) {
+									parameterMap.put(betweenKey2, DataType.toType(v, DataType.DT_int, dataType));
+								}
 							}
-							if (i == 1) {
-								parameterMap.put(betweenKey2, DataType.toType(v, DataType.DT_int, dataType));
-							}
+							break;
 						}
-					} else if ("long[]".equals(simpleName)) {
-						long[] values = (long[]) value;
-						for (int i = 0; i < values.length; i++) {
-							long v = values[i];
-							if (i == 0) {
-								parameterMap.put(betweenKey1, DataType.toType(v, DataType.DT_long, dataType));
+						case "long[]": {
+							long[] values = (long[]) value;
+							for (int i = 0; i < values.length; i++) {
+								long v = values[i];
+								if (i == 0) {
+									parameterMap.put(betweenKey1, DataType.toType(v, DataType.DT_long, dataType));
+								}
+								if (i == 1) {
+									parameterMap.put(betweenKey2, DataType.toType(v, DataType.DT_long, dataType));
+								}
 							}
-							if (i == 1) {
-								parameterMap.put(betweenKey2, DataType.toType(v, DataType.DT_long, dataType));
-							}
+							break;
 						}
-					} else if ("char[]".equals(simpleName)) {
-						char[] values = (char[]) value;
-						for (int i = 0; i < values.length; i++) {
-							char v = values[i];
-							if (i == 0) {
-								parameterMap.put(betweenKey1, DataType.toType(v, DataType.DT_char, dataType));
+						case "char[]": {
+							char[] values = (char[]) value;
+							for (int i = 0; i < values.length; i++) {
+								char v = values[i];
+								if (i == 0) {
+									parameterMap.put(betweenKey1, DataType.toType(v, DataType.DT_char, dataType));
+								}
+								if (i == 1) {
+									parameterMap.put(betweenKey2, DataType.toType(v, DataType.DT_char, dataType));
+								}
 							}
-							if (i == 1) {
-								parameterMap.put(betweenKey2, DataType.toType(v, DataType.DT_char, dataType));
-							}
+							break;
 						}
-					} else if ("double[]".equals(simpleName)) {
-						double[] values = (double[]) value;
-						for (int i = 0; i < values.length; i++) {
-							double v = values[i];
-							if (i == 0) {
-								parameterMap.put(betweenKey1, DataType.toType(v, DataType.DT_double, dataType));
+						case "double[]": {
+							double[] values = (double[]) value;
+							for (int i = 0; i < values.length; i++) {
+								double v = values[i];
+								if (i == 0) {
+									parameterMap.put(betweenKey1, DataType.toType(v, DataType.DT_double, dataType));
+								}
+								if (i == 1) {
+									parameterMap.put(betweenKey2, DataType.toType(v, DataType.DT_double, dataType));
+								}
 							}
-							if (i == 1) {
-								parameterMap.put(betweenKey2, DataType.toType(v, DataType.DT_double, dataType));
-							}
+							break;
 						}
-					} else if ("byte[]".equals(simpleName)) {
-						byte[] values = (byte[]) value;
-						for (int i = 0; i < values.length; i++) {
-							byte v = values[i];
-							if (i == 0) {
-								parameterMap.put(betweenKey1, DataType.toType(v, DataType.DT_byte, dataType));
+						case "byte[]": {
+							byte[] values = (byte[]) value;
+							for (int i = 0; i < values.length; i++) {
+								byte v = values[i];
+								if (i == 0) {
+									parameterMap.put(betweenKey1, DataType.toType(v, DataType.DT_byte, dataType));
+								}
+								if (i == 1) {
+									parameterMap.put(betweenKey2, DataType.toType(v, DataType.DT_byte, dataType));
+								}
 							}
-							if (i == 1) {
-								parameterMap.put(betweenKey2, DataType.toType(v, DataType.DT_byte, dataType));
-							}
+							break;
 						}
-					} else if ("short[]".equals(simpleName)) {
-						short[] values = (short[]) value;
-						for (int i = 0; i < values.length; i++) {
-							short v = values[i];
-							if (i == 0) {
-								parameterMap.put(betweenKey1, DataType.toType(v, DataType.DT_short, dataType));
+						case "short[]": {
+							short[] values = (short[]) value;
+							for (int i = 0; i < values.length; i++) {
+								short v = values[i];
+								if (i == 0) {
+									parameterMap.put(betweenKey1, DataType.toType(v, DataType.DT_short, dataType));
+								}
+								if (i == 1) {
+									parameterMap.put(betweenKey2, DataType.toType(v, DataType.DT_short, dataType));
+								}
 							}
-							if (i == 1) {
-								parameterMap.put(betweenKey2, DataType.toType(v, DataType.DT_short, dataType));
-							}
+							break;
 						}
-					} else if ("boolean[]".equals(simpleName)) {
-						boolean[] values = (boolean[]) value;
-						for (int i = 0; i < values.length; i++) {
-							boolean v = values[i];
-							if (i == 0) {
-								parameterMap.put(betweenKey1, DataType.toType(v, DataType.DT_boolean, dataType));
+						case "boolean[]": {
+							boolean[] values = (boolean[]) value;
+							for (int i = 0; i < values.length; i++) {
+								boolean v = values[i];
+								if (i == 0) {
+									parameterMap.put(betweenKey1, DataType.toType(v, DataType.DT_boolean, dataType));
+								}
+								if (i == 1) {
+									parameterMap.put(betweenKey2, DataType.toType(v, DataType.DT_boolean, dataType));
+								}
 							}
-							if (i == 1) {
-								parameterMap.put(betweenKey2, DataType.toType(v, DataType.DT_boolean, dataType));
-							}
+							break;
 						}
-					} else if ("float[]".equals(simpleName)) {
-						float[] values = (float[]) value;
-						for (int i = 0; i < values.length; i++) {
-							float v = values[i];
-							if (i == 0) {
-								parameterMap.put(betweenKey1, DataType.toType(v, DataType.DT_float, dataType));
+						case "float[]": {
+							float[] values = (float[]) value;
+							for (int i = 0; i < values.length; i++) {
+								float v = values[i];
+								if (i == 0) {
+									parameterMap.put(betweenKey1, DataType.toType(v, DataType.DT_float, dataType));
+								}
+								if (i == 1) {
+									parameterMap.put(betweenKey2, DataType.toType(v, DataType.DT_float, dataType));
+								}
 							}
-							if (i == 1) {
-								parameterMap.put(betweenKey2, DataType.toType(v, DataType.DT_float, dataType));
-							}
+							break;
 						}
-					} else {
-						Object[] values = (Object[]) value;
-						for (int i = 0; i < values.length; i++) {
-							Object v = values[i];
-							if (i == 0) {
-								parameterMap.put(betweenKey1, DataType.toType(v, DataType.getDataType(v.getClass()), dataType));
+						default: {
+							Object[] values = (Object[]) value;
+							for (int i = 0; i < values.length; i++) {
+								Object v = values[i];
+								if (i == 0) {
+									parameterMap.put(betweenKey1, DataType.toType(v, DataType.getDataType(v.getClass()), dataType));
+								}
+								if (i == 1) {
+									parameterMap.put(betweenKey2, DataType.toType(v, DataType.getDataType(v.getClass()), dataType));
+								}
 							}
-							if (i == 1) {
-								parameterMap.put(betweenKey2, DataType.toType(v, DataType.getDataType(v.getClass()), dataType));
-							}
+							break;
 						}
 					}
 				}
@@ -260,14 +281,13 @@ public class MybatisSqlBuilder {
 							builder.append("'");
 							builder.append(",");
 						}
-						builder.deleteCharAt(builder.length() - 1);
 					} else {
 						for (Object inValue : collectionValue) {
 							builder.append(inValue);
 							builder.append(",");
 						}
-						builder.deleteCharAt(builder.length() - 1);
 					}
+					builder.deleteCharAt(builder.length() - 1);
 					builder.append(")");
 					sql.where(joint + builder.toString());
 				} else if (value instanceof String) {
@@ -298,63 +318,82 @@ public class MybatisSqlBuilder {
 					builder.append(columnNameAlias).append(BLANK).append(condition.getOperator().value());
 					builder.append(BLANK);
 					builder.append("(");
-					if ("int[]".equals(simpleName)) {
-						int[] values = (int[]) value;
-						for (int v : values) {
-							builder.append(v);
-							builder.append(",");
+					switch (simpleName) {
+						case "int[]": {
+							int[] values = (int[]) value;
+							for (int v : values) {
+								builder.append(v);
+								builder.append(",");
+							}
+							break;
 						}
-					} else if ("long[]".equals(simpleName)) {
-						long[] values = (long[]) value;
-						for (long v : values) {
-							builder.append(v);
-							builder.append(",");
+						case "long[]": {
+							long[] values = (long[]) value;
+							for (long v : values) {
+								builder.append(v);
+								builder.append(",");
+							}
+							break;
 						}
-					} else if ("char[]".equals(simpleName)) {
-						char[] values = (char[]) value;
-						for (char v : values) {
-							builder.append("'");
-							builder.append(v);
-							builder.append("'");
-							builder.append(",");
+						case "char[]": {
+							char[] values = (char[]) value;
+							for (char v : values) {
+								builder.append("'");
+								builder.append(v);
+								builder.append("'");
+								builder.append(",");
+							}
+							break;
 						}
-					} else if ("double[]".equals(simpleName)) {
-						double[] values = (double[]) value;
-						for (double v : values) {
-							builder.append(v);
-							builder.append(",");
+						case "double[]": {
+							double[] values = (double[]) value;
+							for (double v : values) {
+								builder.append(v);
+								builder.append(",");
+							}
+							break;
 						}
-					} else if ("byte[]".equals(simpleName)) {
-						byte[] values = (byte[]) value;
-						for (byte v : values) {
-							builder.append(v);
-							builder.append(",");
+						case "byte[]": {
+							byte[] values = (byte[]) value;
+							for (byte v : values) {
+								builder.append(v);
+								builder.append(",");
+							}
+							break;
 						}
-					} else if ("short[]".equals(simpleName)) {
-						short[] values = (short[]) value;
-						for (short v : values) {
-							builder.append(v);
-							builder.append(",");
+						case "short[]": {
+							short[] values = (short[]) value;
+							for (short v : values) {
+								builder.append(v);
+								builder.append(",");
+							}
+							break;
 						}
-					} else if ("boolean[]".equals(simpleName)) {
-						boolean[] values = (boolean[]) value;
-						for (boolean v : values) {
-							builder.append(v);
-							builder.append(",");
+						case "boolean[]": {
+							boolean[] values = (boolean[]) value;
+							for (boolean v : values) {
+								builder.append(v);
+								builder.append(",");
+							}
+							break;
 						}
-					} else if ("float[]".equals(simpleName)) {
-						float[] values = (float[]) value;
-						for (float v : values) {
-							builder.append(v);
-							builder.append(",");
+						case "float[]": {
+							float[] values = (float[]) value;
+							for (float v : values) {
+								builder.append(v);
+								builder.append(",");
+							}
+							break;
 						}
-					} else {
-						Object[] values = (Object[]) value;
-						for (Object v : values) {
-							builder.append("'");
-							builder.append(StringHelper.escapeSql(String.valueOf(v)));
-							builder.append("'");
-							builder.append(",");
+						default: {
+							Object[] values = (Object[]) value;
+							for (Object v : values) {
+								builder.append("'");
+								builder.append(StringHelper.escapeSql(String.valueOf(v)));
+								builder.append("'");
+								builder.append(",");
+							}
+							break;
 						}
 					}
 					builder.deleteCharAt(builder.length() - 1);
@@ -370,8 +409,9 @@ public class MybatisSqlBuilder {
 		}
 	}
 
-	private Column resolvePropertyCascade(Map<String, String> tableAliasMap, Table table, String parentTableAlias, AtomicInteger counter, QueryBuilder sql, JoinType joinType, String path, String propertyName) {
-		if (propertyName.contains(".")) {
+	private Column resolvePropertyCascade(Map<String, String> tableAliasMap, Table table, String parentTableAlias
+			, AtomicInteger counter, QueryBuilder sql, JoinType joinType, String path, String propertyName, PropertySelector selector) {
+		if (propertyName.contains(Condition.PATH_SEPARATOR)) {
 			int indexOf = propertyName.indexOf(".");
 			String prefix = propertyName.substring(0, indexOf);
 			String next = propertyName.substring(indexOf + 1);
@@ -385,7 +425,7 @@ public class MybatisSqlBuilder {
 				throw new RuntimeException("error propertyName -> " + key);
 			}
 
-			Class targetEntity = join.getTargetEntity();
+			Class<?> targetEntity = join.getTargetEntity();
 			Table targetTable = ORMapping.get(targetEntity);
 			assert targetTable != null;
 			//done 对分表的支持
@@ -419,12 +459,21 @@ public class MybatisSqlBuilder {
 						break;
 				}
 				// 根据列选择器动态选择列 增加查询结果
-				targetTable.getColumns().forEach(column -> {
+				targetTable.getColumns().stream().filter(column -> {
+					if (selector != null) {
+						if (selector.getIncludes() != null) {
+							return selector.getIncludes().contains(k + "." + column.getJavaName());
+						} else if (selector.getExcludes() != null) {
+							return !selector.getExcludes().contains(k + "." + column.getJavaName());
+						}
+					}
+					return true;
+				}).forEach(column -> {
 					sql.select(targetAlias + "." + column.getSqlName() + BLANK + "as" + BLANK + "\"" + k + "." + column.getJavaName() + "\"");
 				});
 				return targetAlias;
 			});
-			return resolvePropertyCascade(tableAliasMap, targetTable, alias, counter, sql, joinType, key, next);
+			return resolvePropertyCascade(tableAliasMap, targetTable, alias, counter, sql, joinType, key, next, selector);
 		} else {
 			return table.getColumns().stream().filter(k -> k.getJavaName().equals(propertyName)).findFirst().orElse(null);
 		}
@@ -441,7 +490,7 @@ public class MybatisSqlBuilder {
 		return newKey;
 	}
 
-	public void buildOrder(Map<String, String> tableAliasMap, AtomicInteger counter, QueryBuilder sql, Table table, List<SortProperty> sortProperties) {
+	private void buildOrder(Map<String, String> tableAliasMap, AtomicInteger counter, QueryBuilder sql, Table table, List<SortProperty> sortProperties, PropertySelector selector) {
 		if (CollectionUtils.isNotEmpty(sortProperties)) {
 			for (SortProperty sortProperty : sortProperties) {
 				String propertyName = sortProperty.getPropertyName();
@@ -450,7 +499,7 @@ public class MybatisSqlBuilder {
 				}
 				String rootAlias = tableAliasMap.get(ROOT_TABLE_ALIAS_KEY);
 				//此处的joinType是瞎猜的，不作数
-				Column column = resolvePropertyCascade(tableAliasMap, table, rootAlias, counter, sql, JoinType.LEFT, null, propertyName);
+				Column column = resolvePropertyCascade(tableAliasMap, table, rootAlias, counter, sql, JoinType.LEFT, null, propertyName, selector);
 				if (column == null) {
 					continue;
 				}
@@ -605,7 +654,7 @@ public class MybatisSqlBuilder {
 		return BatchType.BatchUpdate.name();
 	}
 
-	public String delete(@Param("map") Map<String, Object> map, @Param("clazz") Class clazz) {
+	public String delete(@Param("map") Map<String, Object> map, @Param("clazz") Class<?> clazz) {
 		Table table = ORMapping.get(clazz);
 		if (table == null) {
 			throw new RuntimeException("not a jpa standard class:" + clazz.getName());
@@ -635,13 +684,13 @@ public class MybatisSqlBuilder {
 	private static List<Serializable> getPkValues(Table table, Object object) {
 		return table.getColumns().stream().filter(Column::isPk).sorted(Comparator.comparing(Column::getJavaName)).map(column -> {
 			if (object instanceof Map) {
-				return (Serializable) ((Map) object).get(column.getJavaName());
+				return (Serializable) ((Map<?, ?>) object).get(column.getJavaName());
 			}
 			return (Serializable) ReflectionUtils.getFieldValue(object, column.getJavaName());
 		}).collect(Collectors.toList());
 	}
 
-	public String updateByCriteria(@Param("clazz") Class clazz, @Param("criteria") Criteria criteria
+	public String updateByCriteria(@Param("clazz") Class<?> clazz, @Param("criteria") Criteria<?> criteria
 			, @Param("columnMap") Map<String, Object> columnMap, @Param("map") Map<String, Object> parameterMap) {
 		Table table = ORMapping.get(clazz);
 		if (table == null) {
@@ -663,7 +712,7 @@ public class MybatisSqlBuilder {
 		List<Condition> conditions = criteria.getConditions();
 		if (CollectionUtils.isNotEmpty(conditions)) {
 			for (Condition condition : conditions) {
-				buildCondition(parameterMap, tableAliasMap, counter, sql, condition, table);
+				buildCondition(parameterMap, tableAliasMap, counter, sql, condition, table, criteria.getSelector());
 			}
 		}
 
@@ -673,7 +722,8 @@ public class MybatisSqlBuilder {
 		return sql.toString();
 	}
 
-	public String deleteByCriteria(@Param("clazz") Class clazz, @Param("criteria") Criteria criteria, @Param("map") Map<String, Object> parameterMap, @Param("forceDelete") boolean forceDelete) {
+	public String deleteByCriteria(@Param("clazz") Class<?> clazz, @Param("criteria") Criteria<?> criteria
+			, @Param("map") Map<String, Object> parameterMap, @Param("forceDelete") boolean forceDelete) {
 		Table table = ORMapping.get(clazz);
 		if (table == null) {
 			throw new RuntimeException("not a jpa standard class:" + clazz.getName());
@@ -685,7 +735,7 @@ public class MybatisSqlBuilder {
 		List<Condition> conditions = criteria.getConditions();
 		if (CollectionUtils.isNotEmpty(conditions)) {
 			for (Condition condition : conditions) {
-				buildCondition(parameterMap, tableAliasMap, counter, sql, condition, table);
+				buildCondition(parameterMap, tableAliasMap, counter, sql, condition, table, criteria.getSelector());
 			}
 		}
 
@@ -695,7 +745,7 @@ public class MybatisSqlBuilder {
 		return sql.toString();
 	}
 
-	public String get(@Param("clazz") Class clazz, @Param("map") Map<String, Object> map) {
+	public String get(@Param("clazz") Class<?> clazz, @Param("map") Map<String, Object> map) {
 		Table table = ORMapping.get(clazz);
 		if (table == null) {
 			throw new RuntimeException("not a jpa standard class:" + clazz.getName());
@@ -724,36 +774,45 @@ public class MybatisSqlBuilder {
 		return builder.toString();
 	}
 
-	public String findByCriteria(@Param("clazz") Class clazz, @Param("criteria") Criteria criteria, @Param("map") Map<String, Object> map) {
+	public String findByCriteria(@Param("clazz") Class<?> clazz, @Param("criteria") Criteria<?> criteria, @Param("map") Map<String, Object> map) {
 		Table table = ORMapping.get(clazz);
 		if (table == null) {
 			throw new RuntimeException("not a jpa standard class:" + clazz.getName());
 		}
-
+		PropertySelector selector = criteria.getSelector();
+		List<Condition> conditions = criteria.getConditions();
 		QueryBuilder sql = new QueryBuilder();
 		AtomicInteger counter = new AtomicInteger(1);
 		String tableName = getTableNameByCriteria(table, criteria);
 		Map<String, String> tableAliasMap = new ConcurrentHashMap<>();
 		String rootAlias = createTableAlias(tableName, counter);
 		tableAliasMap.put(ROOT_TABLE_ALIAS_KEY, rootAlias);
-		table.getColumns().forEach(column -> {
+		table.getColumns().stream().filter(column -> {
+			if (selector != null) {
+				if (selector.getIncludes() != null) {
+					return selector.getIncludes().contains(column.getJavaName());
+				} else if (selector.getExcludes() != null) {
+					return !selector.getExcludes().contains(column.getJavaName());
+				}
+			}
+			return true;
+		}).forEach(column -> {
 			sql.select(rootAlias + "." + column.getSqlName() + " as " + "\"" + column.getJavaName() + "\"");
 		});
 		sql.from(tableName + " as " + rootAlias);
-		List<Condition> conditions = criteria.getConditions();
 		if (CollectionUtils.isNotEmpty(conditions)) {
 			for (Condition condition : conditions) {
-				buildCondition(map, tableAliasMap, counter, sql, condition, table);
+				buildCondition(map, tableAliasMap, counter, sql, condition, table, selector);
 			}
 		}
-		buildOrder(tableAliasMap, counter, sql, table, criteria.getSortProperties());
+		buildOrder(tableAliasMap, counter, sql, table, criteria.getSortProperties(), selector);
 		if (logger.isDebugEnabled()) {
 			logger.debug(sql.toString());
 		}
 		return sql.toString();
 	}
 
-	public String countByCriteria(@Param("clazz") Class clazz, @Param("criteria") Criteria criteria, @Param("map") Map<String, Object> map) {
+	public String countByCriteria(@Param("clazz") Class<?> clazz, @Param("criteria") Criteria<?> criteria, @Param("map") Map<String, Object> map) {
 		Table table = ORMapping.get(clazz);
 		if (table == null) {
 			throw new RuntimeException("not a jpa standard class:" + clazz.getName());
@@ -766,36 +825,27 @@ public class MybatisSqlBuilder {
 		sql.select("count(1)");
 		sql.from(table.getSqlName() + BLANK + "as" + BLANK + rootAlias);
 		List<Condition> conditions = criteria.getConditions();
+		PropertySelector selector = criteria.getSelector();
 		if (CollectionUtils.isNotEmpty(conditions)) {
 			for (Condition condition : conditions) {
-				buildCondition(map, tableAliasMap, counter, sql, condition, table);
+				buildCondition(map, tableAliasMap, counter, sql, condition, table, selector);
 			}
 		}
 		return sql.toString();
 	}
 
-//	public String forceDelete(@Param("id") Serializable id, @Param("clazz") Class<?> clazz) {
-//		if (!ReflectionUtils.isInterfaceOf(clazz, Identify.class)) {
-//			return null;
-//		}
-//		Table table = ORMapping.get(clazz);
-//		if (table == null) {
-//			throw new RuntimeException("not a jpa standard class:" + clazz.getName());
-//		}
-//		SQL sql = new SQL();
-//		sql.DELETE_FROM(table.getSqlName())
-//				.WHERE("id = #{id}");
-//		return sql.toString();
-//	}
-
 	public String sql(@Param("sql") String sql) {
 		return sql;
 	}
 
-	public void buildSelectItem(Selector selector, Table table, StringBuilder builder) {
+	public void buildSelectItem(PropertySelector selector, Table table, StringBuilder builder) {
 		table.getColumns().stream().filter(column -> {
 			if (selector != null) {
-				return selector.contains(column.getJavaName());
+				if (selector.getIncludes() != null) {
+					return selector.getIncludes().contains(column.getJavaName());
+				} else if (selector.getExcludes() != null) {
+					return !selector.getExcludes().contains(column.getJavaName());
+				}
 			}
 			return true;
 		}).forEach(column -> {

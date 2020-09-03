@@ -7,9 +7,11 @@ package org.loed.framework.common.query;
  * @version 1.0
  */
 public enum Operator {
-
-	beginWith("like"),    // Like
-	notBeginWith("not like"),// not like
+	/**
+	 * sql operators
+	 */
+	beginWith("like"),
+	notBeginWith("not like"),
 	contains("like"),
 	notContains("not like"),
 	endWith("like"),
@@ -30,8 +32,10 @@ public enum Operator {
 	notIn("not in"),
 	custom("");
 
-
-	private String value;
+	/**
+	 * operator values
+	 */
+	private final String value;
 
 	Operator(String value) {
 		this.value = value;

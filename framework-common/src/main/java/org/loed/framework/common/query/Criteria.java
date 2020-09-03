@@ -9,7 +9,6 @@ import org.loed.framework.common.util.ReflectionUtils;
 import org.springframework.lang.NonNull;
 
 import javax.persistence.criteria.JoinType;
-import javax.persistence.criteria.Path;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -24,7 +23,7 @@ import java.util.List;
 @Data
 @ToString
 public class Criteria<T> implements Serializable {
-	private Selector selector;
+	private PropertySelector selector;
 
 	private List<Condition> conditions;
 
@@ -56,8 +55,38 @@ public class Criteria<T> implements Serializable {
 		this.conditions = conditions;
 	}
 
-	public Criteria<T> selector(Selector selector) {
+	public Criteria<T> selector(PropertySelector selector) {
 		this.selector = selector;
+		return this;
+	}
+
+	@SafeVarargs
+	public final Criteria<T> includes(SFunction<T, ?>... functions) {
+		if (functions == null || functions.length == 0) {
+			return this;
+		}
+		if (this.selector == null) {
+			this.selector = new PropertySelector();
+		}
+		for (SFunction<T, ?> function : functions) {
+			String prop = LambdaUtils.getPropFromLambda(function);
+			this.selector.include(prop);
+		}
+		return this;
+	}
+
+	@SafeVarargs
+	public final Criteria<T> excludes(SFunction<T, ?>... functions) {
+		if (functions == null || functions.length == 0) {
+			return this;
+		}
+		if (this.selector == null) {
+			this.selector = new PropertySelector();
+		}
+		for (SFunction<T, ?> function : functions) {
+			String prop = LambdaUtils.getPropFromLambda(function);
+			this.selector.exclude(prop);
+		}
 		return this;
 	}
 
@@ -70,45 +99,6 @@ public class Criteria<T> implements Serializable {
 		}
 		sortProperties.add(sortProperty);
 	}
-
-//	public Criteria<T> and(String prop, Operator operator, Object value) {
-//		return and(new String[]{prop}, operator, value);
-//	}
-//
-//	public Criteria<T> and(String[] props, Operator operator, Object value) {
-//		Criteria<T> criteria = Criteria.from(this);
-//		if (props != null && props.length > 0) {
-//			for (String prop : props) {
-//				Condition condition = new Condition(prop, operator, value);
-//				criteria.addCriterion(condition);
-//			}
-//		}
-//		return criteria;
-//	}
-//
-//	public Criteria<T> or(String prop, Operator operator, String value) {
-//		return or(new String[]{prop}, operator, value);
-//	}
-//
-//	public Criteria<T> or(String[] props, Operator operator, String value) {
-//		Criteria<T> criteria = Criteria.from(this);
-//		if (props != null && props.length > 1) {
-//			Condition condition = new Condition();
-//			List<Condition> subConditions = new ArrayList<>();
-//			for (String prop : props) {
-//				Condition subCondition = new Condition(prop, operator, value);
-//				subCondition.setJoint(Joint.or);
-//				subConditions.add(subCondition);
-//			}
-//			condition.setSubConditions(subConditions);
-//			criteria.addCriterion(condition);
-//		} else if (props != null && props.length == 1) {
-//			Condition condition = new Condition(props[0], operator, value);
-//			condition.setJoint(Joint.or);
-//			criteria.addCriterion(condition);
-//		}
-//		return criteria;
-//	}
 
 	public ConditionSpec<T> and(SFunction<T, ?> lambda) {
 		SerializedLambda resolve = LambdaUtils.resolve(lambda);
@@ -200,7 +190,7 @@ public class Criteria<T> implements Serializable {
 				criteria.criterion(condition);
 			}
 			builder.append(prop);
-			//todo remove chains
+			//remove chains
 			this.chains = null;
 			return new ConditionSpec<T>(criteria, Joint.and, builder.toString());
 		}

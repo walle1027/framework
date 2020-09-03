@@ -135,15 +135,13 @@ public class R2dbcDbInspector implements ApplicationEventPublisherAware, Environ
 			}
 		}).defaultIfEmpty(0).doOnNext(count -> {
 			applicationEventPublisher.publishEvent(new DbInspectFinishEvent(count));
-		}).subscribe();
+		}).then().subscribe();
 	}
 
 	protected Flux<List<String>> processOneDataSource(final String databaseName, List<Table> tables) {
 		return Mono.from(connectionFactory.create()).flatMapMany(connection -> {
 			return Flux.fromIterable(tables).flatMap(jpa -> {
 				List<org.loed.framework.common.orm.Index> jpaIndices = jpa.getIndices();
-				connectionFactory.getMetadata().getName();
-
 				return ddlProvider.getTable(connection, null, databaseName, jpa.getSqlName()).map(table -> {
 					List<Column> dbColumns = table.getColumns();
 					Map<String, Column> columnMap = dbColumns.stream().collect(Collectors.toMap(Column::getSqlName, v -> v, (a, b) -> a));

@@ -6,5 +6,8 @@ package org.loed.framework.common.query;
  * @since 2017/9/7 下午9:26
  */
 public enum Joint {
+	/**
+	 * sql joint
+	 */
 	and, or
 }

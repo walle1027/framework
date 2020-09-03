@@ -146,6 +146,7 @@ public class MysqlProvider implements DdlProvider {
 			return Flux.from(result.map(mysqlIndexMapper));
 		}).collectList()).map(tup -> {
 			Table table = new Table();
+			table.setTableName(tableName);
 			List<org.loed.framework.common.database.schema.Column> columns = tup.getT1();
 			List<MysqlIndex> mysqlIndices = tup.getT2();
 			if (CollectionUtils.isNotEmpty(columns)) {

@@ -40,7 +40,7 @@ public class PeopleDaoTest {
 	@Test
 	public void testInsert() {
 		People people = new People();
-		people.setName("test");
+		people.setName("张三");
 		people.setSex((byte) 0);
 		people.setRace("han");
 		people.setHeight(new BigDecimal("182.1"));
@@ -52,7 +52,7 @@ public class PeopleDaoTest {
 					System.out.println("auto increasement id is:" + p.getId());
 					return p.getName();
 				});
-		StepVerifier.create(idMono.log()).expectNext("test").verifyComplete();
+		StepVerifier.create(idMono.log()).expectNext("张三").verifyComplete();
 	}
 
 

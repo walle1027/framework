@@ -20,6 +20,9 @@ import java.util.Map;
 @SuppressWarnings({"RedundantCast"})
 @Slf4j
 public class DataType {
+	/**
+	 * basic types
+	 */
 	public static final int DT_Unknown = 0;
 	public static final int DT_byte = 1;
 	public static final int DT_short = 2;
@@ -32,11 +35,6 @@ public class DataType {
 	public static final int DT_Byte = 10;
 	public static final int DT_Short = 11;
 	public static final int DT_Integer = 12;
-
-	/*public static Object toType(Object value, int srcType, String targetTypeName) {
-		// int targetType =
-		return null;
-	}*/
 	public static final int DT_Long = 13;
 	public static final int DT_Float = 14;
 	public static final int DT_Double = 15;
@@ -48,24 +46,28 @@ public class DataType {
 	public static final int DT_Date = 23;
 	public static final int DT_Time = 24;
 	public static final int DT_DateTime = 25;
-
 	public static final int DT_LocalDate = 61;
 	public static final int DT_LocalDateTime = 62;
 
+	/**
+	 * sql types
+	 */
 	public static final int DT_Clob = 26;
 	public static final int DT_Blob = 27;
-	// public static final int DT_array = 9;
+
+	/**
+	 * collection types
+	 */
 	public static final int DT_Array = 30;
 	public static final int DT_List = 31;
-	// public static final int DT_ArrayList = 32;
-	// public static final int DT_LinkedList = 33;
 	public static final int DT_Map = 34;
-	// public static final int DT_HashMap = 35;
-	// public static final int DT_Hashtable = 36;
 	public static final int DT_Set = 37;
+
+	/**
+	 * object types
+	 */
 	public static final int DT_Object = 40;
 	public static final int DT_Class = 41;
-	//枚举变量
 	public static final int DT_Enum = 42;
 	public static final int DT_UserDefine = 50;
 	private static Map<String, Integer> dataTypeMap = new Hashtable<String, Integer>();

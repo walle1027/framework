@@ -24,21 +24,6 @@ public class R2dbcApplication {
 		SpringApplication.run(R2dbcApplication.class, args);
 	}
 
-//	@Override
-//	@Bean
-//	public ConnectionFactory connectionFactory() {
-//		ConnectionFactoryOptions.Builder builder = ConnectionFactoryOptions.builder();
-//		builder.option(ConnectionFactoryOptions.HOST, "127.0.0.1")
-//				.option(ConnectionFactoryOptions.PORT, 3306)
-//				.option(ConnectionFactoryOptions.USER, "root")
-//				.option(ConnectionFactoryOptions.PASSWORD, "123456")
-//				.option(ConnectionFactoryOptions.DATABASE, "test")
-//
-//
-//		;
-//		return ConnectionFactories.get(builder.build());
-//	}
-
 	@Bean
 	PreInsertListener defaultPreInsertListener2() {
 		return new DefaultPreInsertListener2();

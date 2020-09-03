@@ -26,11 +26,11 @@ public class Condition implements Serializable {
 	/**
 	 * 别名分隔符
 	 */
-	private static String ALIAS_SEPARATOR = "_";
+	public static final String ALIAS_SEPARATOR = "_";
 	/**
 	 * 路径分隔符
 	 */
-	private static String PATH_SEPARATOR = ".";
+	public static final String PATH_SEPARATOR = ".";
 	/**
 	 * 条件连接字符串 and or
 	 */
@@ -70,7 +70,7 @@ public class Condition implements Serializable {
 		this.value = value;
 	}
 
-	public <T> Condition(SFunction<T,?> lambda, Operator operator, Object value) {
+	public <T> Condition(SFunction<T, ?> lambda, Operator operator, Object value) {
 		this.propertyName = LambdaUtils.getPropFromLambda(lambda);
 		this.operator = operator;
 		this.value = value;
