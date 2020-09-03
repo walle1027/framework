@@ -124,9 +124,7 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 		if (CollectionUtils.isEmpty(conditions)) {
 			log.warn("conditions is empty, the statement:" + builder.toString() + " will update all rows");
 		} else {
-			for (Condition condition : conditions) {
-				buildCondition(params, Collections.emptyMap(), counter, builder, condition, table, selector);
-			}
+			buildConditions(table, builder, counter, params, conditions, selector, Collections.emptyMap());
 		}
 		query.setStatement(builder.toString());
 		query.setParams(params);
@@ -152,13 +150,27 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 		if (CollectionUtils.isEmpty(conditions)) {
 			log.warn("criteria is empty condition");
 		} else {
-			for (Condition condition : conditions) {
-				buildCondition(paramMap, Collections.emptyMap(), counter, builder, condition, table, selector);
-			}
+			buildConditions(table, builder, counter, paramMap, conditions, selector, Collections.emptyMap());
 		}
 		query.setStatement(builder.toString());
 		query.setParams(paramMap);
 		return query;
+	}
+
+	private void buildConditions(@NonNull Table table, QueryBuilder builder, AtomicInteger counter, Map<String, R2dbcParam> paramMap, List<Condition> conditions
+			, PropertySelector selector, Map<String, String> tableAliasMap) {
+		conditions.sort((o1, o2) -> {
+			if (o1.getPropertyName() == null) {
+				return -1;
+			}
+			if (o2.getPropertyName() == null) {
+				return 1;
+			}
+			return o1.getPropertyName().compareTo(o2.getPropertyName());
+		});
+		for (Condition condition : conditions) {
+			buildCondition(paramMap, tableAliasMap, counter, builder, condition, table, selector);
+		}
 	}
 
 	@Override
@@ -187,9 +199,7 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 		builder.from(wrap(tableName) + " as " + rootAlias);
 		List<Condition> conditions = criteria.getConditions();
 		if (CollectionUtils.isNotEmpty(conditions)) {
-			for (Condition condition : conditions) {
-				buildCondition(paramMap, tableAliasMap, counter, builder, condition, table, selector);
-			}
+			buildConditions(table, builder, counter, paramMap, conditions, selector, tableAliasMap);
 		}
 		buildOrder(tableAliasMap, counter, builder, table, criteria.getSortProperties(), selector);
 		if (log.isDebugEnabled()) {
@@ -236,22 +246,9 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 		List<Condition> conditions = criteria.getConditions();
 		PropertySelector selector = criteria.getSelector();
 		if (CollectionUtils.isNotEmpty(conditions)) {
-			for (Condition condition : conditions) {
-				buildCondition(paramMap, tableAliasMap, counter, builder, condition, table, selector);
-			}
+			buildConditions(table, builder, counter, paramMap, conditions, selector, tableAliasMap);
 		}
-		// do not include order clause
-		List<SortProperty> sortProperties = criteria.getSortProperties();
-		if (CollectionUtils.isNotEmpty(sortProperties)) {
-			for (SortProperty sortProperty : sortProperties) {
-				String propertyName = sortProperty.getPropertyName();
-				if (StringUtils.isBlank(propertyName)) {
-					continue;
-				}
-				//解析级联属性
-				resolvePropertyCascade(tableAliasMap, table, rootAlias, counter, builder, JoinType.LEFT, null, propertyName, selector);
-			}
-		}
+		// do not include order by clause
 		if (log.isDebugEnabled()) {
 			log.debug(builder.toString());
 		}
@@ -680,6 +677,15 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 	public void buildOrder(Map<String, String> tableAliasMap, AtomicInteger counter, QueryBuilder sql, Table table
 			, List<SortProperty> sortProperties, PropertySelector selector) {
 		if (CollectionUtils.isNotEmpty(sortProperties)) {
+			sortProperties.sort((o1, o2) -> {
+				if (o1.getPropertyName() == null) {
+					return -1;
+				}
+				if (o2.getPropertyName() == null) {
+					return 1;
+				}
+				return o1.getPropertyName().compareTo(o2.getPropertyName());
+			});
 			for (SortProperty sortProperty : sortProperties) {
 				String propertyName = sortProperty.getPropertyName();
 				if (StringUtils.isBlank(propertyName)) {
@@ -766,7 +772,7 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 				default:
 					break;
 			}
-			//todo 根据列选择器动态选择列 增加查询结果
+			// 根据列选择器动态选择列 增加查询结果
 			targetTable.getColumns().stream().filter(column -> {
 				if (selector != null) {
 					if (selector.getIncludes() != null) {
@@ -777,7 +783,6 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 				}
 				return true;
 			}).forEach(column -> {
-
 				sql.select(targetAlias + "." + wrap(column.getSqlName()) + BLANK + "as" + BLANK + "\"" + k + "." + column.getJavaName() + "\"");
 			});
 			return targetAlias;
