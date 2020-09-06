@@ -21,7 +21,7 @@ public class QueryBuilder {
 	private final List<String> updateList = new ArrayList<>();
 	private StatementType statementType;
 
-	private enum StatementType {
+	public enum StatementType {
 		/**
 		 * 删除语句
 		 */
@@ -178,5 +178,9 @@ public class QueryBuilder {
 				}
 			}
 		}
+	}
+
+	public StatementType getStatementType() {
+		return statementType;
 	}
 }

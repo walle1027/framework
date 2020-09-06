@@ -2,7 +2,7 @@ package org.loed.framework.common;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.loed.framework.common.orm.Join;
+import org.loed.framework.common.orm.JoinTable;
 import org.loed.framework.common.orm.Relation;
 import org.loed.framework.common.orm.Sharding;
 import org.loed.framework.common.orm.Table;
@@ -152,8 +152,8 @@ public class ORMapping {
 				if (targetEntity == void.class) {
 					targetEntity = field.getType();
 				}
-				Join join = new Join(Relation.OneToOne, field.getName(), targetEntity);
-				createJoin(table, field, targetEntity, join);
+				JoinTable joinTable = new JoinTable(Relation.OneToOne, field.getName(), targetEntity);
+				createJoin(table, field, targetEntity, joinTable);
 			});
 			fields.stream().filter(f -> f.getAnnotation(ManyToOne.class) != null).forEach(field -> {
 				ManyToOne manyToOne = field.getAnnotation(ManyToOne.class);
@@ -161,8 +161,8 @@ public class ORMapping {
 				if (targetEntity == void.class) {
 					targetEntity = field.getType();
 				}
-				Join join = new Join(Relation.ManyToOne, field.getName(), targetEntity);
-				createJoin(table, field, targetEntity, join);
+				JoinTable joinTable = new JoinTable(Relation.ManyToOne, field.getName(), targetEntity);
+				createJoin(table, field, targetEntity, joinTable);
 			});
 
 			fields.stream().filter(f -> f.getAnnotation(OneToMany.class) != null).forEach(field -> {
@@ -176,13 +176,13 @@ public class ORMapping {
 				if (targetTable == null) {
 					return;
 				}
-				Join join = new Join(Relation.OneToMany, field.getName(), targetEntity);
-				join.setTargetTableName(targetTable.name());
+				JoinTable joinTable = new JoinTable(Relation.OneToMany, field.getName(), targetEntity);
+				joinTable.setTargetTableName(targetTable.name());
 				String mappedBy = oneToMany.mappedBy();
 				if (StringUtils.isNotBlank(mappedBy)) {
 					Field targetField = ReflectionUtils.getDeclaredField(targetEntity, mappedBy);
 					List<org.loed.framework.common.orm.JoinColumn> joinColumns = getJoinColumns(targetEntity, targetField);
-					switchJoinColumn(table, join, joinColumns);
+					switchJoinColumn(table, joinTable, joinColumns);
 				} else {
 					List<Field> declaredFields = ReflectionUtils.getDeclaredFields(targetEntity);
 					Field targetFieldByType = declaredFields.stream().filter(df -> df.getType().getCanonicalName().equals(clazz.getCanonicalName()))
@@ -191,27 +191,27 @@ public class ORMapping {
 						return;
 					}
 					List<org.loed.framework.common.orm.JoinColumn> joinColumns = getJoinColumns(targetEntity, targetFieldByType);
-					switchJoinColumn(table, join, joinColumns);
+					switchJoinColumn(table, joinTable, joinColumns);
 				}
 			});
 			return table;
 		});
 	}
 
-	private static void createJoin(Table table, Field field, Class<?> targetEntity, Join join) {
+	private static void createJoin(Table table, Field field, Class<?> targetEntity, JoinTable joinTable) {
 		List<org.loed.framework.common.orm.JoinColumn> joinColumns = getJoinColumns(targetEntity, field);
 		if (CollectionUtils.isNotEmpty(joinColumns)) {
 			javax.persistence.Table targetTable = (javax.persistence.Table) targetEntity.getAnnotation(javax.persistence.Table.class);
 			if (targetTable == null) {
 				return;
 			}
-			join.setTargetTableName(targetTable.name());
-			join.setJoinColumns(joinColumns);
-			table.addJoin(join);
+			joinTable.setTargetTableName(targetTable.name());
+			joinTable.setJoinColumns(joinColumns);
+			table.addJoin(joinTable);
 		}
 	}
 
-	private static void switchJoinColumn(Table table, Join join, List<org.loed.framework.common.orm.JoinColumn> joinColumns) {
+	private static void switchJoinColumn(Table table, JoinTable joinTable, List<org.loed.framework.common.orm.JoinColumn> joinColumns) {
 		if (CollectionUtils.isNotEmpty(joinColumns)) {
 			joinColumns.forEach(joinColumn -> {
 				String columnName = joinColumn.getName();
@@ -219,8 +219,8 @@ public class ORMapping {
 				joinColumn.setName(referencedColumnName);
 				joinColumn.setReferencedColumnName(columnName);
 			});
-			join.setJoinColumns(joinColumns);
-			table.addJoin(join);
+			joinTable.setJoinColumns(joinColumns);
+			table.addJoin(joinTable);
 		}
 	}
 

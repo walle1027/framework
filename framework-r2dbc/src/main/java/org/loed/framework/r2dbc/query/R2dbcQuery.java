@@ -11,6 +11,11 @@ import java.util.Map;
  */
 @Data
 public class R2dbcQuery {
-	private String statement;
-	private Map<String, R2dbcParam> params;
+	private final String statement;
+	private final Map<String, R2dbcParam> params;
+
+	public R2dbcQuery(String statement, Map<String, R2dbcParam> params) {
+		this.statement = statement;
+		this.params = params;
+	}
 }

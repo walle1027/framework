@@ -22,8 +22,8 @@ public class PropertySelector implements Serializable {
 	 */
 	private Set<String> excludes;
 
-	public PropertySelector include(String... includes) {
-		if (includes == null || includes.length == 0){
+	PropertySelector include(String... includes) {
+		if (includes == null || includes.length == 0) {
 			return this;
 		}
 		if (excludes != null && !excludes.isEmpty()) {
@@ -36,8 +36,8 @@ public class PropertySelector implements Serializable {
 		return this;
 	}
 
-	public PropertySelector exclude(String... excludes) {
-		if (excludes == null || excludes.length == 0){
+	PropertySelector exclude(String... excludes) {
+		if (excludes == null || excludes.length == 0) {
 			return this;
 		}
 		if (includes != null && !includes.isEmpty()) {

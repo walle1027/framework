@@ -75,7 +75,7 @@ public class Table {
 	/**
 	 * 此对象包含的一对一的关联对象
 	 */
-	private List<Join> joins;
+	private List<JoinTable> joinTables;
 	/**
 	 * 主键生成方式
 	 */
@@ -95,11 +95,11 @@ public class Table {
 		this.columns.add(column);
 	}
 
-	public void addJoin(Join join) {
-		if (this.joins == null) {
-			this.joins = new ArrayList<>();
+	public void addJoin(JoinTable joinTable) {
+		if (this.joinTables == null) {
+			this.joinTables = new ArrayList<>();
 		}
-		this.joins.add(join);
+		this.joinTables.add(joinTable);
 	}
 
 	public boolean hasVersionColumn() {

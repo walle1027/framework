@@ -8,7 +8,7 @@ import org.loed.framework.common.ORMapping;
 import org.loed.framework.common.ServiceLocator;
 import org.loed.framework.common.data.DataType;
 import org.loed.framework.common.orm.Column;
-import org.loed.framework.common.orm.Join;
+import org.loed.framework.common.orm.JoinTable;
 import org.loed.framework.common.orm.Table;
 import org.loed.framework.common.query.*;
 import org.loed.framework.common.util.ReflectionUtils;
@@ -18,7 +18,6 @@ import org.loed.framework.mybatis.sharding.table.po.IdMapping;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.persistence.criteria.JoinType;
 import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -39,8 +38,7 @@ public class MybatisSqlBuilder {
 
 	private final Logger logger = LoggerFactory.getLogger(MybatisSqlBuilder.class);
 
-	public void buildCondition(Map<String, Object> parameterMap, Map<String, String> tableAliasMap, AtomicInteger counter
-			, QueryBuilder sql, Condition condition, Table table, PropertySelector selector) {
+	public void buildCondition(Map<String, Object> parameterMap, Map<String, TableWithAlias> tableAliasMap, QueryBuilder sql, Condition condition) {
 		if (condition.hasSubCondition()) {
 			if (condition.getJoint() != null) {
 				sql.where(condition.getJoint().name() + BLANK + "(");
@@ -48,16 +46,15 @@ public class MybatisSqlBuilder {
 				sql.where("(");
 			}
 			for (Condition subCondition : condition.getSubConditions()) {
-				buildCondition(parameterMap, tableAliasMap, counter, sql, subCondition, table, selector);
+				buildCondition(parameterMap, tableAliasMap, sql, subCondition);
 			}
 			sql.where(")");
 		} else {
-			buildSingleCondition(parameterMap, tableAliasMap, counter, sql, condition, table, selector);
+			buildSingleCondition(parameterMap, tableAliasMap, sql, condition);
 		}
 	}
 
-	private void buildSingleCondition(Map<String, Object> parameterMap, Map<String, String> tableAliasMap, AtomicInteger counter
-			, QueryBuilder sql, Condition condition, Table table, PropertySelector selector) {
+	private void buildSingleCondition(Map<String, Object> parameterMap, Map<String, TableWithAlias> tableAliasMap, QueryBuilder sql, Condition condition) {
 		if (!match(condition)) {
 			return;
 		}
@@ -68,17 +65,13 @@ public class MybatisSqlBuilder {
 		Operator operator = condition.getOperator();
 		String rawParamName = StringUtils.replace(propertyName, ".", "_") + "Value";
 		String uniqueParamName = genUniqueMapKey(rawParamName, parameterMap);
-		String alias = tableAliasMap.get(ROOT_TABLE_ALIAS_KEY);
-		Column column = resolvePropertyCascade(tableAliasMap, table, alias, counter, sql, condition.getJoinType(), null, propertyName, selector);
-		if (column == null) {
-			return;
-		}
+		ColumnWithAlias columnWithAlias = resolvePropertyCascade(tableAliasMap, propertyName);
+		Column column = columnWithAlias.column;
+		String alias = columnWithAlias.alias;
+
 		String columnName = column.getSqlName();
 		String jdbcType = column.getSqlTypeName();
 		int dataType = DataType.getDataType(column.getJavaType());
-		if (condition.isRelativeProperty()) {
-			alias = tableAliasMap.get(propertyName.substring(0, propertyName.lastIndexOf(".")));
-		}
 		String columnNameAlias;
 		if (alias == null) {
 			columnNameAlias = columnName;
@@ -409,74 +402,105 @@ public class MybatisSqlBuilder {
 		}
 	}
 
-	private Column resolvePropertyCascade(Map<String, String> tableAliasMap, Table table, String parentTableAlias
-			, AtomicInteger counter, QueryBuilder sql, JoinType joinType, String path, String propertyName, PropertySelector selector) {
-		if (propertyName.contains(Condition.PATH_SEPARATOR)) {
-			int indexOf = propertyName.indexOf(".");
-			String prefix = propertyName.substring(0, indexOf);
-			String next = propertyName.substring(indexOf + 1);
-			String key = path == null ? prefix : (path + "." + prefix);
-			List<Join> joins = table.getJoins();
-			if (CollectionUtils.isEmpty(joins)) {
-				throw new RuntimeException("error propertyName -> " + key);
-			}
-			Join join = joins.stream().filter(j -> j.getFieldName().equals(prefix)).findAny().orElse(null);
-			if (join == null) {
-				throw new RuntimeException("error propertyName -> " + key);
-			}
-
-			Class<?> targetEntity = join.getTargetEntity();
-			Table targetTable = ORMapping.get(targetEntity);
-			assert targetTable != null;
-			//done 对分表的支持
-			String targetTableName = getTableNameByCriteria(targetTable, null);
-			String alias = tableAliasMap.computeIfAbsent(key, (k) -> {
-				StringBuilder builder = new StringBuilder();
-				String targetAlias = createTableAlias(targetTableName, counter);
-				builder.append(targetTableName).append(BLANK).append("as").append(BLANK).append(targetAlias);
-				builder.append(BLANK).append("on").append(BLANK);
-				join.getJoinColumns().forEach(joinColumn -> {
-					if (StringUtils.isNotBlank(parentTableAlias)) {
-						builder.append(BLANK).append(parentTableAlias).append(".").append(joinColumn.getName()).append(BLANK);
-					} else {
-						builder.append(BLANK).append(joinColumn.getName()).append(BLANK);
-					}
-					builder.append("=").append(BLANK).append(targetAlias).append(".").append(joinColumn.getReferencedColumnName());
-					builder.append(BLANK).append("and");
-				});
-				builder.delete(builder.length() - 3, builder.length());
-				switch (joinType) {
-					case INNER:
-						sql.innerJoin(builder.toString());
-						break;
-					case LEFT:
-						sql.leftJoin(builder.toString());
-						break;
-					case RIGHT:
-						sql.rightJoin(builder.toString());
-						break;
-					default:
-						break;
-				}
-				// 根据列选择器动态选择列 增加查询结果
-				targetTable.getColumns().stream().filter(column -> {
-					if (selector != null) {
-						if (selector.getIncludes() != null) {
-							return selector.getIncludes().contains(k + "." + column.getJavaName());
-						} else if (selector.getExcludes() != null) {
-							return !selector.getExcludes().contains(k + "." + column.getJavaName());
-						}
-					}
-					return true;
-				}).forEach(column -> {
-					sql.select(targetAlias + "." + column.getSqlName() + BLANK + "as" + BLANK + "\"" + k + "." + column.getJavaName() + "\"");
-				});
-				return targetAlias;
-			});
-			return resolvePropertyCascade(tableAliasMap, targetTable, alias, counter, sql, joinType, key, next, selector);
+	private void buildJoinSequential(Map<String, TableWithAlias> tableAliasMap, AtomicInteger counter, QueryBuilder sql, Join join, PropertySelector selector) {
+		String uniquePath = join.getUniquePath();
+		String target = join.getTarget();
+		String parentAlias;
+		Table parentTable;
+		if (!StringUtils.contains(uniquePath, Condition.PATH_SEPARATOR)) {
+			parentAlias = tableAliasMap.get(ROOT_TABLE_ALIAS_KEY).alias;
+			parentTable = tableAliasMap.get(ROOT_TABLE_ALIAS_KEY).table;
 		} else {
-			return table.getColumns().stream().filter(k -> k.getJavaName().equals(propertyName)).findFirst().orElse(null);
+			String parentPath = uniquePath.substring(0, uniquePath.lastIndexOf(Condition.PATH_SEPARATOR));
+			parentAlias = tableAliasMap.get(parentPath).alias;
+			parentTable = tableAliasMap.get(parentPath).table;
 		}
+		if (parentTable == null || parentAlias == null) {
+			throw new RuntimeException("error property path for join " + join.toString());
+		}
+		JoinTable joinTable = parentTable.getJoinTables().stream().filter(jt -> {
+			return jt.getFieldName().equals(target);
+		}).findFirst().orElse(null);
+		if (joinTable == null) {
+			throw new RuntimeException("error join property -> " + uniquePath);
+		}
+		Class<?> targetEntity = joinTable.getTargetEntity();
+		Table targetTable = ORMapping.get(targetEntity);
+		if (targetTable == null) {
+			throw new RuntimeException("error relationship for entity " + parentTable.getJavaName() + " -> " + joinTable.getFieldName());
+		}
+		String targetTableName = getTableNameByCriteria(targetTable, null);
+		String targetAlias = createTableAlias(targetTableName, counter);
+		StringBuilder builder = new StringBuilder();
+		builder.append(targetTableName).append(BLANK).append("as").append(BLANK).append(targetAlias);
+		builder.append(BLANK).append("on").append(BLANK);
+		String joins = joinTable.getJoinColumns().stream().map(joinColumn -> {
+			StringBuilder joinBuilder = new StringBuilder();
+			joinBuilder.append(BLANK);
+			if (StringUtils.isNotBlank(parentAlias)) {
+				joinBuilder.append(parentAlias).append(".");
+			}
+			joinBuilder.append(joinColumn.getName());
+			joinBuilder.append(BLANK).append("=").append(BLANK);
+			joinBuilder.append(targetAlias).append(".").append(joinColumn.getReferencedColumnName());
+			joinBuilder.append(BLANK);
+			return joinBuilder.toString();
+		}).collect(Collectors.joining("and"));
+		builder.append(joins);
+		switch (join.getJoinType()) {
+			case INNER:
+				sql.innerJoin(builder.toString());
+				break;
+			case LEFT:
+				sql.leftJoin(builder.toString());
+				break;
+			case RIGHT:
+				sql.rightJoin(builder.toString());
+				break;
+			default:
+				break;
+		}
+		if (sql.getStatementType() == QueryBuilder.StatementType.select) {
+			// 根据列选择器动态选择列 增加查询结果
+			targetTable.getColumns().stream().filter(column -> {
+				if (selector != null) {
+					if (selector.getIncludes() != null) {
+						return selector.getIncludes().contains(uniquePath + "." + column.getJavaName());
+					} else if (selector.getExcludes() != null) {
+						return !selector.getExcludes().contains(uniquePath + "." + column.getJavaName());
+					}
+				}
+				return true;
+			}).forEach(column -> {
+				sql.select(targetAlias + "." + column.getSqlName() + BLANK + "as" + BLANK + "\"" + uniquePath + "." + column.getJavaName() + "\"");
+			});
+		}
+		TableWithAlias tableWithAlias = new TableWithAlias(targetAlias, targetTable);
+		tableAliasMap.put(uniquePath, tableWithAlias);
+	}
+
+	private ColumnWithAlias resolvePropertyCascade(Map<String, TableWithAlias> tableAliasMap, String propertyName) {
+		String propertyPath;
+		String property;
+		if (propertyName.contains(Condition.PATH_SEPARATOR)) {
+			int index = propertyName.lastIndexOf(Condition.PATH_SEPARATOR);
+			propertyPath = propertyName.substring(0, index);
+			property = propertyName.substring(index + 1);
+		} else {
+			propertyPath = ROOT_TABLE_ALIAS_KEY;
+			property = propertyName;
+		}
+		TableWithAlias tableWithAlias = tableAliasMap.get(propertyPath);
+		if (tableWithAlias == null) {
+			logger.error("error property path :" + propertyName);
+			throw new RuntimeException("error property path :" + propertyName);
+		}
+		Table table = tableWithAlias.table;
+		Column column = table.getColumns().stream().filter(k -> k.getJavaName().equals(property)).findFirst().orElse(null);
+		if (column == null) {
+			throw new RuntimeException("property:" + property + " no found in class:" + table.getJavaName());
+		}
+		return new ColumnWithAlias(tableWithAlias.alias, column);
 	}
 
 	private String genUniqueMapKey(String mapKey, Map<String, Object> map) {
@@ -490,25 +514,20 @@ public class MybatisSqlBuilder {
 		return newKey;
 	}
 
-	private void buildOrder(Map<String, String> tableAliasMap, AtomicInteger counter, QueryBuilder sql, Table table, List<SortProperty> sortProperties, PropertySelector selector) {
+	private void buildOrder(Map<String, TableWithAlias> tableAliasMap, QueryBuilder sql, List<SortProperty> sortProperties) {
 		if (CollectionUtils.isNotEmpty(sortProperties)) {
 			for (SortProperty sortProperty : sortProperties) {
 				String propertyName = sortProperty.getPropertyName();
 				if (StringUtils.isBlank(propertyName)) {
 					continue;
 				}
-				String rootAlias = tableAliasMap.get(ROOT_TABLE_ALIAS_KEY);
+				String rootAlias = tableAliasMap.get(ROOT_TABLE_ALIAS_KEY).alias;
 				//此处的joinType是瞎猜的，不作数
-				Column column = resolvePropertyCascade(tableAliasMap, table, rootAlias, counter, sql, JoinType.LEFT, null, propertyName, selector);
-				if (column == null) {
-					continue;
-				}
-				String propertyAlias = rootAlias;
-				if (propertyName.contains(".")) {
-					propertyAlias = tableAliasMap.get(propertyName.substring(0, propertyName.lastIndexOf(".")));
-				}
-				if (StringUtils.isNotBlank(propertyAlias)) {
-					sql.orderBy(propertyAlias + "." + column.getSqlName() + BLANK + sortProperty.getSort().name());
+				ColumnWithAlias columnWithAlias = resolvePropertyCascade(tableAliasMap, propertyName);
+				String alias = columnWithAlias.alias;
+				Column column = columnWithAlias.column;
+				if (StringUtils.isNotBlank(alias)) {
+					sql.orderBy(alias + "." + column.getSqlName() + BLANK + sortProperty.getSort().name());
 				} else {
 					sql.orderBy(column.getSqlName() + BLANK + sortProperty.getSort().name());
 				}
@@ -698,21 +717,22 @@ public class MybatisSqlBuilder {
 		}
 		QueryBuilder sql = new QueryBuilder();
 		AtomicInteger counter = new AtomicInteger(1);
-		//TODO fix this
-		Map<String, String> tableAliasMap = new ConcurrentHashMap<>();
+		Map<String, TableWithAlias> tableAliasMap = new ConcurrentHashMap<>();
 		String tableName = getTableNameByCriteria(table, criteria);
-		sql.update(tableName);
+		String rootAlias = createTableAlias(tableName, counter);
+		tableAliasMap.put(ROOT_TABLE_ALIAS_KEY, new TableWithAlias(rootAlias, table));
+		sql.update(tableName + " as " + rootAlias);
 		columnMap.forEach((key, value) -> {
 			Column column = table.getColumns().stream().filter(c -> Objects.equals(c.getJavaName(), key)).findFirst().orElse(null);
 			if (column == null) {
 				throw new RuntimeException("could not find column for property:" + key + ", in table " + table.getSqlName() + " of class:" + table.getJavaName());
 			}
-			sql.set(column.getSqlName() + BLANK + "=" + BLANK + "#{columnMap." + key + ",jdbcType=" + column.getSqlTypeName() + "}");
+			sql.set(rootAlias + "." + column.getSqlName() + BLANK + "=" + BLANK + "#{columnMap." + key + ",jdbcType=" + column.getSqlTypeName() + "}");
 		});
 		List<Condition> conditions = criteria.getConditions();
 		if (CollectionUtils.isNotEmpty(conditions)) {
 			for (Condition condition : conditions) {
-				buildCondition(parameterMap, tableAliasMap, counter, sql, condition, table, criteria.getSelector());
+				buildCondition(parameterMap, tableAliasMap, sql, condition);
 			}
 		}
 
@@ -730,12 +750,15 @@ public class MybatisSqlBuilder {
 		}
 		QueryBuilder sql = new QueryBuilder();
 		AtomicInteger counter = new AtomicInteger(1);
-		Map<String, String> tableAliasMap = new ConcurrentHashMap<>();
-		sql.delete(getTableNameByCriteria(table, criteria));
+		Map<String, TableWithAlias> tableAliasMap = new ConcurrentHashMap<>();
+		String tableName = getTableNameByCriteria(table, criteria);
+		String rootAlias = createTableAlias(tableName, counter);
+		tableAliasMap.put(ROOT_TABLE_ALIAS_KEY, new TableWithAlias(rootAlias, table));
+		sql.delete(tableName + " as " + rootAlias);
 		List<Condition> conditions = criteria.getConditions();
 		if (CollectionUtils.isNotEmpty(conditions)) {
 			for (Condition condition : conditions) {
-				buildCondition(parameterMap, tableAliasMap, counter, sql, condition, table, criteria.getSelector());
+				buildCondition(parameterMap, tableAliasMap, sql, condition);
 			}
 		}
 
@@ -784,9 +807,11 @@ public class MybatisSqlBuilder {
 		QueryBuilder sql = new QueryBuilder();
 		AtomicInteger counter = new AtomicInteger(1);
 		String tableName = getTableNameByCriteria(table, criteria);
-		Map<String, String> tableAliasMap = new ConcurrentHashMap<>();
+		Map<String, TableWithAlias> tableAliasMap = new ConcurrentHashMap<>();
 		String rootAlias = createTableAlias(tableName, counter);
-		tableAliasMap.put(ROOT_TABLE_ALIAS_KEY, rootAlias);
+		tableAliasMap.put(ROOT_TABLE_ALIAS_KEY, new TableWithAlias(rootAlias, table));
+
+
 		table.getColumns().stream().filter(column -> {
 			if (selector != null) {
 				if (selector.getIncludes() != null) {
@@ -800,12 +825,20 @@ public class MybatisSqlBuilder {
 			sql.select(rootAlias + "." + column.getSqlName() + " as " + "\"" + column.getJavaName() + "\"");
 		});
 		sql.from(tableName + " as " + rootAlias);
-		if (CollectionUtils.isNotEmpty(conditions)) {
-			for (Condition condition : conditions) {
-				buildCondition(map, tableAliasMap, counter, sql, condition, table, selector);
+		TreeMap<String, Join> joins = criteria.getJoins();
+		if (joins != null && !joins.isEmpty()) {
+			for (Map.Entry<String, Join> entry : joins.entrySet()) {
+				buildJoinSequential(tableAliasMap, counter, sql, entry.getValue(), criteria.getSelector());
 			}
 		}
-		buildOrder(tableAliasMap, counter, sql, table, criteria.getSortProperties(), selector);
+
+		if (CollectionUtils.isNotEmpty(conditions)) {
+			for (Condition condition : conditions) {
+				buildCondition(map, tableAliasMap, sql, condition);
+			}
+		}
+
+		buildOrder(tableAliasMap, sql, criteria.getSortProperties());
 		if (logger.isDebugEnabled()) {
 			logger.debug(sql.toString());
 		}
@@ -819,16 +852,22 @@ public class MybatisSqlBuilder {
 		}
 		QueryBuilder sql = new QueryBuilder();
 		AtomicInteger counter = new AtomicInteger(1);
-		Map<String, String> tableAliasMap = new ConcurrentHashMap<>();
+		Map<String, TableWithAlias> tableAliasMap = new ConcurrentHashMap<>();
 		String rootAlias = createTableAlias(table.getSqlName(), counter);
-		tableAliasMap.put(ROOT_TABLE_ALIAS_KEY, rootAlias);
+		tableAliasMap.put(ROOT_TABLE_ALIAS_KEY, new TableWithAlias(rootAlias, table));
 		sql.select("count(1)");
 		sql.from(table.getSqlName() + BLANK + "as" + BLANK + rootAlias);
+		TreeMap<String, Join> joins = criteria.getJoins();
+		if (joins != null && !joins.isEmpty()) {
+			for (Map.Entry<String, Join> entry : joins.entrySet()) {
+				buildJoinSequential(tableAliasMap, counter, sql, entry.getValue(), criteria.getSelector());
+			}
+		}
 		List<Condition> conditions = criteria.getConditions();
 		PropertySelector selector = criteria.getSelector();
 		if (CollectionUtils.isNotEmpty(conditions)) {
 			for (Condition condition : conditions) {
-				buildCondition(map, tableAliasMap, counter, sql, condition, table, selector);
+				buildCondition(map, tableAliasMap, sql, condition);
 			}
 		}
 		return sql.toString();
@@ -936,5 +975,26 @@ public class MybatisSqlBuilder {
 
 	private static ShardingManager getShardingManager() {
 		return ServiceLocator.getService(ShardingManager.class);
+	}
+
+
+	private static class TableWithAlias {
+		private final String alias;
+		private final Table table;
+
+		public TableWithAlias(String alias, Table table) {
+			this.alias = alias;
+			this.table = table;
+		}
+	}
+
+	private class ColumnWithAlias {
+		private final String alias;
+		private final Column column;
+
+		public ColumnWithAlias(String alias, Column column) {
+			this.alias = alias;
+			this.column = column;
+		}
 	}
 }

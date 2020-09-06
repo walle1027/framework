@@ -2,18 +2,18 @@ package org.loed.framework.common.query;
 
 import lombok.Data;
 import lombok.ToString;
+import lombok.extern.slf4j.Slf4j;
+import org.loed.framework.common.lambda.CFunction;
 import org.loed.framework.common.lambda.LambdaUtils;
 import org.loed.framework.common.lambda.SFunction;
 import org.loed.framework.common.lambda.SerializedLambda;
 import org.loed.framework.common.util.ReflectionUtils;
 import org.springframework.lang.NonNull;
 
+import javax.annotation.concurrent.NotThreadSafe;
 import javax.persistence.criteria.JoinType;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 /**
  * @author thomason
@@ -22,12 +22,16 @@ import java.util.List;
  */
 @Data
 @ToString
-public class Criteria<T> implements Serializable {
+@Slf4j
+@NotThreadSafe
+public final class Criteria<T> implements Serializable {
 	private PropertySelector selector;
 
 	private List<Condition> conditions;
 
 	private List<SortProperty> sortProperties;
+
+	private TreeMap<String, Join> joins;
 
 	public static <S> Criteria<S> from(Class<S> clazz) {
 		return new Criteria<S>();
@@ -38,26 +42,21 @@ public class Criteria<T> implements Serializable {
 		criteriaNew.conditions = criteria.conditions;
 		criteriaNew.selector = criteria.selector;
 		criteriaNew.sortProperties = criteria.sortProperties;
+		criteriaNew.joins = criteria.joins;
 		return criteriaNew;
 	}
 
-	public Criteria<T> criterion(Condition... condition) {
+	private Criteria() {
+		this.conditions = new ArrayList<>();
+	}
+
+	private void criterion(Condition... condition) {
 		if (conditions == null) {
 			conditions = new ArrayList<>();
 		}
 		if (condition != null && condition.length > 0) {
 			conditions.addAll(Arrays.asList(condition));
 		}
-		return this;
-	}
-
-	public void setConditions(List<Condition> conditions) {
-		this.conditions = conditions;
-	}
-
-	public Criteria<T> selector(PropertySelector selector) {
-		this.selector = selector;
-		return this;
 	}
 
 	@SafeVarargs
@@ -76,6 +75,26 @@ public class Criteria<T> implements Serializable {
 	}
 
 	@SafeVarargs
+	public final Criteria<T> includes(CascadeProperty<T, ?>... cascadeProperties) {
+		if (cascadeProperties == null || cascadeProperties.length == 0) {
+			return this;
+		}
+		if (this.selector == null) {
+			this.selector = new PropertySelector();
+		}
+		for (CascadeProperty<T, ?> function : cascadeProperties) {
+			String joinProperty = function.joinProperty;
+			String cascadeProperty = function.cascadeProperty;
+			if (joinProperty != null && (this.joins == null || !this.joins.containsKey(joinProperty))) {
+				throw new RuntimeException("the cascade property :" + cascadeProperty + " has'nt joins,please add joins first");
+			}
+			this.selector.include(cascadeProperty);
+		}
+		return this;
+	}
+
+
+	@SafeVarargs
 	public final Criteria<T> excludes(SFunction<T, ?>... functions) {
 		if (functions == null || functions.length == 0) {
 			return this;
@@ -90,7 +109,26 @@ public class Criteria<T> implements Serializable {
 		return this;
 	}
 
-	public void sort(SortProperty sortProperty) {
+	@SafeVarargs
+	public final Criteria<T> excludes(CascadeProperty<T, ?>... cascadeProperties) {
+		if (cascadeProperties == null || cascadeProperties.length == 0) {
+			return this;
+		}
+		if (this.selector == null) {
+			this.selector = new PropertySelector();
+		}
+		for (CascadeProperty<T, ?> property : cascadeProperties) {
+			String joinProperty = property.joinProperty;
+			String cascadeProperty = property.cascadeProperty;
+			if (joinProperty != null && (this.joins == null || !this.joins.containsKey(joinProperty))) {
+				throw new RuntimeException("the cascade property :" + cascadeProperty + " has'nt joins,please add joins first");
+			}
+			this.selector.exclude(property.cascadeProperty);
+		}
+		return this;
+	}
+
+	private void sort(SortProperty sortProperty) {
 		if (sortProperty == null) {
 			return;
 		}
@@ -100,34 +138,43 @@ public class Criteria<T> implements Serializable {
 		sortProperties.add(sortProperty);
 	}
 
+	public <S> JoinBuilder<T, S> left(SFunction<T, S> lambda) {
+		return joinBuilder(LambdaUtils.getPropFromLambda(lambda), JoinType.LEFT);
+	}
+
+	public <S> JoinBuilder<T, S> left(CFunction<T, S> lambda) {
+		return joinBuilder(LambdaUtils.getPropFromLambda(lambda), JoinType.LEFT);
+	}
+
+	public <S> JoinBuilder<T, S> inner(SFunction<T, S> lambda) {
+		return joinBuilder(LambdaUtils.getPropFromLambda(lambda), JoinType.INNER);
+	}
+
+	public <S> JoinBuilder<T, S> inner(CFunction<T, S> lambda) {
+		return joinBuilder(LambdaUtils.getPropFromLambda(lambda), JoinType.INNER);
+	}
+
+	public <S> JoinBuilder<T, S> right(SFunction<T, S> lambda) {
+		return joinBuilder(LambdaUtils.getPropFromLambda(lambda), JoinType.RIGHT);
+	}
+
+	public <S> JoinBuilder<T, S> right(CFunction<T, S> lambda) {
+		return joinBuilder(LambdaUtils.getPropFromLambda(lambda), JoinType.RIGHT);
+	}
+
+	private <S> JoinBuilder<T, S> joinBuilder(String prop, JoinType left) {
+		Join join = new Join();
+		join.setTarget(prop);
+		join.setUniquePath(prop);
+		join.setJoinType(left);
+		join(join);
+		return new JoinBuilder<>(this, join, null);
+	}
+
 	public ConditionSpec<T> and(SFunction<T, ?> lambda) {
 		SerializedLambda resolve = LambdaUtils.resolve(lambda);
 		String prop = ReflectionUtils.methodToProperty(resolve.getImplMethodName());
 		return new ConditionSpec<>(this, Joint.and, prop);
-	}
-
-	public <S> JoinBuilder<T, S> left(SFunction<T, S> lambda) {
-		String prop = LambdaUtils.getPropFromLambda(lambda);
-		JoinBuilder<T, S> builder = new JoinBuilder<>(this, JoinType.LEFT, prop);
-		builder.chains = new ArrayList<>();
-		builder.chains.add(builder);
-		return builder;
-	}
-
-	public <S> JoinBuilder<T, S> inner(SFunction<T, S> lambda) {
-		String prop = LambdaUtils.getPropFromLambda(lambda);
-		JoinBuilder<T, S> builder = new JoinBuilder<>(this, JoinType.INNER, prop);
-		builder.chains = new ArrayList<>();
-		builder.chains.add(builder);
-		return builder;
-	}
-
-	public <S> JoinBuilder<T, S> right(SFunction<T, S> lambda) {
-		String prop = LambdaUtils.getPropFromLambda(lambda);
-		JoinBuilder<T, S> builder = new JoinBuilder<>(this, JoinType.RIGHT, prop);
-		builder.chains = new ArrayList<>();
-		builder.chains.add(builder);
-		return builder;
 	}
 
 	public ConditionSpec<T> or(SFunction<T, ?> lambda) {
@@ -136,103 +183,144 @@ public class Criteria<T> implements Serializable {
 		return new ConditionSpec<>(this, Joint.or, prop);
 	}
 
-	public Criteria<T> asc(SFunction<T, ?> lambda) {
-		SerializedLambda resolve = LambdaUtils.resolve(lambda);
-		String prop = ReflectionUtils.methodToProperty(resolve.getImplMethodName());
-		this.sort(new SortProperty(prop, Sort.ASC));
+	public Criteria<T> asc(SFunction<T, ?>... lambda) {
+		if (lambda == null || lambda.length == 0) {
+			return this;
+		}
+		for (SFunction<T, ?> function : lambda) {
+			String prop = LambdaUtils.getPropFromLambda(function);
+			this.sort(new SortProperty(prop, Sort.ASC));
+		}
 		return this;
 	}
 
-	public Criteria<T> desc(SFunction<T, ?> lambda) {
-		SerializedLambda resolve = LambdaUtils.resolve(lambda);
-		String prop = ReflectionUtils.methodToProperty(resolve.getImplMethodName());
-		this.sort(new SortProperty(prop, Sort.DESC));
+	public Criteria<T> asc(CascadeProperty<T, ?>... cascadeProperties) {
+		if (cascadeProperties == null || cascadeProperties.length == 0) {
+			return this;
+		}
+		for (CascadeProperty<T, ?> property : cascadeProperties) {
+			String joinProperty = property.joinProperty;
+			String cascadeProperty = property.cascadeProperty;
+			if (joinProperty != null && (this.joins == null || !this.joins.containsKey(joinProperty))) {
+				throw new RuntimeException("the cascade property :" + cascadeProperty + " has'nt joins,please add joins first");
+			}
+			this.sort(new SortProperty(property.cascadeProperty, Sort.ASC));
+		}
 		return this;
+	}
+
+	public Criteria<T> desc(SFunction<T, ?>... lambda) {
+		if (lambda == null || lambda.length == 0) {
+			return this;
+		}
+		for (SFunction<T, ?> function : lambda) {
+			String prop = LambdaUtils.getPropFromLambda(function);
+			this.sort(new SortProperty(prop, Sort.DESC));
+		}
+		return this;
+	}
+
+	public Criteria<T> desc(CascadeProperty<T, ?>... cascadeProperties) {
+		if (cascadeProperties == null || cascadeProperties.length == 0) {
+			return this;
+		}
+		for (CascadeProperty<T, ?> property : cascadeProperties) {
+			String joinProperty = property.joinProperty;
+			String cascadeProperty = property.cascadeProperty;
+			if (joinProperty != null && (this.joins == null || !this.joins.containsKey(joinProperty))) {
+				throw new RuntimeException("the cascade property :" + cascadeProperty + " has'nt joins,please add joins first");
+			}
+			this.sort(new SortProperty(cascadeProperty, Sort.DESC));
+		}
+		return this;
+	}
+
+	private void join(Join join) {
+		if (this.joins == null) {
+			this.joins = new TreeMap<>();
+		}
+		if (this.joins.containsKey(join.getUniquePath())) {
+			Join exists = this.joins.get(join.getUniquePath());
+			if (Objects.equals(exists, join)) {
+				log.error("same path with different joins ");
+				throw new RuntimeException("same path with different joins " + join);
+			}
+		} else {
+			this.joins.put(join.getUniquePath(), join);
+		}
 	}
 
 	public static class JoinBuilder<T, R> {
-		private final String prop;
-		private final JoinType joinType;
-		private List<JoinBuilder<T, ?>> chains;
+		private final Join join;
+		private final JoinBuilder<T, ?> previous;
 		private final Criteria<T> criteria;
 
-		private JoinBuilder(Criteria<T> criteria, JoinType joinType, String prop) {
+		private JoinBuilder(Criteria<T> criteria, Join join, JoinBuilder<T, ?> previous) {
 			this.criteria = criteria;
-			this.joinType = joinType;
-			this.prop = prop;
+			this.join = join;
+			this.previous = previous;
 		}
 
 		public <S> JoinBuilder<T, S> left(SFunction<R, S> lambda) {
-			String prop = LambdaUtils.getPropFromLambda(lambda);
-			JoinBuilder<T, S> builder = new JoinBuilder<>(this.criteria, JoinType.LEFT, prop);
-			builder.chains = this.chains;
-			builder.chains.add(builder);
-			return builder;
+			return joinBuilder(LambdaUtils.getPropFromLambda(lambda), JoinType.LEFT);
+		}
+
+		public <S> JoinBuilder<T, S> left(CFunction<R, S> lambda) {
+			return joinBuilder(LambdaUtils.getPropFromLambda(lambda), JoinType.LEFT);
 		}
 
 		public <S> JoinBuilder<T, S> inner(SFunction<R, S> lambda) {
-			String prop = LambdaUtils.getPropFromLambda(lambda);
-			JoinBuilder<T, S> builder = new JoinBuilder<>(this.criteria, JoinType.INNER, prop);
-			builder.chains = this.chains;
-			builder.chains.add(builder);
-			return builder;
+			return joinBuilder(LambdaUtils.getPropFromLambda(lambda), JoinType.INNER);
+		}
+
+		public <S> JoinBuilder<T, S> inner(CFunction<R, S> lambda) {
+			return joinBuilder(LambdaUtils.getPropFromLambda(lambda), JoinType.INNER);
+		}
+
+		public <S> JoinBuilder<T, S> right(SFunction<R, S> lambda) {
+			return joinBuilder(LambdaUtils.getPropFromLambda(lambda), JoinType.RIGHT);
+		}
+
+		public <S> JoinBuilder<T, S> right(CFunction<R, S> lambda) {
+			return joinBuilder(LambdaUtils.getPropFromLambda(lambda), JoinType.RIGHT);
+		}
+
+		private <S> JoinBuilder<T, S> joinBuilder(String prop, JoinType inner) {
+			Join join = new Join();
+			join.setJoinType(inner);
+			join.setTarget(prop);
+//			if (this.previous == null) {
+//				join.setUniquePath(prop);
+//			} else {
+//				String path = this.previous.join.getUniquePath();
+//				join.setUniquePath(path + "." + prop);
+//			}
+			join.setUniquePath(this.join.getUniquePath() + "." + prop);
+			this.criteria.join(join);
+			return new JoinBuilder<>(this.criteria, join, this);
 		}
 
 		public ConditionSpec<T> and(SFunction<R, ?> lambda) {
 			String prop = LambdaUtils.getPropFromLambda(lambda);
-			StringBuilder builder = new StringBuilder();
-			for (JoinBuilder<T, ?> chain : this.chains) {
-				builder.append(chain.prop);
-				Condition condition = new Condition();
-				condition.setPropertyName(builder.toString());
-				condition.setJoinType(chain.joinType);
-				builder.append(".");
-				criteria.criterion(condition);
-			}
-			builder.append(prop);
-			//remove chains
-			this.chains = null;
-			return new ConditionSpec<T>(criteria, Joint.and, builder.toString());
+			return new ConditionSpec<T>(criteria, Joint.and, this.join.getUniquePath() + Condition.PATH_SEPARATOR + prop);
 		}
 
 		public ConditionSpec<T> or(SFunction<R, ?> lambda) {
 			String prop = LambdaUtils.getPropFromLambda(lambda);
-			StringBuilder builder = new StringBuilder();
-			for (JoinBuilder<T, ?> chain : this.chains) {
-				builder.append(chain.prop);
-				Condition condition = new Condition();
-				condition.setPropertyName(builder.toString());
-				condition.setJoinType(chain.joinType);
-				builder.append(".");
-			}
-			builder.append(prop);
-			this.chains = null;
-			return new ConditionSpec<T>(criteria, Joint.or, builder.toString());
+			return new ConditionSpec<T>(criteria, Joint.and, this.join.getUniquePath() + Condition.PATH_SEPARATOR + prop);
 		}
 
 		public Criteria<T> asc(SFunction<T, ?> lambda) {
 			String prop = LambdaUtils.getPropFromLambda(lambda);
-			StringBuilder builder = new StringBuilder();
-			for (JoinBuilder<T, ?> chain : this.chains) {
-				builder.append(chain.prop);
-				builder.append(".");
-			}
-			builder.append(prop);
-			this.chains = null;
-			this.criteria.sort(new SortProperty(builder.toString(), Sort.ASC));
+			String sortProp = this.join.getTarget() + Condition.PATH_SEPARATOR + prop;
+			this.criteria.sort(new SortProperty(sortProp, Sort.ASC));
 			return this.criteria;
 		}
 
 		public Criteria<T> desc(SFunction<T, ?> lambda) {
 			String prop = LambdaUtils.getPropFromLambda(lambda);
-			StringBuilder builder = new StringBuilder();
-			for (JoinBuilder<T, ?> chain : this.chains) {
-				builder.append(chain.prop);
-				builder.append(".");
-			}
-			builder.append(prop);
-			this.chains = null;
-			this.criteria.sort(new SortProperty(builder.toString(), Sort.DESC));
+			String sortProp = this.join.getTarget() + Condition.PATH_SEPARATOR + prop;
+			this.criteria.sort(new SortProperty(sortProp, Sort.DESC));
 			return this.criteria;
 		}
 	}
@@ -519,6 +607,31 @@ public class Criteria<T> implements Serializable {
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
+		}
+	}
+
+	public static class CascadeProperty<T, R> {
+		private final String cascadeProperty;
+		private final String joinProperty;
+
+		public CascadeProperty(String cascadeProperty, String joinProperty) {
+			this.cascadeProperty = cascadeProperty;
+			this.joinProperty = joinProperty;
+		}
+
+		public static <T, R> CascadeProperty<T, R> from(SFunction<T, R> lambda) {
+			String property = LambdaUtils.getPropFromLambda(lambda);
+			return new CascadeProperty<>(property, null);
+		}
+
+		public <S> CascadeProperty<T, S> next(SFunction<R, S> lambda) {
+			String property = LambdaUtils.getPropFromLambda(lambda);
+			return new CascadeProperty<>(this.cascadeProperty + Condition.ALIAS_SEPARATOR + property, this.cascadeProperty);
+		}
+
+		public <S> CascadeProperty<T, S> next(CFunction<R, S> lambda) {
+			String property = LambdaUtils.getPropFromLambda(lambda);
+			return new CascadeProperty<>(this.cascadeProperty + Condition.ALIAS_SEPARATOR + property, this.cascadeProperty);
 		}
 	}
 }

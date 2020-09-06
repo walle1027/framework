@@ -49,6 +49,7 @@ import java.util.stream.Collectors;
 public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	private final DatabaseClient databaseClient;
 
+	@SuppressWarnings("FieldCanBeLocal")
 	private final Class<? extends R2dbcDao<T, ID>> daoInterface;
 
 	private final Class<T> entityClass;
@@ -292,7 +293,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 		}
 		return Flux.merge(Flux.just(new Condition(idColumn.getJavaName(), Operator.equal, id)), commonConditions())
 				.collectList().map(conditions -> {
-					return r2dbcSqlBuilder.updateByCriteria(entity, table, Criteria.from(entityClass).criterion(conditions.toArray(new Condition[0])), columnFilter);
+					return r2dbcSqlBuilder.updateByCriteria(entity, table, criteriaWithCondition(conditions), columnFilter);
 				}).flatMap(r2dbcQuery -> {
 					return execute(r2dbcQuery).thenReturn(entity);
 				});
@@ -325,18 +326,14 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 
 	@Override
 	public Mono<T> get(@NonNull ID id) {
-		return Flux.merge(Flux.just(new Condition(idColumn.getJavaName(), Operator.equal, id)), commonConditions()).collectList().map(conditions -> {
-			return Criteria.from(entityClass).criterion(conditions.toArray(new Condition[0]));
-		}).flatMap(this::findOne);
+		return Flux.merge(Flux.just(new Condition(idColumn.getJavaName(), Operator.equal, id)), commonConditions()).collectList().map(this::criteriaWithCondition).flatMap(this::findOne);
 	}
 
 	@Override
 	public Mono<T> get(@NonNull Publisher<ID> idPublisher) {
 		return Flux.merge(Flux.from(idPublisher).map(id -> {
 			return new Condition(idColumn.getJavaName(), Operator.equal, id);
-		}), commonConditions()).collectList().map(conditions -> {
-			return Criteria.from(entityClass).criterion(conditions.toArray(new Condition[0]));
-		}).flatMap(this::findOne);
+		}), commonConditions()).collectList().map(this::criteriaWithCondition).flatMap(this::findOne);
 	}
 
 	private Flux<Condition> commonConditions() {
@@ -364,9 +361,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 
 	@Override
 	public Mono<Boolean> existsById(@NonNull ID id) {
-		return Flux.merge(Flux.just(new Condition(idColumn.getJavaName(), Operator.equal, id)), commonConditions()).collectList().map(conditions -> {
-			return Criteria.from(entityClass).criterion(conditions.toArray(new Condition[0]));
-		}).flatMap(this::count).map(count -> count > 0);
+		return Flux.merge(Flux.just(new Condition(idColumn.getJavaName(), Operator.equal, id)), commonConditions()).collectList().map(this::criteriaWithCondition).flatMap(this::count).map(count -> count > 0);
 	}
 
 	@Override
@@ -374,17 +369,13 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 		return Flux.from(idPublisher).map(id -> {
 			return new Condition(idColumn.getJavaName(), Operator.equal, id);
 		}).mergeWith(commonConditions())
-				.collectList().map(conditions -> {
-					return Criteria.from(entityClass).criterion(conditions.toArray(new Condition[0]));
-				}).flatMap(this::count).map(count -> count > 0);
+				.collectList().map(this::criteriaWithCondition).flatMap(this::count).map(count -> count > 0);
 	}
 
 	@Override
 	public Mono<Integer> delete(@NonNull ID id) {
 		return Flux.merge(Flux.just(new Condition(idColumn.getJavaName(), Operator.equal, id)), commonConditions()).collectList()
-				.map(conditions -> {
-					return Criteria.from(entityClass).criterion(conditions.toArray(new Condition[0]));
-				}).flatMap(this::delete);
+				.map(this::criteriaWithCondition).flatMap(this::delete);
 	}
 
 	@Override
@@ -393,7 +384,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 			return new Condition(idColumn.getJavaName(), Operator.equal, id);
 		}), commonConditions())
 				.collectList()
-				.map(conditions -> Criteria.from(entityClass).criterion(conditions.toArray(new Condition[0])))
+				.map(this::criteriaWithCondition)
 				.flatMap(this::delete);
 	}
 
@@ -401,7 +392,8 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	public Mono<Integer> delete(@NonNull Criteria<T> criteria) {
 		return Mono.just(criteria).flatMap(crit -> {
 					return commonConditions().collectList().map(conditions -> {
-						return crit.criterion(conditions.toArray(new Condition[0]));
+						crit.getConditions().addAll(conditions);
+						return crit;
 					}).defaultIfEmpty(crit);
 				}
 		).flatMap(crit -> {
@@ -416,6 +408,12 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 				return execute(r2dbcSqlBuilder.deleteByCriteria(table, crit));
 			}
 		});
+	}
+
+	private Criteria<T> criteriaWithCondition(List<Condition> conditions) {
+		Criteria<T> criteria = Criteria.from(entityClass);
+		criteria.setConditions(conditions);
+		return criteria;
 	}
 
 	private <S extends T> Function<S, Mono<? extends S>> preDeleteFunction() {
@@ -484,7 +482,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 			condition.setPropertyName(idColumn.getJavaName());
 			condition.setOperator(Operator.notEqual);
 			condition.setValue(id);
-			criteria.criterion(condition);
+			criteria.getConditions().add(condition);
 		}
 		return count(criteria).map(count -> {
 			return count > 0;
@@ -519,10 +517,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 
 	@Override
 	public Flux<T> select(@NonNull String sql, @NonNull Map<String, R2dbcParam> params) {
-		R2dbcQuery query = new R2dbcQuery();
-		query.setStatement(sql);
-		query.setParams(params);
-		return query(query);
+		return query(new R2dbcQuery(sql, params));
 	}
 
 	private Mono<Integer> execute(R2dbcQuery query) {

@@ -327,7 +327,7 @@ public interface BaseMapper<T extends Identify> {
 		if (table.isSharding()) {
 			return _shardingGetList(idList, entityClass);
 		}
-		Criteria<T> criteria = new Criteria<>();
+		Criteria<T> criteria = Criteria.from(entityClass);
 		criteria.and(Identify::getId).in(idList);
 		return findByCriteria(criteria);
 	}
@@ -344,19 +344,19 @@ public interface BaseMapper<T extends Identify> {
 		if (table.isSharding()) {
 			return _shardingByIdList(idList, entityClass);
 		}
-		Criteria<T> criteria = new Criteria<>();
+		Criteria<T> criteria = Criteria.from(entityClass);
 		criteria.and(Identify::getId).in(idList);
 		return _findByCriteria(entityClass, criteria, new HashMap<>());
 	}
 
 	/*******************************按照查询条件删除********************************/
 	@DeleteProvider(type = MybatisSqlBuilder.class, method = "deleteByCriteria")
-	int _deleteByCriteria(@Param("clazz") Class<T> clazz, @Param("criteria") Criteria criteria, @Param("map") Map<String, Object> map);
+	int _deleteByCriteria(@Param("clazz") Class<T> clazz, @Param("criteria") Criteria<T> criteria, @Param("map") Map<String, Object> map);
 
 	@UpdateProvider(type = MybatisSqlBuilder.class, method = "updateByCriteria")
-	int _updateByCriteria(@Param("clazz") Class<T> clazz, @Param("criteria") Criteria criteria, @Param("columnMap") Map<String, Object> columnMap, @Param("map") Map<String, Object> map);
+	int _updateByCriteria(@Param("clazz") Class<T> clazz, @Param("criteria") Criteria<T> criteria, @Param("columnMap") Map<String, Object> columnMap, @Param("map") Map<String, Object> map);
 
-	default int deleteByCriteria(Criteria criteria) {
+	default int deleteByCriteria(Criteria<T> criteria) {
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
 		if (ReflectionUtils.isSubClass(entityClass, CommonPO.class)) {
 			Map<String, Object> columnMap = new HashMap<>();
@@ -380,33 +380,33 @@ public interface BaseMapper<T extends Identify> {
 		return _get(map, entityClass);
 	}
 
-	default List<T> findByProperty(String propName, Object propValue) {
-		Criteria<T> criteria = new Criteria<>();
-		criteria.criterion(new Condition(propName, Operator.equal, propValue));
-		return findByCriteria(criteria);
+	default List<T> findByProperty(SFunction<T, ?> propName, Object propValue) {
+		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
+		Criteria<T> criteria = Criteria.from(entityClass);
+		return findByCriteria(criteria.and(propName).is(propValue));
 	}
 
-	default T findOne(String propName, Object propValue) {
+	default T findOne(SFunction<T, ?> propName, Object propValue) {
 		List<T> list = findByProperty(propName, propValue);
 		return CollectionUtils.isNotEmpty(list) ? list.get(0) : null;
 	}
 
 	/********************************对象查询方法****************************/
 	@SelectProvider(type = MybatisSqlBuilder.class, method = "findByCriteria")
-	List<T> _findByCriteria(@Param("clazz") Class<T> clazz, @Param("criteria") Criteria criteria, @Param("map") Map<String, Object> map);
+	List<T> _findByCriteria(@Param("clazz") Class<T> clazz, @Param("criteria") Criteria<T> criteria, @Param("map") Map<String, Object> map);
 
 	default List<T> findByCriteria(Criteria<T> criteria) {
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
 		if (ReflectionUtils.isSubClass(entityClass, CommonPO.class)) {
-			criteria.criterion(new Condition("isDeleted", Operator.equal, 0));
+			criteria.getConditions().add(new Condition("isDeleted", Operator.equal, 0));
 		}
 		if (ReflectionUtils.isSubClass(entityClass, BasePO.class)) {
-			criteria.criterion(new Condition("tenantCode", Operator.equal, SystemContextHolder.getTenantCode()));
+			criteria.getConditions().add(new Condition("tenantCode", Operator.equal, SystemContextHolder.getTenantCode()));
 		}
 		return _findByCriteria(entityClass, criteria, new HashMap<>());
 	}
 
-	default T findOne(Criteria criteria) {
+	default T findOne(Criteria<T> criteria) {
 		PageHelper.startPage(1, 1, false);
 		List<T> list = findByCriteria(criteria);
 		return list.size() == 0 ? null : list.get(0);
@@ -457,16 +457,17 @@ public interface BaseMapper<T extends Identify> {
 	default Long countByCriteria(Criteria<T> criteria) {
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
 		if (ReflectionUtils.isSubClass(entityClass, CommonPO.class)) {
-			criteria.criterion(new Condition("isDeleted", Operator.equal, 0));
+			criteria.getConditions().add(new Condition("isDeleted", Operator.equal, 0));
 		}
 		if (ReflectionUtils.isSubClass(entityClass, BasePO.class)) {
-			criteria.criterion(new Condition("tenantCode", Operator.equal, SystemContextHolder.getTenantCode()));
+			criteria.getConditions().add(new Condition("tenantCode", Operator.equal, SystemContextHolder.getTenantCode()));
 		}
 		return _countByCriteria(entityClass, criteria, new HashMap<>());
 	}
 
 	default boolean checkRepeat(Serializable id, SFunction<T, ?> lamda, Object propValue) {
-		Criteria<T> criteria = new Criteria<>();
+		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
+		Criteria<T> criteria = Criteria.from(entityClass);
 		criteria.and(lamda).is(propValue);
 		criteria.and(Identify::getId).isNot(propValue);
 		Long count = countByCriteria(criteria);

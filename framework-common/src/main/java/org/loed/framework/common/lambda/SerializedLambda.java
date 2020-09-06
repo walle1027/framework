@@ -1,21 +1,5 @@
 package org.loed.framework.common.lambda;
 
-/*
- * Copyright (c) 2011-2020, baomidou (jobob@qq.com).
- * <p>
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not
- * use this file except in compliance with the License. You may obtain a copy of
- * the License at
- * <p>
- * https://www.apache.org/licenses/LICENSE-2.0
- * <p>
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under
- * the License.
- */
-
 
 import java.io.*;
 import java.util.regex.Matcher;
@@ -25,9 +9,6 @@ import java.util.regex.Pattern;
  * 这个类是从 {@link java.lang.invoke.SerializedLambda} 里面 copy 过来的，
  * 字段信息完全一样
  * <p>负责将一个支持序列的 Function 序列化为 SerializedLambda</p>
- *
- * @author HCL
- * @since 2018/05/10
  */
 @SuppressWarnings("unused")
 public class SerializedLambda implements Serializable {
@@ -52,6 +33,29 @@ public class SerializedLambda implements Serializable {
 	 * @return 返回解析后的 SerializedLambda
 	 */
 	public static SerializedLambda resolve(SFunction<?, ?> lambda) {
+		if (!lambda.getClass().isSynthetic()) {
+			throw new LambdaParseException("该方法仅能传入 lambda 表达式产生的合成类");
+		}
+		try (ObjectInputStream objIn = new ObjectInputStream(new ByteArrayInputStream(serialize(lambda))) {
+			@Override
+			protected Class<?> resolveClass(ObjectStreamClass objectStreamClass) throws IOException, ClassNotFoundException {
+				Class<?> clazz = super.resolveClass(objectStreamClass);
+				return clazz == java.lang.invoke.SerializedLambda.class ? SerializedLambda.class : clazz;
+			}
+		}) {
+			return (SerializedLambda) objIn.readObject();
+		} catch (ClassNotFoundException | IOException e) {
+			throw new LambdaParseException("This is impossible to happen", e);
+		}
+	}
+
+	/**
+	 * 通过反序列化转换 lambda 表达式，该方法只能序列化 lambda 表达式，不能序列化接口实现或者正常非 lambda 写法的对象
+	 *
+	 * @param lambda lambda对象
+	 * @return 返回解析后的 SerializedLambda
+	 */
+	public static SerializedLambda resolve(CFunction<?, ?> lambda) {
 		if (!lambda.getClass().isSynthetic()) {
 			throw new LambdaParseException("该方法仅能传入 lambda 表达式产生的合成类");
 		}

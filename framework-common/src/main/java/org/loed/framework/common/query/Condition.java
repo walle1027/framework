@@ -7,7 +7,6 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.loed.framework.common.lambda.LambdaUtils;
 import org.loed.framework.common.lambda.SFunction;
 
-import javax.persistence.criteria.JoinType;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,7 +41,7 @@ public class Condition implements Serializable {
 	/**
 	 * 多个属性之间的连接方式
 	 */
-	private JoinType joinType = JoinType.INNER;
+//	private JoinType joinType = JoinType.INNER;
 	/**
 	 * 查询关系符号
 	 */
@@ -195,11 +194,11 @@ public class Condition implements Serializable {
 		this.subConditions = subConditions;
 	}
 
-	public JoinType getJoinType() {
-		return joinType;
-	}
-
-	public void setJoinType(JoinType joinType) {
-		this.joinType = joinType;
-	}
+//	public JoinType getJoinType() {
+//		return joinType;
+//	}
+//
+//	public void setJoinType(JoinType joinType) {
+//		this.joinType = joinType;
+//	}
 }

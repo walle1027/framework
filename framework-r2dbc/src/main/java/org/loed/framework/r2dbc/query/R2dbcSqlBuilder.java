@@ -14,6 +14,7 @@ import javax.persistence.GenerationType;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
 /**
@@ -138,6 +139,44 @@ public interface R2dbcSqlBuilder {
 			return false;
 		}
 		return true;
+	}
+
+	/**
+	 * 从查询条件中获取对象的真实的表名，如果是分库分表的情况下
+	 *
+	 * @param table    ORM映射对象
+	 * @param criteria 查询条件
+	 * @param <T>      对象泛型
+	 * @return 真实的表名
+	 */
+	default <T> String getTableNameByCriteria(Table table, Criteria<T> criteria) {
+		return table.getSqlName();
+//		if (!table.isSharding()) {
+//			return table.getSqlName();
+//		}
+//		if (criteria == null || CollectionUtils.isEmpty(criteria.getConditions())) {
+//			throw new RuntimeException("empty conditions");
+//		}
+//		//优先检查condition中是否包含分表的值
+//		List<Column> shardingColumns = table.getColumns().stream().filter(Column::isShardingColumn).collect(Collectors.toList());
+//		List<String> shardingValues = new ArrayList<>();
+//		shardingColumns.forEach(r -> {
+//			criteria.getConditions().stream().filter(k -> k.getPropertyName().equals(r.getJavaName()) && k.getOperator().equals(Operator.equal)).findFirst().ifPresent(condition -> shardingValues.add(String.valueOf(condition.getValue())));
+//		});
+//		if (shardingValues.size() != shardingColumns.size()) {
+//			String idValue = table.getColumns().stream().filter(Column::isPk).sorted(Comparator.comparing(Column::getJavaName)).map(column -> {
+//				Object value = criteria.getConditions().stream().filter(k -> column.getJavaName().equals(k.getPropertyName()) && k.getOperator().equals(Operator.equal)).findFirst().map(Condition::getValue).orElse(null);
+//				return String.valueOf(value);
+//			}).collect(Collectors.joining(","));
+//			return getShardingManager().getShardingTableNameById(table, idValue);
+//		} else {
+//			String shardingValue = getShardingValue(shardingValues);
+//			return getShardingManager().getShardingTableNameByValue(table, shardingValue);
+//		}
+	}
+
+	default String createTableAlias(String tableName, AtomicInteger counter) {
+		return "t" + counter.getAndIncrement();
 	}
 
 	/**

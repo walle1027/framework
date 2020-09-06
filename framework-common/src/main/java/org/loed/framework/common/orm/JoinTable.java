@@ -8,14 +8,29 @@ import java.util.List;
  * @version 1.0
  * @since 2018/6/4 上午11:58
  */
-public class Join {
+public class JoinTable {
+	/**
+	 * 表之间的级联关系
+	 */
 	private Relation relation;
+	/**
+	 * 对象的级联映射属性
+	 */
 	private String fieldName;
+	/**
+	 * 目标表名称
+	 */
 	private String targetTableName;
+	/**
+	 * 关联的列
+	 */
 	private List<JoinColumn> joinColumns;
-	private Class targetEntity;
+	/**
+	 * 关联的对象实体
+	 */
+	private Class<?> targetEntity;
 
-	public Join(Relation relation, String fieldName, Class targetEntity) {
+	public JoinTable(Relation relation, String fieldName, Class targetEntity) {
 		this.relation = relation;
 		this.fieldName = fieldName;
 		this.targetEntity = targetEntity;

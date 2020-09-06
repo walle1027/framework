@@ -3,17 +3,17 @@ package org.loed.framework.r2dbc;
 import org.junit.Before;
 import org.junit.Test;
 import org.loed.framework.common.ORMapping;
-import org.loed.framework.common.orm.Table;
 import org.loed.framework.common.lambda.LambdaUtils;
+import org.loed.framework.common.orm.Table;
 import org.loed.framework.common.query.Criteria;
 import org.loed.framework.common.util.LocalDateUtils;
 import org.loed.framework.common.util.UUIDUtils;
+import org.loed.framework.r2dbc.po.Class;
+import org.loed.framework.r2dbc.po.*;
 import org.loed.framework.r2dbc.query.R2dbcParam;
 import org.loed.framework.r2dbc.query.R2dbcQuery;
 import org.loed.framework.r2dbc.query.R2dbcSqlBuilder;
 import org.loed.framework.r2dbc.query.dialect.MysqlR2dbcSqlBuilder;
-import org.loed.framework.r2dbc.po.*;
-import org.loed.framework.r2dbc.po.Class;
 import org.springframework.data.domain.PageRequest;
 
 import java.util.*;
@@ -177,6 +177,8 @@ public class MysqlR2dbcSqlBuilderTest {
 		Criteria<Student> criteria = Criteria.from(Student.class);
 		criteria.and(Student::getName).is("zhangsan");
 		criteria.inner(Student::getMyClass).and(Class::getGrade).is("2");
+		criteria.left(Student::getMyClass).left(Class::getStudentList).left(Student::getMyClass2).and(Class::getGrade)
+				.is("abc");
 		criteria.left(Student::getMyClass2).and(Class::getName).is("3");
 		criteria.right(Student::getMyClass).and(Class::getName).is("3");
 		criteria.and(Student::getNo).contains("2");

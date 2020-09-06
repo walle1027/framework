@@ -11,7 +11,7 @@ import javax.persistence.GenerationType;
  * @since 2017/10/9 上午9:23
  */
 @Data
-@ToString
+@ToString(exclude = "table")
 public class Column {
 	/**
 	 * 关联的表
