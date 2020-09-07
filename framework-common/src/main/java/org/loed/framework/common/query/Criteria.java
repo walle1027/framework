@@ -3,6 +3,7 @@ package org.loed.framework.common.query;
 import lombok.Data;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.loed.framework.common.lambda.CFunction;
 import org.loed.framework.common.lambda.LambdaUtils;
 import org.loed.framework.common.lambda.SFunction;
@@ -335,9 +336,23 @@ public final class Criteria<T> implements Serializable {
 		}
 	}
 
+	/**
+	 * 条件构造类
+	 *
+	 * @param <T> 对象类型
+	 */
 	public static class ConditionSpec<T> {
+		/**
+		 * 对象属性名，"." 代表级联属性
+		 */
 		private final String property;
+		/**
+		 * 关联的criteria
+		 */
 		private final Criteria<T> criteria;
+		/**
+		 * 条件的连接符
+		 */
 		private final Joint joint;
 
 		public ConditionSpec(Criteria<T> criteria, Joint joint, String property) {
@@ -347,6 +362,7 @@ public final class Criteria<T> implements Serializable {
 		}
 
 		public Criteria<T> beginWith(@NonNull String value) {
+			validateNonNull(value);
 			Condition condition = new Condition(property, Operator.beginWith, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -354,6 +370,7 @@ public final class Criteria<T> implements Serializable {
 		}
 
 		public Criteria<T> notBeginWith(@NonNull String value) {
+			validateNonNull(value);
 			Condition condition = new Condition(property, Operator.notBeginWith, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -361,6 +378,7 @@ public final class Criteria<T> implements Serializable {
 		}
 
 		public Criteria<T> contains(@NonNull String value) {
+			validateNonNull(value);
 			Condition condition = new Condition(property, Operator.contains, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -368,6 +386,7 @@ public final class Criteria<T> implements Serializable {
 		}
 
 		public Criteria<T> notContains(@NonNull String value) {
+			validateNonNull(value);
 			Condition condition = new Condition(property, Operator.notContains, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -375,6 +394,7 @@ public final class Criteria<T> implements Serializable {
 		}
 
 		public Criteria<T> endWith(@NonNull String value) {
+			validateNonNull(value);
 			Condition condition = new Condition(property, Operator.endWith, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -382,6 +402,7 @@ public final class Criteria<T> implements Serializable {
 		}
 
 		public Criteria<T> notEndWith(@NonNull String value) {
+			validateNonNull(value);
 			Condition condition = new Condition(property, Operator.notEndWith, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -389,6 +410,8 @@ public final class Criteria<T> implements Serializable {
 		}
 
 		public Criteria<T> between(@NonNull Object start, @NonNull Object end) {
+			validateNonNull(start);
+			validateNonNull(end);
 			Condition condition = new Condition(property, Operator.between, new Object[]{start, end});
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -396,6 +419,8 @@ public final class Criteria<T> implements Serializable {
 		}
 
 		public Criteria<T> notBetween(@NonNull Object start, @NonNull Object end) {
+			validateNonNull(start);
+			validateNonNull(end);
 			Condition condition = new Condition(property, Operator.notBetween, new Object[]{start, end});
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -417,6 +442,7 @@ public final class Criteria<T> implements Serializable {
 		}
 
 		public Criteria<T> is(@NonNull Object value) {
+			validateNonNull(value);
 			Condition condition = new Condition(property, Operator.equal, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -424,6 +450,7 @@ public final class Criteria<T> implements Serializable {
 		}
 
 		public Criteria<T> isNot(@NonNull Object value) {
+			validateNonNull(value);
 			Condition condition = new Condition(property, Operator.notEqual, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -431,6 +458,7 @@ public final class Criteria<T> implements Serializable {
 		}
 
 		public Criteria<T> greaterThan(@NonNull Object value) {
+			validateNonNull(value);
 			Condition condition = new Condition(property, Operator.greaterThan, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -438,6 +466,7 @@ public final class Criteria<T> implements Serializable {
 		}
 
 		public Criteria<T> greaterEqual(@NonNull Object value) {
+			validateNonNull(value);
 			Condition condition = new Condition(property, Operator.greaterEqual, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -445,6 +474,7 @@ public final class Criteria<T> implements Serializable {
 		}
 
 		public Criteria<T> lessEqual(@NonNull Object value) {
+			validateNonNull(value);
 			Condition condition = new Condition(property, Operator.lessEqual, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -452,6 +482,7 @@ public final class Criteria<T> implements Serializable {
 		}
 
 		public Criteria<T> lessThan(@NonNull Object value) {
+			validateNonNull(value);
 			Condition condition = new Condition(property, Operator.lessThan, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -473,69 +504,79 @@ public final class Criteria<T> implements Serializable {
 		}
 
 		public Criteria<T> in(@NonNull Collection<?> values) {
+			validateNonNull(values);
 			Condition condition = new Condition(property, Operator.in, values);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> in(int[] values) {
+		public Criteria<T> in(@NonNull int[] values) {
+			validateNonNull(values);
 			Condition condition = new Condition(property, Operator.in, values);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> in(long[] values) {
+		public Criteria<T> in(@NonNull long[] values) {
+			validateNonNull(values);
 			Condition condition = new Condition(property, Operator.in, values);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> in(char[] values) {
+		public Criteria<T> in(@NonNull char[] values) {
+			validateNonNull(values);
 			Condition condition = new Condition(property, Operator.in, values);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> in(double[] values) {
+		public Criteria<T> in(@NonNull double[] values) {
+			validateNonNull(values);
 			Condition condition = new Condition(property, Operator.in, values);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> in(byte[] values) {
+		public Criteria<T> in(@NonNull byte[] values) {
+			validateNonNull(values);
 			Condition condition = new Condition(property, Operator.in, values);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> in(short[] values) {
+		public Criteria<T> in(@NonNull short[] values) {
+			validateNonNull(values);
 			Condition condition = new Condition(property, Operator.in, values);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> in(boolean[] values) {
+		public Criteria<T> in(@NonNull boolean[] values) {
+			validateNonNull(values);
 			Condition condition = new Condition(property, Operator.in, values);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> in(float[] values) {
+		public Criteria<T> in(@NonNull float[] values) {
+			validateNonNull(values);
 			Condition condition = new Condition(property, Operator.in, values);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> in(Object[] values) {
+		public Criteria<T> in(@NonNull Object[] values) {
+			validateNonNull(values);
 			Condition condition = new Condition(property, Operator.in, values);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -543,69 +584,79 @@ public final class Criteria<T> implements Serializable {
 		}
 
 		public Criteria<T> notIn(@NonNull Collection<?> values) {
+			validateNonNull(values);
 			Condition condition = new Condition(property, Operator.notIn, values);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> notIn(int[] values) {
+		public Criteria<T> notIn(@NonNull int[] values) {
+			validateNonNull(values);
 			Condition condition = new Condition(property, Operator.notIn, values);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> notIn(long[] values) {
+		public Criteria<T> notIn(@NonNull long[] values) {
+			validateNonNull(values);
 			Condition condition = new Condition(property, Operator.notIn, values);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> notIn(char[] values) {
+		public Criteria<T> notIn(@NonNull char[] values) {
+			validateNonNull(values);
 			Condition condition = new Condition(property, Operator.notIn, values);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> notIn(double[] values) {
+		public Criteria<T> notIn(@NonNull double[] values) {
+			validateNonNull(values);
 			Condition condition = new Condition(property, Operator.notIn, values);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> notIn(byte[] values) {
+		public Criteria<T> notIn(@NonNull byte[] values) {
+			validateNonNull(values);
 			Condition condition = new Condition(property, Operator.notIn, values);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> notIn(short[] values) {
+		public Criteria<T> notIn(@NonNull short[] values) {
+			validateNonNull(values);
 			Condition condition = new Condition(property, Operator.notIn, values);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> notIn(boolean[] values) {
+		public Criteria<T> notIn(@NonNull boolean[] values) {
+			validateNonNull(values);
 			Condition condition = new Condition(property, Operator.notIn, values);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> notIn(float[] values) {
+		public Criteria<T> notIn(@NonNull float[] values) {
+			validateNonNull(values);
 			Condition condition = new Condition(property, Operator.notIn, values);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
 			return criteria;
 		}
 
-		public Criteria<T> notIn(Object[] values) {
+		public Criteria<T> notIn(@NonNull Object[] values) {
+			validateNonNull(values);
 			Condition condition = new Condition(property, Operator.notIn, values);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -613,6 +664,7 @@ public final class Criteria<T> implements Serializable {
 		}
 
 		public Criteria<T> custom(@NonNull String value) {
+			validateNonNull(value);
 			Condition condition = new Condition(property, Operator.custom, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -642,6 +694,92 @@ public final class Criteria<T> implements Serializable {
 		public <S> CascadeProperty<T, S> next(CFunction<R, S> lambda) {
 			String property = LambdaUtils.getPropFromLambda(lambda);
 			return new CascadeProperty<>(this.cascadeProperty + Condition.ALIAS_SEPARATOR + property, this.cascadeProperty);
+		}
+	}
+
+	private static void validateNonNull(Object value) {
+		if (value == null) {
+			throw new IllegalStateException("value" + value + " is null");
+		}
+		if (value instanceof String) {
+			if (StringUtils.isBlank((CharSequence) value)) {
+				throw new IllegalStateException("value" + value + " is null");
+			}
+		}
+		if (value instanceof Collection<?>) {
+			if (((Collection<?>) value).isEmpty()) {
+				throw new IllegalStateException("value" + value + " is empty collection");
+			}
+			((Collection<?>) value).forEach(Criteria::validateNonNull);
+		}
+		if (value.getClass().isArray()) {
+			//check arrays
+			String simpleName = value.getClass().getSimpleName();
+			switch (simpleName) {
+				case "int[]": {
+					int[] values = (int[]) value;
+					if (values.length == 0) {
+						throw new IllegalStateException("value" + value + " is empty array");
+					}
+					break;
+				}
+				case "long[]": {
+					long[] values = (long[]) value;
+					if (values.length == 0) {
+						throw new IllegalStateException("value" + value + " is empty array");
+					}
+					break;
+				}
+				case "char[]": {
+					char[] values = (char[]) value;
+					if (values.length == 0) {
+						throw new IllegalStateException("value" + value + " is empty array");
+					}
+					break;
+				}
+				case "double[]": {
+					double[] values = (double[]) value;
+					if (values.length == 0) {
+						throw new IllegalStateException("value" + value + " is empty array");
+					}
+					break;
+				}
+				case "byte[]": {
+					byte[] values = (byte[]) value;
+					if (values.length == 0) {
+						throw new IllegalStateException("value" + value + " is empty array");
+					}
+					break;
+				}
+				case "short[]": {
+					short[] values = (short[]) value;
+					if (values.length == 0) {
+						throw new IllegalStateException("value" + value + " is empty array");
+					}
+					break;
+				}
+				case "boolean[]": {
+					boolean[] values = (boolean[]) value;
+					if (values.length == 0) {
+						throw new IllegalStateException("value" + value + " is empty array");
+					}
+					break;
+				}
+				case "float[]": {
+					float[] values = (float[]) value;
+					if (values.length == 0) {
+						throw new IllegalStateException("value" + value + " is empty array");
+					}
+					break;
+				}
+				default: {
+					Object[] values = (Object[]) value;
+					if (values.length == 0) {
+						throw new IllegalStateException("value" + value + " is empty array");
+					}
+					break;
+				}
+			}
 		}
 	}
 }
