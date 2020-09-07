@@ -521,8 +521,6 @@ public class MybatisSqlBuilder {
 				if (StringUtils.isBlank(propertyName)) {
 					continue;
 				}
-				String rootAlias = tableAliasMap.get(ROOT_TABLE_ALIAS_KEY).alias;
-				//此处的joinType是瞎猜的，不作数
 				ColumnWithAlias columnWithAlias = resolvePropertyCascade(tableAliasMap, propertyName);
 				String alias = columnWithAlias.alias;
 				Column column = columnWithAlias.column;
@@ -810,8 +808,7 @@ public class MybatisSqlBuilder {
 		Map<String, TableWithAlias> tableAliasMap = new ConcurrentHashMap<>();
 		String rootAlias = createTableAlias(tableName, counter);
 		tableAliasMap.put(ROOT_TABLE_ALIAS_KEY, new TableWithAlias(rootAlias, table));
-
-
+		//build select items
 		table.getColumns().stream().filter(column -> {
 			if (selector != null) {
 				if (selector.getIncludes() != null) {
@@ -824,20 +821,22 @@ public class MybatisSqlBuilder {
 		}).forEach(column -> {
 			sql.select(rootAlias + "." + column.getSqlName() + " as " + "\"" + column.getJavaName() + "\"");
 		});
+		//build from clause
 		sql.from(tableName + " as " + rootAlias);
+		//build joins
 		TreeMap<String, Join> joins = criteria.getJoins();
 		if (joins != null && !joins.isEmpty()) {
 			for (Map.Entry<String, Join> entry : joins.entrySet()) {
 				buildJoinSequential(tableAliasMap, counter, sql, entry.getValue(), criteria.getSelector());
 			}
 		}
-
+		//build conditions
 		if (CollectionUtils.isNotEmpty(conditions)) {
 			for (Condition condition : conditions) {
 				buildCondition(map, tableAliasMap, sql, condition);
 			}
 		}
-
+		//build order by clause
 		buildOrder(tableAliasMap, sql, criteria.getSortProperties());
 		if (logger.isDebugEnabled()) {
 			logger.debug(sql.toString());
