@@ -19,7 +19,7 @@ public class CriteriaTest {
 		criteria.and(Student::getAge).greaterThan(13)
 				.and(Student::getName).is("张三")
 				.or(Student::getCode).isNot("zhangsan");
-		criteria.left(Student::getTeacher).inner(Teacher::getStuff).and(Stuff::getName).is("李");
+		criteria.leftJoin(Student::getTeacher).innerJoin(Teacher::getStuff).and(Stuff::getName).is("李");
 		System.out.println(SerializeUtils.toJson(criteria));
 	}
 }

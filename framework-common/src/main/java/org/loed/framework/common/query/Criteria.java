@@ -138,27 +138,27 @@ public final class Criteria<T> implements Serializable {
 		sortProperties.add(sortProperty);
 	}
 
-	public <S> JoinBuilder<T, S> left(SFunction<T, S> lambda) {
+	public <S> JoinBuilder<T, S> leftJoin(SFunction<T, S> lambda) {
 		return joinBuilder(LambdaUtils.getPropFromLambda(lambda), JoinType.LEFT);
 	}
 
-	public <S> JoinBuilder<T, S> left(CFunction<T, S> lambda) {
+	public <S> JoinBuilder<T, S> leftJoin(CFunction<T, S> lambda) {
 		return joinBuilder(LambdaUtils.getPropFromLambda(lambda), JoinType.LEFT);
 	}
 
-	public <S> JoinBuilder<T, S> inner(SFunction<T, S> lambda) {
+	public <S> JoinBuilder<T, S> innerJoin(SFunction<T, S> lambda) {
 		return joinBuilder(LambdaUtils.getPropFromLambda(lambda), JoinType.INNER);
 	}
 
-	public <S> JoinBuilder<T, S> inner(CFunction<T, S> lambda) {
+	public <S> JoinBuilder<T, S> innerJoin(CFunction<T, S> lambda) {
 		return joinBuilder(LambdaUtils.getPropFromLambda(lambda), JoinType.INNER);
 	}
 
-	public <S> JoinBuilder<T, S> right(SFunction<T, S> lambda) {
+	public <S> JoinBuilder<T, S> rightJoin(SFunction<T, S> lambda) {
 		return joinBuilder(LambdaUtils.getPropFromLambda(lambda), JoinType.RIGHT);
 	}
 
-	public <S> JoinBuilder<T, S> right(CFunction<T, S> lambda) {
+	public <S> JoinBuilder<T, S> rightJoin(CFunction<T, S> lambda) {
 		return joinBuilder(LambdaUtils.getPropFromLambda(lambda), JoinType.RIGHT);
 	}
 
@@ -183,7 +183,8 @@ public final class Criteria<T> implements Serializable {
 		return new ConditionSpec<>(this, Joint.or, prop);
 	}
 
-	public Criteria<T> asc(SFunction<T, ?>... lambda) {
+	@SafeVarargs
+	public final Criteria<T> asc(SFunction<T, ?>... lambda) {
 		if (lambda == null || lambda.length == 0) {
 			return this;
 		}
@@ -194,7 +195,8 @@ public final class Criteria<T> implements Serializable {
 		return this;
 	}
 
-	public Criteria<T> asc(CascadeProperty<T, ?>... cascadeProperties) {
+	@SafeVarargs
+	public final Criteria<T> asc(CascadeProperty<T, ?>... cascadeProperties) {
 		if (cascadeProperties == null || cascadeProperties.length == 0) {
 			return this;
 		}
@@ -209,7 +211,8 @@ public final class Criteria<T> implements Serializable {
 		return this;
 	}
 
-	public Criteria<T> desc(SFunction<T, ?>... lambda) {
+	@SafeVarargs
+	public final Criteria<T> desc(SFunction<T, ?>... lambda) {
 		if (lambda == null || lambda.length == 0) {
 			return this;
 		}
@@ -220,7 +223,8 @@ public final class Criteria<T> implements Serializable {
 		return this;
 	}
 
-	public Criteria<T> desc(CascadeProperty<T, ?>... cascadeProperties) {
+	@SafeVarargs
+	public final Criteria<T> desc(CascadeProperty<T, ?>... cascadeProperties) {
 		if (cascadeProperties == null || cascadeProperties.length == 0) {
 			return this;
 		}
@@ -261,27 +265,27 @@ public final class Criteria<T> implements Serializable {
 			this.previous = previous;
 		}
 
-		public <S> JoinBuilder<T, S> left(SFunction<R, S> lambda) {
+		public <S> JoinBuilder<T, S> leftJoin(SFunction<R, S> lambda) {
 			return joinBuilder(LambdaUtils.getPropFromLambda(lambda), JoinType.LEFT);
 		}
 
-		public <S> JoinBuilder<T, S> left(CFunction<R, S> lambda) {
+		public <S> JoinBuilder<T, S> leftJoin(CFunction<R, S> lambda) {
 			return joinBuilder(LambdaUtils.getPropFromLambda(lambda), JoinType.LEFT);
 		}
 
-		public <S> JoinBuilder<T, S> inner(SFunction<R, S> lambda) {
+		public <S> JoinBuilder<T, S> innerJoin(SFunction<R, S> lambda) {
 			return joinBuilder(LambdaUtils.getPropFromLambda(lambda), JoinType.INNER);
 		}
 
-		public <S> JoinBuilder<T, S> inner(CFunction<R, S> lambda) {
+		public <S> JoinBuilder<T, S> innerJoin(CFunction<R, S> lambda) {
 			return joinBuilder(LambdaUtils.getPropFromLambda(lambda), JoinType.INNER);
 		}
 
-		public <S> JoinBuilder<T, S> right(SFunction<R, S> lambda) {
+		public <S> JoinBuilder<T, S> rightJoin(SFunction<R, S> lambda) {
 			return joinBuilder(LambdaUtils.getPropFromLambda(lambda), JoinType.RIGHT);
 		}
 
-		public <S> JoinBuilder<T, S> right(CFunction<R, S> lambda) {
+		public <S> JoinBuilder<T, S> rightJoin(CFunction<R, S> lambda) {
 			return joinBuilder(LambdaUtils.getPropFromLambda(lambda), JoinType.RIGHT);
 		}
 
@@ -289,12 +293,6 @@ public final class Criteria<T> implements Serializable {
 			Join join = new Join();
 			join.setJoinType(inner);
 			join.setTarget(prop);
-//			if (this.previous == null) {
-//				join.setUniquePath(prop);
-//			} else {
-//				String path = this.previous.join.getUniquePath();
-//				join.setUniquePath(path + "." + prop);
-//			}
 			join.setUniquePath(this.join.getUniquePath() + "." + prop);
 			this.criteria.join(join);
 			return new JoinBuilder<>(this.criteria, join, this);
@@ -310,17 +308,29 @@ public final class Criteria<T> implements Serializable {
 			return new ConditionSpec<T>(criteria, Joint.and, this.join.getUniquePath() + Condition.PATH_SEPARATOR + prop);
 		}
 
-		public Criteria<T> asc(SFunction<T, ?> lambda) {
-			String prop = LambdaUtils.getPropFromLambda(lambda);
-			String sortProp = this.join.getTarget() + Condition.PATH_SEPARATOR + prop;
-			this.criteria.sort(new SortProperty(sortProp, Sort.ASC));
+		@SafeVarargs
+		public final Criteria<T> asc(SFunction<T, ?>... lambda) {
+			if (lambda == null || lambda.length == 0) {
+				return this.criteria;
+			}
+			for (SFunction<T, ?> function : lambda) {
+				String prop = LambdaUtils.getPropFromLambda(function);
+				String sortProp = this.join.getUniquePath() + Condition.PATH_SEPARATOR + prop;
+				this.criteria.sort(new SortProperty(sortProp, Sort.ASC));
+			}
 			return this.criteria;
 		}
 
-		public Criteria<T> desc(SFunction<T, ?> lambda) {
-			String prop = LambdaUtils.getPropFromLambda(lambda);
-			String sortProp = this.join.getTarget() + Condition.PATH_SEPARATOR + prop;
-			this.criteria.sort(new SortProperty(sortProp, Sort.DESC));
+		@SafeVarargs
+		public final Criteria<T> desc(SFunction<T, ?>... lambda) {
+			if (lambda == null || lambda.length == 0) {
+				return this.criteria;
+			}
+			for (SFunction<T, ?> function : lambda) {
+				String prop = LambdaUtils.getPropFromLambda(function);
+				String sortProp = this.join.getUniquePath() + Condition.PATH_SEPARATOR + prop;
+				this.criteria.sort(new SortProperty(sortProp, Sort.DESC));
+			}
 			return this.criteria;
 		}
 	}

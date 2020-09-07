@@ -176,11 +176,11 @@ public class MysqlR2dbcSqlBuilderTest {
 	public void testJoinCriteria() {
 		Criteria<Student> criteria = Criteria.from(Student.class);
 		criteria.and(Student::getName).is("zhangsan");
-		criteria.inner(Student::getMyClass).and(Class::getGrade).is("2");
-		criteria.left(Student::getMyClass).left(Class::getStudentList).left(Student::getMyClass2).and(Class::getGrade)
+		criteria.innerJoin(Student::getMyClass).and(Class::getGrade).is("2");
+		criteria.leftJoin(Student::getMyClass).leftJoin(Class::getStudentList).leftJoin(Student::getMyClass2).and(Class::getGrade)
 				.is("abc");
-		criteria.left(Student::getMyClass2).and(Class::getName).is("3");
-		criteria.right(Student::getMyClass).and(Class::getName).is("3");
+		criteria.leftJoin(Student::getMyClass2).and(Class::getName).is("3");
+		criteria.rightJoin(Student::getMyClass).and(Class::getName).is("3");
 		criteria.and(Student::getNo).contains("2");
 		Table table = ORMapping.get(Student.class);
 		R2dbcQuery query = mysqlR2dbcSqlBuilder.findByCriteria(table, criteria);
