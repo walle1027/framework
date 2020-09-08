@@ -991,6 +991,7 @@ public class DataType {
 				} catch (DateTimeParseException dept) {
 					log.warn("can't convert value " + value + " to yyyy-MM-dd");
 				}
+				log.warn("can't convert value " + value + " to [yyyy-MM-dd HH:mm:ss.SSS,yyyy-MM-dd HH:mm:ss.SS,yyyy-MM-dd HH:mm:ss.S,yyyy-MM-dd HH:mm:ss,yyyy-MM-dd HH:mm,yyyy-MM-dd HH,yyyy-MM-dd]");
 				return null;
 			case DT_Long:
 			case DT_long:
