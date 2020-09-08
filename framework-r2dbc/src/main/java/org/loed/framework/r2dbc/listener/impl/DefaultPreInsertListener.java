@@ -2,12 +2,11 @@ package org.loed.framework.r2dbc.listener.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import org.loed.framework.common.context.ReactiveSystemContext;
+import org.loed.framework.common.data.DataType;
 import org.loed.framework.common.po.CreateBy;
 import org.loed.framework.common.po.CreateTime;
 import org.loed.framework.common.po.IsDeleted;
 import org.loed.framework.common.po.TenantId;
-import org.loed.framework.common.data.DataType;
-import org.loed.framework.common.util.LocalDateUtils;
 import org.loed.framework.common.util.ReflectionUtils;
 import org.loed.framework.r2dbc.listener.spi.PreInsertListener;
 import org.springframework.core.Ordered;
@@ -75,10 +74,9 @@ public class DefaultPreInsertListener implements PreInsertListener {
 					} else if (field.getType().getName().equals(java.sql.Date.class.getName())) {
 						ReflectionUtils.setFieldValue(object, field, new java.sql.Date(System.currentTimeMillis()));
 					} else if (field.getType().getName().equals(LocalDateTime.class.getName())) {
-						ReflectionUtils.setFieldValue(object, field, LocalDateUtils.convertDateToLDT(new Date()));
+						ReflectionUtils.setFieldValue(object, field, LocalDateTime.now());
 					} else if (field.getType().getName().equals(LocalDate.class.getName())) {
-						LocalDateTime localDateTime = LocalDateUtils.convertDateToLDT(new Date());
-						ReflectionUtils.setFieldValue(object, field, localDateTime.toLocalDate());
+						ReflectionUtils.setFieldValue(object, field, LocalDate.now());
 					} else {
 						log.warn("filed:" + field.getName() + " has CreateTime annotation but type is :" + field.getType().getName() + " is not one of the [java.util.Date" +
 								",java.sql.Date,java.time.LocalDateTime,java.time.LocalDate] will not set value");
@@ -151,9 +149,9 @@ public class DefaultPreInsertListener implements PreInsertListener {
 					} else if (parameterTypeName.equals(java.sql.Date.class.getName())) {
 						ReflectionUtils.invokeMethod(object, method.getName(), method.getParameterTypes(), new Object[]{new java.sql.Date(now.getTime())});
 					} else if (parameterTypeName.equals(LocalDateTime.class.getName())) {
-						ReflectionUtils.invokeMethod(object, method.getName(), method.getParameterTypes(), new Object[]{LocalDateUtils.convertDateToLDT(now)});
+						ReflectionUtils.invokeMethod(object, method.getName(), method.getParameterTypes(), new Object[]{LocalDateTime.now()});
 					} else if (parameterTypeName.equals(LocalDate.class.getName())) {
-						ReflectionUtils.invokeMethod(object, method.getName(), method.getParameterTypes(), new Object[]{LocalDateUtils.convertDateToLDT(now).toLocalDate()});
+						ReflectionUtils.invokeMethod(object, method.getName(), method.getParameterTypes(), new Object[]{LocalDate.now()});
 					} else {
 						log.warn("method:" + method.getName() + " has CreateTime annotation but type is :" + parameterTypeName + " is not one of the [java.util.Date" +
 								",java.sql.Date,java.time.LocalDateTime,java.time.LocalDate] will not set value");
