@@ -718,14 +718,14 @@ public class MybatisSqlBuilder {
 		Map<String, TableWithAlias> tableAliasMap = new ConcurrentHashMap<>();
 		String tableName = getTableNameByCriteria(table, criteria);
 		String rootAlias = createTableAlias(tableName, counter);
-		tableAliasMap.put(ROOT_TABLE_ALIAS_KEY, new TableWithAlias(rootAlias, table));
-		sql.update(tableName + " as " + rootAlias);
+		tableAliasMap.put(ROOT_TABLE_ALIAS_KEY, new TableWithAlias(null, table));
+		sql.update(tableName);
 		columnMap.forEach((key, value) -> {
 			Column column = table.getColumns().stream().filter(c -> Objects.equals(c.getJavaName(), key)).findFirst().orElse(null);
 			if (column == null) {
 				throw new RuntimeException("could not find column for property:" + key + ", in table " + table.getSqlName() + " of class:" + table.getJavaName());
 			}
-			sql.set(rootAlias + "." + column.getSqlName() + BLANK + "=" + BLANK + "#{columnMap." + key + ",jdbcType=" + column.getSqlTypeName() + "}");
+			sql.set(column.getSqlName() + BLANK + "=" + BLANK + "#{columnMap." + key + ",jdbcType=" + column.getSqlTypeName() + "}");
 		});
 		List<Condition> conditions = criteria.getConditions();
 		if (CollectionUtils.isNotEmpty(conditions)) {
@@ -751,8 +751,8 @@ public class MybatisSqlBuilder {
 		Map<String, TableWithAlias> tableAliasMap = new ConcurrentHashMap<>();
 		String tableName = getTableNameByCriteria(table, criteria);
 		String rootAlias = createTableAlias(tableName, counter);
-		tableAliasMap.put(ROOT_TABLE_ALIAS_KEY, new TableWithAlias(rootAlias, table));
-		sql.delete(tableName + " as " + rootAlias);
+		tableAliasMap.put(ROOT_TABLE_ALIAS_KEY, new TableWithAlias(null, table));
+		sql.delete(tableName);
 		List<Condition> conditions = criteria.getConditions();
 		if (CollectionUtils.isNotEmpty(conditions)) {
 			for (Condition condition : conditions) {

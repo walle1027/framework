@@ -16,4 +16,7 @@ public interface PersonDao extends R2dbcDao<Person, String> {
 
 	@Query("select count(*) from t_test_person where name = :name")
 	Mono<Long> count(String name);
+
+	@Query("select max(age) from t_test_person")
+	Mono<Integer> maxAge();
 }

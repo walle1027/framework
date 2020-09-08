@@ -62,13 +62,14 @@ public class JsonResultWrapperEncoder extends Jackson2JsonEncoder {
 		Assert.notNull(bufferFactory, "'bufferFactory' must not be null");
 		Assert.notNull(elementType, "'elementType' must not be null");
 		if (inputStream instanceof Mono) {
+			ResolvableType wrappedType = ResolvableType.forClassWithGenerics(Result.class, elementType);
 			return Mono.from(inputStream).map(value -> {
 				if (value instanceof Result) {
 					return value;
 				}
 				return new Result<>(value);
 			}).defaultIfEmpty(new Result<>())
-					.map(value -> encodeValue(value, bufferFactory, elementType, mimeType, hints))
+					.map(value -> encodeValue(value, bufferFactory, wrappedType, mimeType, hints))
 					.flux();
 		} else {
 			//streaming json, not supported now

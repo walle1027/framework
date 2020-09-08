@@ -18,7 +18,9 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 /**
  * @author Thomason
@@ -82,6 +84,16 @@ public class PersonDaoTest {
 				});
 
 		StepVerifier.create(map).expectNextCount(1L).verifyComplete();
+	}
+
+	@Test
+	public void testCustomQuery(){
+		Mono<Integer> age = personDao.maxAge().defaultIfEmpty(1)
+				.subscriberContext(context -> {
+					return context.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext);
+				});
+
+		StepVerifier.create(age).expectNext(1).verifyComplete();
 	}
 
 	@After

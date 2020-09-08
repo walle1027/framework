@@ -48,6 +48,7 @@ public class DataType {
 	public static final int DT_DateTime = 25;
 	public static final int DT_LocalDate = 61;
 	public static final int DT_LocalDateTime = 62;
+	public static final int DT_ZoneDateTime = 63;
 
 	/**
 	 * sql types
@@ -72,11 +73,13 @@ public class DataType {
 	public static final int DT_UserDefine = 50;
 	private static Map<String, Integer> dataTypeMap = new Hashtable<String, Integer>();
 
-	public static final DateTimeFormatter yyyMMddHHmmssSSS = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
-	public static final DateTimeFormatter yyyMMddHHmmss = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-	public static final DateTimeFormatter yyyMMddHHmm = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-	public static final DateTimeFormatter yyyMMddHH = DateTimeFormatter.ofPattern("yyyy-MM-dd HH");
-	public static final DateTimeFormatter yyyMMdd = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+	public static final DateTimeFormatter yyyyMMddHHmmssSSS = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+	public static final DateTimeFormatter yyyyMMddHHmmssSS = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SS");
+	public static final DateTimeFormatter yyyyMMddHHmmssS = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.S");
+	public static final DateTimeFormatter yyyyMMddHHmmss = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+	public static final DateTimeFormatter yyyyMMddHHmm = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+	public static final DateTimeFormatter yyyyMMddHH = DateTimeFormatter.ofPattern("yyyy-MM-dd HH");
+	public static final DateTimeFormatter yyyyMMdd = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
 	static {
 		dataTypeMap.put("byte", DT_byte);
@@ -103,6 +106,7 @@ public class DataType {
 		dataTypeMap.put("Timestamp", DT_DateTime);
 		dataTypeMap.put("LocalDateTime", DT_LocalDateTime);
 		dataTypeMap.put("LocalDate", DT_LocalDate);
+		dataTypeMap.put("ZoneDateTime", DT_ZoneDateTime);
 		dataTypeMap.put("List", DT_List);
 		dataTypeMap.put("ArrayList", DT_List);
 		dataTypeMap.put("LinkedList", DT_List);
@@ -822,6 +826,9 @@ public class DataType {
 			case DT_Date:
 			case DT_Time:
 			case DT_DateTime:
+			case DT_LocalDate:
+			case DT_LocalDateTime:
+			case DT_ZoneDateTime:
 			case DT_Clob:
 			case DT_Blob:
 				return true;
@@ -923,7 +930,12 @@ public class DataType {
 	private static LocalDate convert2LocalDate(int srcType, Object value) {
 		switch (srcType) {
 			case DT_String:
-				return LocalDate.parse(value.toString(), yyyMMdd);
+				try {
+					return LocalDate.parse(value.toString(), yyyyMMdd);
+				} catch (DateTimeParseException dept) {
+					log.warn("can't convert value " + value + " to yyyy-MM-dd HH:mm:ss.SSS");
+				}
+				return null;
 			case DT_Long:
 			case DT_long:
 				Date dateLong = new Date((Long) value);
@@ -945,30 +957,41 @@ public class DataType {
 		switch (srcType) {
 			case DT_String:
 				try {
-					return LocalDateTime.parse(value.toString(), yyyMMddHHmmssSSS);
+					return LocalDateTime.parse(value.toString(), yyyyMMddHHmmssSSS);
 				} catch (DateTimeParseException dept) {
-					log.warn("can't convert value to " + yyyMMddHHmmssSSS.toString());
+					log.warn("can't convert value " + value + " to yyyy-MM-dd HH:mm:ss.SSS");
 				}
 				try {
-					return LocalDateTime.parse(value.toString(), yyyMMddHHmmss);
+					return LocalDateTime.parse(value.toString(), yyyyMMddHHmmssSS);
 				} catch (DateTimeParseException dept) {
-					log.warn("can't convert value to " + yyyMMddHHmmss.toString());
+					log.warn("can't convert value " + value + " to yyyy-MM-dd HH:mm:ss.SS");
 				}
 				try {
-					return LocalDateTime.parse(value.toString(), yyyMMddHHmm);
+					return LocalDateTime.parse(value.toString(), yyyyMMddHHmmssS);
 				} catch (DateTimeParseException dept) {
-					log.warn("can't convert value to " + yyyMMddHHmm.toString());
+					log.warn("can't convert value " + value + " to yyyy-MM-dd HH:mm:ss.S");
 				}
 				try {
-					return LocalDateTime.parse(value.toString(), yyyMMddHH);
+					return LocalDateTime.parse(value.toString(), yyyyMMddHHmmss);
 				} catch (DateTimeParseException dept) {
-					log.warn("can't convert value to " + yyyMMddHH.toString());
+					log.warn("can't convert value " + value + " to yyyy-MM-dd HH:mm:ss");
 				}
 				try {
-					return LocalDateTime.parse(value.toString(), yyyMMdd);
+					return LocalDateTime.parse(value.toString(), yyyyMMddHHmm);
 				} catch (DateTimeParseException dept) {
-					log.warn("can't convert value to " + yyyMMdd.toString());
+					log.warn("can't convert value " + value + " to yyyy-MM-dd HH:mm");
 				}
+				try {
+					return LocalDateTime.parse(value.toString(), yyyyMMddHH);
+				} catch (DateTimeParseException dept) {
+					log.warn("can't convert value " + value + " to yyyy-MM-dd HH");
+				}
+				try {
+					return LocalDateTime.parse(value.toString(), yyyyMMdd);
+				} catch (DateTimeParseException dept) {
+					log.warn("can't convert value " + value + " to yyyy-MM-dd");
+				}
+				return null;
 			case DT_Long:
 			case DT_long:
 				return LocalDateUtils.convertDateToLDT(new Date((Long) value));

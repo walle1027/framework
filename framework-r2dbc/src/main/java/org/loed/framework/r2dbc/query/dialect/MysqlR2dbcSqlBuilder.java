@@ -94,19 +94,18 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 	@Override
 	public <T> R2dbcQuery updateByCriteria(@NonNull Object entity, @NonNull Table table, @NonNull Criteria<T> criteria, @NonNull Predicate<Column> columnFilter) {
 		AtomicInteger counter = new AtomicInteger(1);
-		String rootAlias = createTableAlias(table.getSqlName(), counter);
 		Map<String, TableWithAlias> tableAliasMap = new ConcurrentHashMap<>();
-		tableAliasMap.put(ROOT_TABLE_ALIAS_KEY, new TableWithAlias(rootAlias, table));
+		tableAliasMap.put(ROOT_TABLE_ALIAS_KEY, new TableWithAlias(null, table));
 
 		Map<String, R2dbcParam> params = new HashMap<>();
 		QueryBuilder builder = new QueryBuilder();
-		builder.update(wrap(table.getSqlName()) + BLANK + "as" + BLANK + rootAlias);
-		table.getColumns().parallelStream().filter(UPDATABLE_FILTER.and(columnFilter).or(VERSION_FILTER)).forEach(column -> {
+		builder.update(wrap(table.getSqlName()));
+		table.getColumns().stream().filter(UPDATABLE_FILTER.and(columnFilter).or(VERSION_FILTER)).forEach(column -> {
 			StringBuilder setBuilder = new StringBuilder();
 			if (column.isVersioned()) {
-				setBuilder.append(rootAlias).append(".").append(wrap(column.getSqlName())).append(BLANK).append("=").append(BLANK).append(wrap(column.getSqlName())).append(" + 1");
+				setBuilder.append(wrap(column.getSqlName())).append(BLANK).append("=").append(BLANK).append(wrap(column.getSqlName())).append(" + 1");
 			} else {
-				setBuilder.append(rootAlias).append(".").append(wrap(column.getSqlName())).append(BLANK).append("=").append(BLANK).append(":").append(column.getJavaName());
+				setBuilder.append(wrap(column.getSqlName())).append(BLANK).append("=").append(BLANK).append(":").append(column.getJavaName());
 				Object fieldValue = ReflectionUtils.getFieldValue(entity, column.getJavaName());
 				params.put(column.getJavaName(), new R2dbcParam(column.getJavaType(), fieldValue));
 			}
@@ -130,16 +129,15 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 		QueryBuilder builder = new QueryBuilder();
 		AtomicInteger counter = new AtomicInteger(1);
 		Map<String, R2dbcParam> paramMap = new HashMap<>();
-		String rootAlias = createTableAlias(table.getSqlName(), counter);
 		Map<String, TableWithAlias> tableAliasMap = new ConcurrentHashMap<>();
-		tableAliasMap.put(ROOT_TABLE_ALIAS_KEY, new TableWithAlias(rootAlias, table));
+		tableAliasMap.put(ROOT_TABLE_ALIAS_KEY, new TableWithAlias(null, table));
 		//check has is_deleted column
 		Column isDeletedColumn = table.getColumns().stream().filter(Column::isDeleted).findFirst().orElse(null);
 		if (isDeletedColumn != null) {
-			builder.update(wrap(table.getSqlName()) + BLANK + "as" + BLANK + rootAlias);
+			builder.update(wrap(table.getSqlName()));
 			builder.set(wrap(isDeletedColumn.getSqlName()) + BLANK + "=" + BLANK + "1");
 		} else {
-			builder.delete(wrap(table.getSqlName()) + BLANK + "as" + BLANK + rootAlias);
+			builder.delete(wrap(table.getSqlName()));
 		}
 		List<Condition> conditions = criteria.getConditions();
 		if (CollectionUtils.isEmpty(conditions)) {

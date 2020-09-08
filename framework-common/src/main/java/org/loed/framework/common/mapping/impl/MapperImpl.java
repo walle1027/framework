@@ -44,6 +44,7 @@ public class MapperImpl implements Mapper {
 	 * @param origin      源对象
 	 * @param destination 目标对象
 	 */
+	@Override
 	public void map(Object origin, Object destination) {
 		if (origin == null || destination == null) {
 			return;
@@ -80,6 +81,7 @@ public class MapperImpl implements Mapper {
 	 * @param destination 目标对象
 	 * @param mappingId   映射文件Id
 	 */
+	@Override
 	public void map(Object origin, Object destination, String mappingId) {
 		String mappingKey = MappingConfig.buildMappingKey(origin, destination, mappingId);
 		MappingConfig mappingConfig = configMap.get(mappingKey);

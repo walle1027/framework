@@ -26,7 +26,6 @@ import org.springframework.data.r2dbc.core.DatabaseClient;
 import org.springframework.data.repository.core.support.MethodInvocationValidator;
 import org.springframework.data.util.Lazy;
 import org.springframework.transaction.interceptor.TransactionalProxy;
-import org.springframework.validation.beanvalidation.MethodValidationInterceptor;
 
 import java.util.ArrayList;
 import java.util.List;

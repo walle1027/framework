@@ -3,6 +3,7 @@ package org.loed.framework.common.query;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import javax.annotation.concurrent.NotThreadSafe;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,6 +12,7 @@ import java.util.List;
  * @version 1.0
  * @since 2020/2/24 1:46 PM
  */
+@NotThreadSafe
 public class QueryBuilder {
 	private static final String BLANK = " ";
 	private final List<String> selectList = new ArrayList<>();

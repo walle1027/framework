@@ -42,7 +42,7 @@ public class JPAClassRowMapper<T> implements BiFunction<Row, RowMetadata, T> {
 		if (columnName.contains(".")) {
 			String prefix = columnName.substring(0, columnName.indexOf("."));
 			String suffix = columnName.substring(columnName.indexOf(".") + 1);
-			//TODO 使用缓存 减少反射
+			//使用缓存 减少反射
 			String cacheKey = object.getClass().getName() + "#" + prefix;
 			Field field = fieldMap.get(cacheKey);
 			if (field == null) {
@@ -123,8 +123,10 @@ public class JPAClassRowMapper<T> implements BiFunction<Row, RowMetadata, T> {
 				} else {
 					int fieldType = DataType.getDataType(type);
 					try {
-						//fixme enum type not supperted
 						Object convertedValue = DataType.toType(value, fieldType);
+						if (convertedValue == null) {
+							logger.error("convert origin value:" + value + " to target type:" + type + " to null");
+						}
 						field.set(object, convertedValue);
 					} catch (Exception e) {
 						logger.error("convert value:" + value + " to type:" + fieldType + " error, caused by:" + e.getMessage(), e);
