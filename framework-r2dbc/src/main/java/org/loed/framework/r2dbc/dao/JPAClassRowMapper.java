@@ -157,12 +157,19 @@ public class JPAClassRowMapper<T> implements BiFunction<Row, RowMetadata, T> {
 			return null;
 		}
 		try {
-			if (clazz.getName().equals("java.util.Map")) {
+			if (clazz.getName().equals(Map.class.getName())) {
 				return new HashMap<>();
-			} else if (clazz.getName().equals("java.util.Set")) {
+			} else if (clazz.getName().equals(Set.class.getName())) {
 				return new HashSet<>();
 			}
-			return clazz.newInstance();
+			//TODO create array
+			else if (clazz.isArray()) {
+
+			} else if (clazz.getName().equals(List.class.getName())) {
+				return new ArrayList<>();
+			} else {
+				return clazz.newInstance();
+			}
 		} catch (InstantiationException e) {
 			e.printStackTrace();
 		} catch (IllegalAccessException e) {

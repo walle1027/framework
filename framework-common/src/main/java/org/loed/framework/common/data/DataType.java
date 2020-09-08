@@ -958,38 +958,31 @@ public class DataType {
 			case DT_String:
 				try {
 					return LocalDateTime.parse(value.toString(), yyyyMMddHHmmssSSS);
-				} catch (DateTimeParseException dept) {
-					log.warn("can't convert value " + value + " to yyyy-MM-dd HH:mm:ss.SSS");
+				} catch (DateTimeParseException ignored) {
 				}
 				try {
 					return LocalDateTime.parse(value.toString(), yyyyMMddHHmmssSS);
-				} catch (DateTimeParseException dept) {
-					log.warn("can't convert value " + value + " to yyyy-MM-dd HH:mm:ss.SS");
+				} catch (DateTimeParseException ignored) {
 				}
 				try {
 					return LocalDateTime.parse(value.toString(), yyyyMMddHHmmssS);
-				} catch (DateTimeParseException dept) {
-					log.warn("can't convert value " + value + " to yyyy-MM-dd HH:mm:ss.S");
+				} catch (DateTimeParseException ignored) {
 				}
 				try {
 					return LocalDateTime.parse(value.toString(), yyyyMMddHHmmss);
-				} catch (DateTimeParseException dept) {
-					log.warn("can't convert value " + value + " to yyyy-MM-dd HH:mm:ss");
+				} catch (DateTimeParseException ignored) {
 				}
 				try {
 					return LocalDateTime.parse(value.toString(), yyyyMMddHHmm);
-				} catch (DateTimeParseException dept) {
-					log.warn("can't convert value " + value + " to yyyy-MM-dd HH:mm");
+				} catch (DateTimeParseException ignored) {
 				}
 				try {
 					return LocalDateTime.parse(value.toString(), yyyyMMddHH);
-				} catch (DateTimeParseException dept) {
-					log.warn("can't convert value " + value + " to yyyy-MM-dd HH");
+				} catch (DateTimeParseException ignored) {
 				}
 				try {
 					return LocalDateTime.parse(value.toString(), yyyyMMdd);
-				} catch (DateTimeParseException dept) {
-					log.warn("can't convert value " + value + " to yyyy-MM-dd");
+				} catch (DateTimeParseException ignored) {
 				}
 				log.warn("can't convert value " + value + " to [yyyy-MM-dd HH:mm:ss.SSS,yyyy-MM-dd HH:mm:ss.SS,yyyy-MM-dd HH:mm:ss.S,yyyy-MM-dd HH:mm:ss,yyyy-MM-dd HH:mm,yyyy-MM-dd HH,yyyy-MM-dd]");
 				return null;
