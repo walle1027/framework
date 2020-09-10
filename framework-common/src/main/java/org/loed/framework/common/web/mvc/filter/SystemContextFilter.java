@@ -66,10 +66,10 @@ public class SystemContextFilter implements Filter, Ordered {
 						if (log.isDebugEnabled()) {
 							log.debug("request {} has  header: {}, with value {}", requestURI, SystemContext.CONTEXT_USER_AGENT, headerVal);
 						}
-					} else if (StringUtils.equalsIgnoreCase(curHeader, SystemContext.CONTEXT_TENANT_CODE)) {
+					} else if (StringUtils.equalsIgnoreCase(curHeader, SystemContext.CONTEXT_TENANT_ID)) {
 						SystemContextHolder.setTenantCode(headerVal);
 						if (log.isDebugEnabled()) {
-							log.debug("request {} has  header: {}, with value {}", requestURI, SystemContext.CONTEXT_TENANT_CODE, headerVal);
+							log.debug("request {} has  header: {}, with value {}", requestURI, SystemContext.CONTEXT_TENANT_ID, headerVal);
 						}
 					} else if (StringUtils.equalsIgnoreCase(curHeader, SystemContext.CONTEXT_LOCALE)) {
 						SystemContextHolder.setLocale(headerVal);

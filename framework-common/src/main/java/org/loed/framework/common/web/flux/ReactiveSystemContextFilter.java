@@ -55,8 +55,8 @@ public class ReactiveSystemContextFilter implements WebFilter {
 				systemContext.setClientIp(headerValue);
 			} else if (StringUtils.equalsIgnoreCase(SystemContext.CONTEXT_USER_AGENT, key)) {
 				systemContext.setUserAgent(headerValue);
-			} else if (StringUtils.equalsIgnoreCase(SystemContext.CONTEXT_TENANT_CODE, key)) {
-				systemContext.setTenantCode(headerValue);
+			} else if (StringUtils.equalsIgnoreCase(SystemContext.CONTEXT_TENANT_ID, key)) {
+				systemContext.setTenantId(headerValue);
 			} else if (StringUtils.equalsIgnoreCase(SystemContext.CONTEXT_APP_ID, key)) {
 				systemContext.setAppId(headerValue);
 			} else if (StringUtils.equalsIgnoreCase(SystemContext.CONTEXT_APP_VERSION, key)) {

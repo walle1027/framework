@@ -14,15 +14,15 @@ import java.text.MessageFormat;
  */
 public class ReactiveRedisI18nProvider implements ReactiveI18nProvider {
 
-	private ReactiveStringRedisTemplate stringRedisTemplate;
+	private ReactiveStringRedisTemplate redisTemplate;
 
 	@Override
 	public Mono<String> getText(String key, Object[] args, String locale) {
 		return ReactiveSystemContext.getSystemContext().map(context -> {
-			return buildKey(context.getTenantCode(), key, locale);
+			return buildKey(context.getTenantId(), key, locale);
 		}).flatMap(cacheKey -> {
-			return stringRedisTemplate.opsForValue().get(cacheKey);
-		}).switchIfEmpty(stringRedisTemplate.opsForValue().get(buildKey(SystemContext.DEFAULT_TENANT_CODE, key, locale)))
+			return redisTemplate.opsForValue().get(cacheKey);
+		}).switchIfEmpty(redisTemplate.opsForValue().get(buildKey(SystemContext.DEFAULT_TENANT_ID, key, locale)))
 				.defaultIfEmpty(key).map(value -> {
 					return MessageFormat.format(value, args);
 				});
@@ -42,11 +42,11 @@ public class ReactiveRedisI18nProvider implements ReactiveI18nProvider {
 				locale;
 	}
 
-	public ReactiveStringRedisTemplate getStringRedisTemplate() {
-		return stringRedisTemplate;
+	public ReactiveStringRedisTemplate getRedisTemplate() {
+		return redisTemplate;
 	}
 
-	public void setStringRedisTemplate(ReactiveStringRedisTemplate stringRedisTemplate) {
-		this.stringRedisTemplate = stringRedisTemplate;
+	public void setRedisTemplate(ReactiveStringRedisTemplate redisTemplate) {
+		this.redisTemplate = redisTemplate;
 	}
 }

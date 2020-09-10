@@ -23,7 +23,7 @@ public class ReactiveI18nProviderAutoConfiguration {
 	@ConditionalOnBean(ReactiveStringRedisTemplate.class)
 	public ReactiveI18nProvider reactiveRedisI18nProvider(ReactiveStringRedisTemplate stringRedisTemplate) {
 		ReactiveRedisI18nProvider reactiveRedisI18nProvider = new ReactiveRedisI18nProvider();
-		reactiveRedisI18nProvider.setStringRedisTemplate(stringRedisTemplate);
+		reactiveRedisI18nProvider.setRedisTemplate(stringRedisTemplate);
 		return reactiveRedisI18nProvider;
 	}
 }

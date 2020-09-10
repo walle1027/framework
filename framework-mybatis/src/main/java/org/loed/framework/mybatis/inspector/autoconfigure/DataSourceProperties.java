@@ -41,7 +41,7 @@ public class DataSourceProperties {
 	/**
 	 * 是否以tenantCode做路由key
 	 */
-	private String routingProps = SystemContext.CONTEXT_TENANT_CODE;
+	private String routingProps = SystemContext.CONTEXT_TENANT_ID;
 	/**
 	 * zk地址
 	 */

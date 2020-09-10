@@ -15,7 +15,7 @@ import java.util.*;
  */
 @Slf4j
 public final class SystemContext {
-	public static final String DEFAULT_TENANT_CODE = "default";
+	public static final String DEFAULT_TENANT_ID = "default";
 	public static final String DEFAULT_LOCALE = "zh_CN";
 	/**
 	 * 系统上下文前缀
@@ -52,7 +52,7 @@ public final class SystemContext {
 	/**
 	 * 租户Id
 	 */
-	public static final String CONTEXT_TENANT_CODE = CONTEXT_PREFIX + "tenantCode";
+	public static final String CONTEXT_TENANT_ID = CONTEXT_PREFIX + "tenantId";
 	/**
 	 * optional property
 	 * <p>
@@ -271,17 +271,17 @@ public final class SystemContext {
 	}
 
 
-	public String getTenantCode() {
-		String tenantCode = get(CONTEXT_TENANT_CODE);
+	public String getTenantId() {
+		String tenantCode = get(CONTEXT_TENANT_ID);
 		if (tenantCode == null || tenantCode.isEmpty()) {
-			return DEFAULT_TENANT_CODE;
+			return DEFAULT_TENANT_ID;
 		}
 		return tenantCode;
 	}
 
 
-	public void setTenantCode(String tenantCode) {
-		set(CONTEXT_TENANT_CODE, tenantCode);
+	public void setTenantId(String tenantId) {
+		set(CONTEXT_TENANT_ID, tenantId);
 	}
 
 

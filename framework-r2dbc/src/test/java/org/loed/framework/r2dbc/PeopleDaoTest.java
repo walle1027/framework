@@ -34,7 +34,7 @@ public class PeopleDaoTest {
 	public void setUp() {
 		systemContext = new SystemContext();
 		systemContext.setAccountId("testAccountId");
-		systemContext.setTenantCode("testTenantCode");
+		systemContext.setTenantId("testTenantCode");
 	}
 
 	@Test

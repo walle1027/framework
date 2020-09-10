@@ -56,7 +56,7 @@ public class RedisI18nProvider implements I18nProvider {
 	public String getText(String key, Object[] args, String locale) {
 		String value = get(buildKey(SystemContextHolder.getTenantCode(), key, locale));
 		if (value == null) {
-			value = get(buildKey(SystemContext.DEFAULT_TENANT_CODE, key, locale));
+			value = get(buildKey(SystemContext.DEFAULT_TENANT_ID, key, locale));
 		}
 		if (value == null) {
 			value = key;

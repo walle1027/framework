@@ -1,10 +1,15 @@
-package org.loed.framework.common.data;
+package org.loed.framework.common.data.converter;
 
 import lombok.extern.slf4j.Slf4j;
+import org.loed.framework.common.data.DataConvertException;
+import org.loed.framework.common.data.DataTypeEnum;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.sql.Time;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.Date;
 
 /**
@@ -12,14 +17,12 @@ import java.util.Date;
  * @version 1.0
  * @since 2020/9/2 10:27 上午
  */
+@SuppressWarnings("DuplicateBranchesInSwitch")
 @Slf4j
-public class LongConverter implements Converter<Long> {
+public class LongConverter extends SimpleTypeConverter<Long> {
 	@Override
 	public Long convert(Object origin) {
-		if (origin == null) {
-			return null;
-		}
-		DataTypeEnum originType = null;
+		DataTypeEnum originType = DataTypeEnum.from(origin);
 		try {
 			switch (originType) {
 				case DT_byte:
@@ -71,27 +74,28 @@ public class LongConverter implements Converter<Long> {
 				case DT_BigDecimal:
 					return ((BigDecimal) origin).longValue();
 				case DT_Date:
-					return ((Date)origin).getTime();
-				case DT_Time:
-					return ((Time)origin).getTime();
-				case DT_DateTime:
-					return ((java.sql.Date)origin).getTime();
+					return ((Date) origin).getTime();
+				case DT_SqlDate:
+					return ((java.sql.Date) origin).getTime();
+				case DT_SqlTime:
+					return ((java.sql.Time) origin).getTime();
+				case DT_SqlTimestamp:
+					return ((java.sql.Timestamp) origin).getTime();
 				case DT_LocalDate:
-					return Long.valueOf(String.valueOf(origin));
+					return ((LocalDate) origin).toEpochDay();
 				case DT_LocalDateTime:
-					return Long.valueOf(String.valueOf(origin));
+					return ((LocalDateTime) origin).toEpochSecond(ZoneOffset.UTC);
 				case DT_ZoneDateTime:
-					return Long.valueOf(String.valueOf(origin));
-				case DT_Clob:
-					return Long.valueOf(String.valueOf(origin));
-				case DT_Blob:
-					return Long.valueOf(String.valueOf(origin));
+					return ((ZonedDateTime) origin).toEpochSecond();
+				case DT_SqlClob:
+					throw new RuntimeException("not supported types");
+				case DT_SqlBlob:
+					throw new RuntimeException("not supported types");
 				default:
-					return null;
+					throw new RuntimeException("not supported types");
 			}
 		} catch (Exception e) {
-			log.error("can't convert value:" + origin + " to Long,caused by :" + e.getMessage(), e);
+			throw new DataConvertException("can't convert value:" + origin + " to Long,caused by :" + e.getMessage(), e);
 		}
-		return null;
 	}
 }

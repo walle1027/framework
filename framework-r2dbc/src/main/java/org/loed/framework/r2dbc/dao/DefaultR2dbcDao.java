@@ -182,11 +182,12 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	private <S extends T> Function<S, Mono<? extends S>> preInsertFunction() {
 		return entity -> {
 			if (preInsertListeners != null) {
-				return Flux.fromIterable(preInsertListeners).sort(Comparator.comparing(OrderedListener::getOrder)).flatMap(preInsertListener -> {
-					return preInsertListener.preInsert(entity).onErrorStop().doOnError(err -> {
-						log.error(err.getMessage(), err);
-					});
-				}).last();
+				return Flux.fromIterable(preInsertListeners).sort(Comparator.comparing(OrderedListener::getOrder))
+						.flatMap(preInsertListener -> {
+							return preInsertListener.preInsert(entity).onErrorStop().doOnError(err -> {
+								log.error(err.getMessage(), err);
+							});
+						}).last();
 			} else {
 				return Mono.just(entity);
 			}
@@ -342,7 +343,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 		for (Field field : fields) {
 			if (field.getAnnotation(TenantId.class) != null) {
 				flux = flux.mergeWith(ReactiveSystemContext.getSystemContext().map(context -> {
-					return new Condition(field.getName(), Operator.equal, context.getTenantCode());
+					return new Condition(field.getName(), Operator.equal, context.getTenantId());
 				}));
 			}
 			if (field.getAnnotation(IsDeleted.class) != null) {

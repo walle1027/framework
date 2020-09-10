@@ -57,4 +57,74 @@ public enum DataTypeEnum {
 	DT_Class,
 	DT_Enum,
 	DT_UserDefine;
+
+	public static DataTypeEnum of(Class<?> clazz) {
+		if (clazz.isArray()) {
+			return DT_Array;
+		}
+		if (clazz.isEnum()) {
+			return DT_Enum;
+		}
+		String name = clazz.getName();
+
+
+		return DT_UserDefine;
+	}
+
+	public static DataTypeEnum from(Object value) {
+		if (value == null) {
+			return DT_Unknown;
+		}
+		return of(value.getClass());
+	}
+
+	public static boolean isSimpleType(DataTypeEnum type) {
+		return
+				type == DT_byte ||
+						type == DT_short ||
+						type == DT_int ||
+						type == DT_long ||
+						type == DT_float ||
+						type == DT_double ||
+						type == DT_char ||
+						type == DT_boolean ||
+						type == DT_Byte ||
+						type == DT_Short ||
+						type == DT_Integer ||
+						type == DT_Long ||
+						type == DT_Float ||
+						type == DT_Double ||
+						type == DT_Character ||
+						type == DT_Boolean ||
+						type == DT_String ||
+						type == DT_BigInteger ||
+						type == DT_BigDecimal ||
+						type == DT_Date ||
+						type == DT_SqlDate ||
+						type == DT_SqlTime ||
+						type == DT_SqlTimestamp ||
+						type == DT_LocalDate ||
+						type == DT_LocalDateTime ||
+						type == DT_ZoneDateTime ||
+						type == DT_SqlClob ||
+						type == DT_SqlBlob;
+	}
+
+	/**
+	 * 判断对象类型是否一致，支持装箱(boxing)和拆箱(unboxing)类型的对比
+	 *
+	 * @param orig 原始数据类型
+	 * @param dest 目标数据类型
+	 * @return 是否一致
+	 */
+	public static boolean isSameType(DataTypeEnum orig, DataTypeEnum dest) {
+		if (orig == dest) {
+			return true;
+		}
+		if ((orig == DT_Boolean && dest == DT_boolean)
+				|| (orig == DT_boolean && dest == DT_Boolean)) {
+			return true;
+		}
+		return false;
+	}
 }

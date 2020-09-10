@@ -172,6 +172,10 @@ public final class Criteria<T> implements Serializable {
 		return new JoinBuilder<>(this, join, null);
 	}
 
+	public ConditionSpec<T> where(SFunction<T, ?> lambda) {
+		return and(lambda);
+	}
+
 	public ConditionSpec<T> and(SFunction<T, ?> lambda) {
 		SerializedLambda resolve = LambdaUtils.resolve(lambda);
 		String prop = ReflectionUtils.methodToProperty(resolve.getImplMethodName());

@@ -45,7 +45,7 @@ public class DefaultPreInsertListener implements PreInsertListener {
 			filedFlux = Flux.fromIterable(fields).flatMap(field -> {
 				if (field.getAnnotation(TenantId.class) != null) {
 					return ReactiveSystemContext.getSystemContext().map(context -> {
-						String tenantCode = context.getTenantCode();
+						String tenantCode = context.getTenantId();
 						try {
 							int targetType = DataType.getDataType(field.getType());
 							Object convertedValue = DataType.toType(tenantCode, DataType.DT_String, targetType);
@@ -115,7 +115,7 @@ public class DefaultPreInsertListener implements PreInsertListener {
 				if (method.getAnnotation(TenantId.class) != null) {
 					return ReactiveSystemContext.getSystemContext().map(context -> {
 						try {
-							String tenantCode = context.getTenantCode();
+							String tenantCode = context.getTenantId();
 							int targetType = DataType.getDataType(method.getParameterTypes()[0]);
 							Object convertedValue = DataType.toType(tenantCode, DataType.DT_String, targetType);
 							method.invoke(object, convertedValue);

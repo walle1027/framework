@@ -8,10 +8,10 @@ import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.loed.framework.common.data.DataType;
 import org.loed.framework.common.database.schema.Table;
 import org.loed.framework.common.orm.Column;
 import org.loed.framework.common.orm.Index;
-import org.loed.framework.common.data.DataType;
 import org.loed.framework.r2dbc.inspector.DdlProvider;
 import org.springframework.data.r2dbc.convert.ColumnMapRowMapper;
 import org.springframework.lang.NonNull;
@@ -135,16 +135,18 @@ public class MysqlProvider implements DdlProvider {
 
 
 	private Mono<Table> describeTable(Connection connection, String tableName) {
-		return Mono.zip(Mono.from(connection.createStatement("describe " + tableName).execute()).onErrorResume(e -> {
-			return Mono.empty();
-		}).flatMapMany(result -> {
-			return Flux.from(result.map(mysqlColumnMapper));
-		}).collectList(), Mono.from(connection.createStatement("show index from " + tableName).execute()).onErrorResume(e -> {
-			log.error(e.getMessage(), e);
-			return Mono.empty();
-		}).flatMapMany(result -> {
-			return Flux.from(result.map(mysqlIndexMapper));
-		}).collectList()).map(tup -> {
+		return Mono.zip(Mono.from(connection.createStatement("describe " + tableName).execute())
+				.onErrorResume(e -> {
+					return Mono.empty();
+				}).flatMapMany(result -> {
+					return Flux.from(result.map(mysqlColumnMapper));
+				}).collectList(), Mono.from(connection.createStatement("show index from " + tableName).execute())
+				.onErrorResume(e -> {
+					log.error(e.getMessage(), e);
+					return Mono.empty();
+				}).flatMapMany(result -> {
+					return Flux.from(result.map(mysqlIndexMapper));
+				}).collectList()).map(tup -> {
 			Table table = new Table();
 			table.setTableName(tableName);
 			List<org.loed.framework.common.database.schema.Column> columns = tup.getT1();

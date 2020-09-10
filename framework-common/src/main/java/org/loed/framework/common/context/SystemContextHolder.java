@@ -212,16 +212,16 @@ public class SystemContextHolder {
 
 
 	public static String getTenantCode() {
-		String tenantCode = get(SystemContext.CONTEXT_TENANT_CODE);
+		String tenantCode = get(SystemContext.CONTEXT_TENANT_ID);
 		if (tenantCode == null || tenantCode.isEmpty()) {
-			return SystemContext.DEFAULT_TENANT_CODE;
+			return SystemContext.DEFAULT_TENANT_ID;
 		}
 		return tenantCode;
 	}
 
 
 	public static void setTenantCode(String tenantCode) {
-		set(SystemContext.CONTEXT_TENANT_CODE, tenantCode);
+		set(SystemContext.CONTEXT_TENANT_ID, tenantCode);
 	}
 
 

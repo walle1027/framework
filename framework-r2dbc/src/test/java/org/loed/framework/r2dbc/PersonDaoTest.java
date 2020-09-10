@@ -39,7 +39,7 @@ public class PersonDaoTest {
 	public void setUp() throws Exception {
 		systemContext = new SystemContext();
 		systemContext.setAccountId("testAccountId");
-		systemContext.setTenantCode("testTenantCode");
+		systemContext.setTenantId("testTenantCode");
 	}
 
 	@Test

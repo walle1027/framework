@@ -97,10 +97,10 @@ public class SystemContextAwareMessageConverter implements MessageConverter {
 					if (log.isDebugEnabled()) {
 						log.debug("message {} has  header: {}, with value {}", messageMeta, SystemContext.CONTEXT_USER_AGENT, value);
 					}
-				} else if (StringUtils.equalsIgnoreCase(headerKey, SystemContext.CONTEXT_TENANT_CODE)) {
-					systemContext.setTenantCode((String) value);
+				} else if (StringUtils.equalsIgnoreCase(headerKey, SystemContext.CONTEXT_TENANT_ID)) {
+					systemContext.setTenantId((String) value);
 					if (log.isDebugEnabled()) {
-						log.debug("message {} has  header: {}, with value {}", messageMeta, SystemContext.CONTEXT_TENANT_CODE, value);
+						log.debug("message {} has  header: {}, with value {}", messageMeta, SystemContext.CONTEXT_TENANT_ID, value);
 					}
 				} else if (StringUtils.equalsIgnoreCase(headerKey, SystemContext.CONTEXT_LOCALE)) {
 					systemContext.setLocale((String) value);
