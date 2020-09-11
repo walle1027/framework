@@ -3,10 +3,12 @@ package org.loed.framework.mybatis;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.Predicate;
 import org.apache.ibatis.annotations.*;
 import org.loed.framework.common.ORMapping;
 import org.loed.framework.common.context.SystemContextHolder;
 import org.loed.framework.common.lambda.SFunction;
+import org.loed.framework.common.orm.Column;
 import org.loed.framework.common.orm.Table;
 import org.loed.framework.common.po.BasePO;
 import org.loed.framework.common.po.CommonPO;
@@ -32,7 +34,7 @@ import java.util.*;
  * @since 2017/8/2 下午3:45
  */
 @SuppressWarnings({"unchecked", "Duplicates"})
-public interface BaseMapper<T extends Identify> {
+public interface BaseMapper<T> {
 
 	/*******************************插入方法********************************/
 	default int insert(T po) {
@@ -87,9 +89,9 @@ public interface BaseMapper<T extends Identify> {
 
 	/*******************************全部更新方法********************************/
 	@UpdateProvider(type = MybatisSqlBuilder.class, method = "update")
-	int _update(@Param("po") T po, @Param("columns") Set<String> includes);
+	int _update(@Param("po") T po, @Param("columnFilter") Predicate<Column> includes);
 
-	default int update(T po, String... includes) {
+	default int updateWith(T po, SFunction<T,?>... includes) {
 		List<PreUpdateListener> preUpdateListeners = MybatisListenerContainer.getPreUpdateListeners();
 		//pre update listener 处理
 		if (CollectionUtils.isNotEmpty(preUpdateListeners)) {
