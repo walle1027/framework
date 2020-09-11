@@ -16,8 +16,8 @@ import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.springframework.http.HttpHeaders;
 import org.springframework.web.reactive.config.WebFluxConfigurationSupport;
+import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.web.server.WebFilter;
 
 import java.util.List;
@@ -47,14 +47,14 @@ public class WebFluxAutoConfiguration {
 	public WebClientCustomizer systemContextWebClientCustomizer() {
 		return builder -> {
 			builder.filter((request, next) -> ReactiveSystemContext.getSystemContext().flatMap(context -> {
-				HttpHeaders headers = request.headers();
+				ClientRequest.Builder requestBuilder = ClientRequest.from(request);
 				List<Pair<String, String>> pairs = context.toHeaders();
 				if (!pairs.isEmpty()) {
 					for (Pair<String, String> pair : pairs) {
-						headers.add(pair.getKey(), pair.getValue());
+						requestBuilder.header(pair.getKey(), pair.getValue());
 					}
 				}
-				return next.exchange(request);
+				return next.exchange(requestBuilder.build());
 			}));
 		};
 	}
