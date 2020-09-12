@@ -6,6 +6,8 @@ import org.loed.framework.common.RoutingDataSource;
 import org.loed.framework.common.ThreadPoolExecutor;
 import org.loed.framework.common.lock.ZKDistributeLock;
 import org.loed.framework.common.orm.Table;
+import org.loed.framework.common.orm.schema.Column;
+import org.loed.framework.common.orm.schema.Index;
 import org.loed.framework.mybatis.inspector.DatabaseResolver;
 import org.loed.framework.mybatis.inspector.dialect.Dialect;
 import org.slf4j.Logger;
@@ -265,7 +267,7 @@ public class DbInspector {
 		DatabaseResolver resolver = DatabaseResolver.getInstance();
 		try {
 			String tableName = table.getSqlName();
-			org.loed.framework.common.database.schema.Table dbTable = resolver.getTable(connection, tableName);
+			org.loed.framework.common.orm.schema.Table dbTable = resolver.getTable(connection, tableName);
 			List<org.loed.framework.common.orm.Column> tableColumns = table.getColumns() == null ? Collections.EMPTY_LIST : table.getColumns();
 			List<org.loed.framework.common.orm.Index> indexList = table.getIndices() == null ? Collections.EMPTY_LIST : table.getIndices();
 			if (dbTable == null) {
@@ -283,7 +285,7 @@ public class DbInspector {
 					});
 				}
 			} else {
-				List<org.loed.framework.common.database.schema.Column> dbColumns = dbTable.getColumns() == null ? Collections.EMPTY_LIST : dbTable.getColumns();
+				List<Column> dbColumns = dbTable.getColumns() == null ? Collections.EMPTY_LIST : dbTable.getColumns();
 				tableColumns.forEach(tableColumn -> {
 					boolean hasColumn = dbColumns.stream().anyMatch(r -> r.getSqlName().equals(tableColumn.getSqlName()));
 					if (!hasColumn) {
@@ -293,7 +295,7 @@ public class DbInspector {
 						}
 					}
 				});
-				List<org.loed.framework.common.database.schema.Index> dbIndices = dbTable.getIndices() == null ? Collections.EMPTY_LIST : dbTable.getIndices();
+				List<Index> dbIndices = dbTable.getIndices() == null ? Collections.EMPTY_LIST : dbTable.getIndices();
 				indexList.forEach(index -> {
 					boolean hasIndex = dbIndices.stream().anyMatch(r -> r.getName().equals(index.getName()));
 					if (!hasIndex) {

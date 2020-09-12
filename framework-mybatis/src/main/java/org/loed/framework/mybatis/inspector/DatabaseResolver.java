@@ -1,8 +1,8 @@
 package org.loed.framework.mybatis.inspector;
 
-import org.loed.framework.common.database.schema.Column;
-import org.loed.framework.common.database.schema.Index;
-import org.loed.framework.common.database.schema.Table;
+import org.loed.framework.common.orm.schema.Column;
+import org.loed.framework.common.orm.schema.Index;
+import org.loed.framework.common.orm.schema.Table;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

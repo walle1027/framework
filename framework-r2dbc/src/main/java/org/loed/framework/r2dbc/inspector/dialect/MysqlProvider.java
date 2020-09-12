@@ -9,7 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.loed.framework.common.data.DataType;
-import org.loed.framework.common.database.schema.Table;
+import org.loed.framework.common.orm.schema.Table;
 import org.loed.framework.common.orm.Column;
 import org.loed.framework.common.orm.Index;
 import org.loed.framework.r2dbc.inspector.DdlProvider;
@@ -149,10 +149,10 @@ public class MysqlProvider implements DdlProvider {
 				}).collectList()).map(tup -> {
 			Table table = new Table();
 			table.setTableName(tableName);
-			List<org.loed.framework.common.database.schema.Column> columns = tup.getT1();
+			List<org.loed.framework.common.orm.schema.Column> columns = tup.getT1();
 			List<MysqlIndex> mysqlIndices = tup.getT2();
 			if (CollectionUtils.isNotEmpty(columns)) {
-				for (org.loed.framework.common.database.schema.Column column : columns) {
+				for (org.loed.framework.common.orm.schema.Column column : columns) {
 					column.setTable(table);
 				}
 				table.setColumns(columns);
@@ -168,7 +168,7 @@ public class MysqlProvider implements DdlProvider {
 							groupedIndex.entrySet().stream().map(entry -> {
 								String key = entry.getKey();
 								List<MysqlIndex> indexList = entry.getValue();
-								org.loed.framework.common.database.schema.Index index = new org.loed.framework.common.database.schema.Index();
+								org.loed.framework.common.orm.schema.Index index = new org.loed.framework.common.orm.schema.Index();
 								index.setName(key);
 								index.setUnique(indexList.get(0).getNonUnique() == 0);
 								index.setColumnList(indexList.stream().sorted(Comparator.comparing(MysqlIndex::getSqlInIndex)).map(MysqlIndex::getColumnName).collect(Collectors.joining(",")));
@@ -347,8 +347,8 @@ public class MysqlProvider implements DdlProvider {
 		return false;
 	}
 
-	private final BiFunction<Row, RowMetadata, org.loed.framework.common.database.schema.Column> mysqlColumnMapper = ((row, rowMetadata) -> {
-		org.loed.framework.common.database.schema.Column column = new org.loed.framework.common.database.schema.Column();
+	private final BiFunction<Row, RowMetadata, org.loed.framework.common.orm.schema.Column> mysqlColumnMapper = ((row, rowMetadata) -> {
+		org.loed.framework.common.orm.schema.Column column = new org.loed.framework.common.orm.schema.Column();
 
 		String sqlName = (String) row.get("Field");
 		String type = (String) row.get("Type");

@@ -1,7 +1,7 @@
 package org.loed.framework.r2dbc.inspector;
 
 import io.r2dbc.spi.Connection;
-import org.loed.framework.common.database.schema.Table;
+import org.loed.framework.common.orm.schema.Table;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import reactor.core.publisher.Mono;

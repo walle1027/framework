@@ -2,7 +2,7 @@
  * Created on Nov 23, 2004
  *
  */
-package org.loed.framework.common.database.schema;
+package org.loed.framework.common.orm.schema;
 
 import java.util.ArrayList;
 import java.util.Hashtable;

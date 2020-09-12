@@ -3,15 +3,15 @@ package org.loed.framework.mybatis;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.collections.Predicate;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.ibatis.annotations.*;
 import org.loed.framework.common.ORMapping;
 import org.loed.framework.common.context.SystemContextHolder;
+import org.loed.framework.common.lambda.LambdaUtils;
 import org.loed.framework.common.lambda.SFunction;
 import org.loed.framework.common.orm.Column;
 import org.loed.framework.common.orm.Table;
 import org.loed.framework.common.po.BasePO;
-import org.loed.framework.common.po.CommonPO;
 import org.loed.framework.common.po.Identify;
 import org.loed.framework.common.query.Condition;
 import org.loed.framework.common.query.Criteria;
@@ -21,10 +21,15 @@ import org.loed.framework.common.util.ReflectionUtils;
 import org.loed.framework.mybatis.listener.MybatisListenerContainer;
 import org.loed.framework.mybatis.listener.spi.*;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 
+import javax.persistence.GenerationType;
 import java.io.Serializable;
 import java.lang.reflect.ParameterizedType;
 import java.util.*;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * todo remove cache here
@@ -34,7 +39,7 @@ import java.util.*;
  * @since 2017/8/2 下午3:45
  */
 @SuppressWarnings({"unchecked", "Duplicates"})
-public interface BaseMapper<T> {
+public interface BaseMapper<T, ID extends Serializable> {
 
 	/*******************************插入方法********************************/
 	default int insert(T po) {
@@ -91,7 +96,7 @@ public interface BaseMapper<T> {
 	@UpdateProvider(type = MybatisSqlBuilder.class, method = "update")
 	int _update(@Param("po") T po, @Param("columnFilter") Predicate<Column> includes);
 
-	default int updateWith(T po, SFunction<T,?>... includes) {
+	default int update(T po) {
 		List<PreUpdateListener> preUpdateListeners = MybatisListenerContainer.getPreUpdateListeners();
 		//pre update listener 处理
 		if (CollectionUtils.isNotEmpty(preUpdateListeners)) {
@@ -103,16 +108,8 @@ public interface BaseMapper<T> {
 			}
 		}
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
-		Set<String> includeColumns = new HashSet<>();
-		if (ReflectionUtils.isSubClass(entityClass, CommonPO.class)) {
-			includeColumns.add("updateTime");
-			includeColumns.add("updateBy");
-		}
-		if (includes != null && includes.length > 0) {
-			includeColumns.addAll(Arrays.asList(includes));
-		}
 
-		int rows = _update(po, includeColumns);
+		int rows = _update(po, UPDATABLE_FILTER);
 
 		//post update listener 处理
 		List<PostUpdateListener> postUpdateListeners = MybatisListenerContainer.getPostUpdateListeners();
@@ -122,11 +119,61 @@ public interface BaseMapper<T> {
 		return rows;
 	}
 
-	/*******************************选择更新方法********************************/
-	@UpdateProvider(type = MybatisSqlBuilder.class, method = "updateSelective")
-	int _updateSelective(@Param("po") T po, @Param("columns") Set<String> includes);
+	default int updateWith(T po, SFunction<T, ?>... includes) {
+		List<PreUpdateListener> preUpdateListeners = MybatisListenerContainer.getPreUpdateListeners();
+		//pre update listener 处理
+		if (CollectionUtils.isNotEmpty(preUpdateListeners)) {
+			for (PreUpdateListener preInsertListener : preUpdateListeners) {
+				boolean execute = preInsertListener.preUpdate(po);
+				if (!execute) {
+					return 0;
+				}
+			}
+		}
+		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
+		Predicate<Column> predicate = UPDATABLE_FILTER;
+		if (includes != null && includes.length > 0) {
+			Set<String> includeProps = Arrays.stream(includes).map(LambdaUtils::getPropFromLambda).collect(Collectors.toSet());
+			predicate = predicate.and(new IncludeFilter(includeProps));
+		}
+		int rows = _update(po, predicate);
 
-	default int updateSelective(T po, String... includes) {
+		//post update listener 处理
+		List<PostUpdateListener> postUpdateListeners = MybatisListenerContainer.getPostUpdateListeners();
+		if (CollectionUtils.isNotEmpty(postUpdateListeners)) {
+			postUpdateListeners.forEach(postUpdateListener -> postUpdateListener.postUpdate(po));
+		}
+		return rows;
+	}
+
+	default int updateWithout(T po, SFunction<T, ?>... excludes) {
+		List<PreUpdateListener> preUpdateListeners = MybatisListenerContainer.getPreUpdateListeners();
+		//pre update listener 处理
+		if (CollectionUtils.isNotEmpty(preUpdateListeners)) {
+			for (PreUpdateListener preInsertListener : preUpdateListeners) {
+				boolean execute = preInsertListener.preUpdate(po);
+				if (!execute) {
+					return 0;
+				}
+			}
+		}
+		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
+		Predicate<Column> predicate = UPDATABLE_FILTER;
+		if (excludes != null && excludes.length > 0) {
+			Set<String> includeProps = Arrays.stream(excludes).map(LambdaUtils::getPropFromLambda).collect(Collectors.toSet());
+			predicate = predicate.and(new ExcludeFilter(includeProps));
+		}
+		int rows = _update(po, predicate);
+
+		//post update listener 处理
+		List<PostUpdateListener> postUpdateListeners = MybatisListenerContainer.getPostUpdateListeners();
+		if (CollectionUtils.isNotEmpty(postUpdateListeners)) {
+			postUpdateListeners.forEach(postUpdateListener -> postUpdateListener.postUpdate(po));
+		}
+		return rows;
+	}
+
+	default int updateNonBlank(T po) {
 		List<PreUpdateListener> preUpdateListeners = MybatisListenerContainer.getPreUpdateListeners();
 		//pre update listener 处理
 		if (CollectionUtils.isNotEmpty(preUpdateListeners)) {
@@ -138,10 +185,8 @@ public interface BaseMapper<T> {
 			}
 		}
 		Set<String> includeColumns = null;
-		if (includes != null && includes.length > 0) {
-			includeColumns = new HashSet<>(Arrays.asList(includes));
-		}
-		int rows = _updateSelective(po, includeColumns);
+
+		int rows = _update(po, new NonBlankFilter(po).and(UPDATABLE_FILTER));
 
 		//post update listener 处理
 		List<PostUpdateListener> postUpdateListeners = MybatisListenerContainer.getPostUpdateListeners();
@@ -151,11 +196,36 @@ public interface BaseMapper<T> {
 		return rows;
 	}
 
-	/*******************************批量选择更新方法********************************/
-	@UpdateProvider(type = MybatisSqlBuilder.class, method = "batchUpdateSelective")
-	int _batchUpdateSelective(@Param("clazz") Class<T> clazz, @Param("list") List<T> poList, @Param("includeColumns") Set<String> includeColumns);
+	default int updateNonBlankAnd(T po, @Nullable SFunction<T, ?>... columns) {
+		List<PreUpdateListener> preUpdateListeners = MybatisListenerContainer.getPreUpdateListeners();
+		//pre update listener 处理
+		if (CollectionUtils.isNotEmpty(preUpdateListeners)) {
+			for (PreUpdateListener preInsertListener : preUpdateListeners) {
+				boolean execute = preInsertListener.preUpdate(po);
+				if (!execute) {
+					return 0;
+				}
+			}
+		}
+		Set<String> includeColumns = null;
+		Predicate<Column> filter = UPDATABLE_FILTER;
+		if (columns != null && columns.length > 0) {
+			Set<String> includes = Arrays.stream(columns).map(LambdaUtils::getPropFromLambda).collect(Collectors.toSet());
+			filter = filter.and(new IncludeFilter(includes).or(new NonBlankFilter(po)));
+		} else {
+			filter = filter.and(new NonBlankFilter(po));
+		}
+		int rows = _update(po, filter);
 
-	default int batchUpdateSelective(List<T> poList, String... includeColumns) {
+		//post update listener 处理
+		List<PostUpdateListener> postUpdateListeners = MybatisListenerContainer.getPostUpdateListeners();
+		if (CollectionUtils.isNotEmpty(postUpdateListeners)) {
+			postUpdateListeners.forEach(postUpdateListener -> postUpdateListener.postUpdate(po));
+		}
+		return rows;
+	}
+
+	default int batchUpdateNonBlank(List<T> poList) {
 		if (poList == null || poList.size() == 0) {
 			return 0;
 		}
@@ -175,11 +245,11 @@ public interface BaseMapper<T> {
 		}
 
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
-		Set<String> includeColumnSet = new HashSet<>();
-		if (includeColumns != null) {
-			includeColumnSet.addAll(Arrays.asList(includeColumns));
+		int rows = 0;
+		for (T t : poList) {
+			NonBlankFilter nonBlankFilter = new NonBlankFilter(t);
+			rows += _update(t, nonBlankFilter.and(UPDATABLE_FILTER));
 		}
-		int rows = _batchUpdateSelective(entityClass, poList, includeColumnSet);
 
 		//post insert listener 处理
 		List<PostUpdateListener> postUpdateListeners = MybatisListenerContainer.getPostUpdateListeners();
@@ -188,9 +258,6 @@ public interface BaseMapper<T> {
 		}
 		return rows;
 	}
-
-	@UpdateProvider(type = MybatisSqlBuilder.class, method = "batchUpdate")
-	int _batchUpdate(@Param("clazz") Class<T> clazz, @Param("list") List<T> poList, @Param("includeColumns") Set<String> includeColumns);
 
 	default int batchUpdate(List<T> poList, String... columns) {
 		if (poList == null || poList.size() == 0) {
@@ -212,11 +279,10 @@ public interface BaseMapper<T> {
 		}
 
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
-		Set<String> includeColumns = new HashSet<>();
-		if (columns != null && columns.length > 0) {
-			includeColumns.addAll(Arrays.asList(columns));
+		int rows = 0;
+		for (T t : poList) {
+			rows += _update(t, UPDATABLE_FILTER);
 		}
-		int rows = _batchUpdate(entityClass, poList, includeColumns);
 
 		//post insert listener 处理
 		List<PostUpdateListener> postUpdateListeners = MybatisListenerContainer.getPostUpdateListeners();
@@ -228,9 +294,9 @@ public interface BaseMapper<T> {
 
 	/*******************************删除方法********************************/
 	@DeleteProvider(type = MybatisSqlBuilder.class, method = "delete")
-	int _delete(@Param("map") Map<String, Object> map, @Param("clazz") Class<T> clazz);
+	int _delete(@Param("table") Table table, @Param("id") ID Id);
 
-	default int delete(Serializable id) {
+	default int delete(ID id) {
 		T po = null;
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
 		//pre postDelete listener 处理
@@ -244,28 +310,7 @@ public interface BaseMapper<T> {
 				}
 			}
 		}
-		int rows = 0;
-		if (ReflectionUtils.isSubClass(entityClass, CommonPO.class)) {
-			try {
-				T object = entityClass.newInstance();
-				((CommonPO) object).setId((String) id);
-				((CommonPO) object).setIsDeleted(1);
-				((CommonPO) object).setUpdateBy(SystemContextHolder.getAccountId());
-				((CommonPO) object).setUpdateTime(new Date());
-				Set<String> set = new HashSet<>();
-				set.add("updateTime");
-				set.add("updateBy");
-				set.add("isDeleted");
-				rows = _update(object, set);
-			} catch (InstantiationException | IllegalAccessException e) {
-				e.printStackTrace();
-				throw new RuntimeException(e);
-			}
-		} else {
-			Map<String, Object> map = new HashMap<>();
-			map.put("id", id);
-			rows = _delete(map, entityClass);
-		}
+		int rows = _delete(ORMapping.get(entityClass), id);
 		//post postDelete listener 处理
 		List<PostDeleteListener> postDeleteListeners = MybatisListenerContainer.getPostDeleteListeners();
 		if (CollectionUtils.isNotEmpty(postDeleteListeners)) {
@@ -277,43 +322,6 @@ public interface BaseMapper<T> {
 			}
 		}
 		return rows;
-	}
-
-	/*******************************物理删除方法********************************/
-	default int forceDelete(Serializable id) {
-		T po = null;
-		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
-		//pre postDelete listener 处理
-		List<PreDeleteListener> preDeleteListeners = MybatisListenerContainer.getPreDeleteListeners();
-		if (CollectionUtils.isNotEmpty(preDeleteListeners)) {
-			po = get(id);
-			for (PreDeleteListener preInsertListener : preDeleteListeners) {
-				boolean execute = preInsertListener.preDelete(po);
-				if (!execute) {
-					return 0;
-				}
-			}
-		}
-		Map<String, Object> map = new HashMap<>();
-		map.put("id", id);
-		int rows = _delete(map, entityClass);
-
-		//post postDelete listener 处理
-		List<PostDeleteListener> postDeleteListeners = MybatisListenerContainer.getPostDeleteListeners();
-		if (CollectionUtils.isNotEmpty(postDeleteListeners)) {
-			if (po == null) {
-				po = get(id);
-			}
-			for (PostDeleteListener postDeleteListener : postDeleteListeners) {
-				postDeleteListener.postDelete(po);
-			}
-		}
-		return rows;
-	}
-
-	default int forceDelete(Criteria criteria) {
-		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
-		return _deleteByCriteria(entityClass, criteria, new HashMap<>());
 	}
 
 	@SelectProvider(type = MybatisSqlBuilder.class, method = "shardingGetList")
@@ -488,5 +496,92 @@ public interface BaseMapper<T> {
 
 	default List<Map<String, Object>> query(String sql, Map<String, Object> params) {
 		return _query(sql, params);
+	}
+
+	/**
+	 * 默认过滤器
+	 */
+	Predicate<Column> ALWAYS_TRUE_FILTER = column -> true;
+
+	/**
+	 * 可插入列的过滤器
+	 */
+	Predicate<Column> INSERTABLE_FILTER = column -> {
+		boolean pk = column.isPk();
+		if (pk) {
+			GenerationType generationType = column.getIdGenerationType();
+			if (Objects.equals(generationType, GenerationType.AUTO)) {
+				return false;
+			} else {
+				return true;
+			}
+		}
+		return true;
+	};
+
+	/**
+	 * 可更新列的过滤器
+	 */
+	Predicate<Column> UPDATABLE_FILTER = Column::isUpdatable;
+
+	/**
+	 * 指定更新列的过滤器
+	 */
+	class IncludeFilter implements Predicate<Column> {
+		private final Collection<String> includes;
+
+		public IncludeFilter(@NonNull Collection<String> includes) {
+			this.includes = includes;
+		}
+
+		@Override
+		public boolean test(Column column) {
+			return includes.contains(column.getJavaName());
+		}
+	}
+
+	/**
+	 * 指定忽略列的过滤器
+	 */
+	class ExcludeFilter implements Predicate<Column> {
+		private final Collection<String> excludes;
+
+		public ExcludeFilter(@NonNull Collection<String> excludes) {
+			this.excludes = excludes;
+		}
+
+		@Override
+		public boolean test(Column column) {
+			return !excludes.contains(column.getJavaName());
+		}
+	}
+
+	/**
+	 * 动态判断属性为空的过滤器
+	 */
+	class NonBlankFilter implements Predicate<Column> {
+		private final Object object;
+
+		public NonBlankFilter(@NonNull Object object) {
+			this.object = object;
+		}
+
+		@Override
+		public boolean test(Column column) {
+			if (column.isPk()) {
+				return false;
+			}
+			if (column.isVersioned()) {
+				return false;
+			}
+			Object value = ReflectionUtils.getFieldValue(object, column.getJavaName());
+			if (value == null) {
+				return false;
+			}
+			if (value instanceof String) {
+				return StringUtils.isNotBlank((String) value);
+			}
+			return true;
+		}
 	}
 }

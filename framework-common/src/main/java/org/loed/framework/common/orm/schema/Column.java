@@ -1,4 +1,4 @@
-package org.loed.framework.common.database.schema;
+package org.loed.framework.common.orm.schema;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
