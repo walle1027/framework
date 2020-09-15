@@ -98,7 +98,7 @@ public class PersonDaoTest {
 
 	@After
 	public void tearDown() throws Exception {
-		Mono<Void> delete = personDao.delete(Criteria.from(Person.class)).then();
+		Mono<Void> delete = personDao.delete(Criteria.of(Person.class)).then();
 		StepVerifier.create(delete.log()).expectNext().verifyComplete();
 	}
 }

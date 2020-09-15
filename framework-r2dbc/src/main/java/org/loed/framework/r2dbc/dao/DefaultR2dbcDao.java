@@ -412,7 +412,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	}
 
 	private Criteria<T> criteriaWithCondition(List<Condition> conditions) {
-		Criteria<T> criteria = Criteria.from(entityClass);
+		Criteria<T> criteria = Criteria.of(entityClass);
 		criteria.setConditions(conditions);
 		return criteria;
 	}
@@ -468,14 +468,14 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 
 	@Override
 	public Flux<T> findByProperty(SFunction<T, ?> property, Object value) {
-		Criteria<T> criteria = Criteria.from(entityClass);
+		Criteria<T> criteria = Criteria.of(entityClass);
 		criteria.and(property).is(value);
 		return find(criteria);
 	}
 
 	@Override
 	public Mono<Boolean> isRepeated(ID id, SFunction<T, ?> property, Object value) {
-		Criteria<T> criteria = Criteria.from(entityClass);
+		Criteria<T> criteria = Criteria.of(entityClass);
 		criteria.and(property).is(value);
 		if (id != null) {
 			Condition condition = new Condition();

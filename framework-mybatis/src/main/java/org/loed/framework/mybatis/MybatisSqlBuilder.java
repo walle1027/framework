@@ -22,6 +22,7 @@ import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -559,117 +560,117 @@ public class MybatisSqlBuilder {
 		return INSERT;
 	}
 
-	public String batchInsert(@Param("list") List<Object> poList, @Param("map") Map<String, Object> map) {
+	public String batchInsert(@Param("list") List<Object> poList) {
 		return BatchType.BatchInsert.name();
 	}
 
-	public String update(@Param("po") Object object, @Param("columns") Set<String> columns) {
-		Class<?> poClass = object.getClass();
-		Table table = ORMapping.get(poClass);
-		if (table == null) {
-			throw new RuntimeException("not a jpa standard class:" + poClass.getName());
-		}
-		StringBuilder builder = new StringBuilder();
-		builder.append("update");
-		builder.append(BLANK);
-		List<Serializable> idValue = getPkValues(table, object);
-		builder.append(getTableNameByPkValues(table, idValue));
-		builder.append(BLANK).append("set").append(BLANK);
-		if (table.hasVersionColumn()) {
-			Column versionColumn = table.getVersionColumn();
-			builder.append(versionColumn.getSqlName()).append(BLANK).append("=").append(BLANK)
-					.append(versionColumn.getSqlName()).append(" + 1 ,");
-		}
-		if (CollectionUtils.isNotEmpty(columns)) {
-			table.getColumns().stream().filter(Column::isUpdatable).filter(column -> columns.contains(column.getJavaName())).forEach(column -> {
-				builder.append(BLANK).append(column.getSqlName());
-				builder.append("=");
-				builder.append("#{").append("po.").append(column.getJavaName()).append(",jdbcType=").append(column.getSqlTypeName()).append("}");
-				builder.append(",");
-			});
-		} else {
-			table.getColumns().stream().filter(Column::isUpdatable).forEach(column -> {
-				builder.append(BLANK).append(column.getSqlName());
-				builder.append("=");
-				builder.append("#{").append("po.").append(column.getJavaName()).append(",jdbcType=").append(column.getSqlTypeName()).append("}");
-				builder.append(",");
-			});
-		}
-		builder.deleteCharAt(builder.length() - 1);
-		builder.append(BLANK).append("where").append(BLANK);
-		AtomicInteger pkIndex = new AtomicInteger(0);
-		table.getColumns().stream().filter(Column::isPk).forEach(column -> {
-			if (pkIndex.get() > 0) {
-				builder.append(BLANK).append("and").append(BLANK);
-			}
-			builder.append(column.getSqlName()).append(" = #{po.").append(column.getJavaName()).append(",jdbcType=").append(column.getSqlTypeName()).append("}");
-			pkIndex.getAndIncrement();
-		});
-		if (logger.isDebugEnabled()) {
-			logger.debug(builder.toString());
-		}
-		return builder.toString();
-	}
+//	public String update(@Param("po") Object object, @Param("columns") Set<String> columns) {
+//		Class<?> poClass = object.getClass();
+//		Table table = ORMapping.get(poClass);
+//		if (table == null) {
+//			throw new RuntimeException("not a jpa standard class:" + poClass.getName());
+//		}
+//		StringBuilder builder = new StringBuilder();
+//		builder.append("update");
+//		builder.append(BLANK);
+//		List<Serializable> idValue = getPkValues(table, object);
+//		builder.append(getTableNameByPkValues(table, idValue));
+//		builder.append(BLANK).append("set").append(BLANK);
+//		if (table.hasVersionColumn()) {
+//			Column versionColumn = table.getVersionColumn();
+//			builder.append(versionColumn.getSqlName()).append(BLANK).append("=").append(BLANK)
+//					.append(versionColumn.getSqlName()).append(" + 1 ,");
+//		}
+//		if (CollectionUtils.isNotEmpty(columns)) {
+//			table.getColumns().stream().filter(Column::isUpdatable).filter(column -> columns.contains(column.getJavaName())).forEach(column -> {
+//				builder.append(BLANK).append(column.getSqlName());
+//				builder.append("=");
+//				builder.append("#{").append("po.").append(column.getJavaName()).append(",jdbcType=").append(column.getSqlTypeName()).append("}");
+//				builder.append(",");
+//			});
+//		} else {
+//			table.getColumns().stream().filter(Column::isUpdatable).forEach(column -> {
+//				builder.append(BLANK).append(column.getSqlName());
+//				builder.append("=");
+//				builder.append("#{").append("po.").append(column.getJavaName()).append(",jdbcType=").append(column.getSqlTypeName()).append("}");
+//				builder.append(",");
+//			});
+//		}
+//		builder.deleteCharAt(builder.length() - 1);
+//		builder.append(BLANK).append("where").append(BLANK);
+//		AtomicInteger pkIndex = new AtomicInteger(0);
+//		table.getColumns().stream().filter(Column::isPk).forEach(column -> {
+//			if (pkIndex.get() > 0) {
+//				builder.append(BLANK).append("and").append(BLANK);
+//			}
+//			builder.append(column.getSqlName()).append(" = #{po.").append(column.getJavaName()).append(",jdbcType=").append(column.getSqlTypeName()).append("}");
+//			pkIndex.getAndIncrement();
+//		});
+//		if (logger.isDebugEnabled()) {
+//			logger.debug(builder.toString());
+//		}
+//		return builder.toString();
+//	}
 
-	public String updateSelective(@Param("po") Object po, @Param("columns") Set<String> includeColumns) {
-		Class<?> poClass = po.getClass();
-		Table table = ORMapping.get(poClass);
-		if (table == null) {
-			throw new RuntimeException("not a jpa standard class:" + poClass.getName());
-		}
-		StringBuilder builder = new StringBuilder();
-		builder.append("update");
-		builder.append(BLANK);
-		List<Serializable> idValue = getPkValues(table, po);
-		builder.append(getTableNameByPkValues(table, idValue));
-		builder.append(BLANK);
-		builder.append("set").append(BLANK);
-		if (table.hasVersionColumn()) {
-			Column versionColumn = table.getVersionColumn();
-			builder.append(versionColumn.getSqlName()).append(BLANK).append("=").append(BLANK)
-					.append(versionColumn.getSqlName()).append(" + 1 ,");
-		}
-		table.getColumns().stream().filter(Column::isUpdatable).forEach(column -> {
-			Object fieldValue = ReflectionUtils.getFieldValue(po, column.getJavaName());
-			boolean include = false;
-			if (CollectionUtils.isNotEmpty(includeColumns) && includeColumns.contains(column.getJavaName())) {
-				include = true;
-			} else if (fieldValue != null) {
-				include = true;
-			}
-			if (include) {
-				builder.append(BLANK);
-				String jdbcType = column.getSqlTypeName();
-				builder.append(column.getSqlName()).append("=");
-				builder.append("#{po.").append(column.getJavaName()).append(",jdbcType=").append(jdbcType).append("}");
-				builder.append(",");
-			}
-		});
-		builder.deleteCharAt(builder.length() - 1);
-		builder.append(BLANK).append("where").append(BLANK);
-		AtomicInteger pkIndex = new AtomicInteger(0);
-		table.getColumns().stream().filter(Column::isPk).forEach(column -> {
-			if (pkIndex.get() > 0) {
-				builder.append(BLANK).append("and").append(BLANK);
-			}
-			builder.append(column.getSqlName()).append(" = #{po.").append(column.getJavaName()).append(",jdbcType=").append(column.getSqlTypeName()).append("}");
-			pkIndex.getAndIncrement();
-		});
-		if (logger.isDebugEnabled()) {
-			logger.debug(builder.toString());
-		}
-		return builder.toString();
-	}
+//	public String updateSelective(@Param("po") Object po, @Param("columns") Set<String> includeColumns) {
+//		Class<?> poClass = po.getClass();
+//		Table table = ORMapping.get(poClass);
+//		if (table == null) {
+//			throw new RuntimeException("not a jpa standard class:" + poClass.getName());
+//		}
+//		StringBuilder builder = new StringBuilder();
+//		builder.append("update");
+//		builder.append(BLANK);
+//		List<Serializable> idValue = getPkValues(table, po);
+//		builder.append(getTableNameByPkValues(table, idValue));
+//		builder.append(BLANK);
+//		builder.append("set").append(BLANK);
+//		if (table.hasVersionColumn()) {
+//			Column versionColumn = table.getVersionColumn();
+//			builder.append(versionColumn.getSqlName()).append(BLANK).append("=").append(BLANK)
+//					.append(versionColumn.getSqlName()).append(" + 1 ,");
+//		}
+//		table.getColumns().stream().filter(Column::isUpdatable).forEach(column -> {
+//			Object fieldValue = ReflectionUtils.getFieldValue(po, column.getJavaName());
+//			boolean include = false;
+//			if (CollectionUtils.isNotEmpty(includeColumns) && includeColumns.contains(column.getJavaName())) {
+//				include = true;
+//			} else if (fieldValue != null) {
+//				include = true;
+//			}
+//			if (include) {
+//				builder.append(BLANK);
+//				String jdbcType = column.getSqlTypeName();
+//				builder.append(column.getSqlName()).append("=");
+//				builder.append("#{po.").append(column.getJavaName()).append(",jdbcType=").append(jdbcType).append("}");
+//				builder.append(",");
+//			}
+//		});
+//		builder.deleteCharAt(builder.length() - 1);
+//		builder.append(BLANK).append("where").append(BLANK);
+//		AtomicInteger pkIndex = new AtomicInteger(0);
+//		table.getColumns().stream().filter(Column::isPk).forEach(column -> {
+//			if (pkIndex.get() > 0) {
+//				builder.append(BLANK).append("and").append(BLANK);
+//			}
+//			builder.append(column.getSqlName()).append(" = #{po.").append(column.getJavaName()).append(",jdbcType=").append(column.getSqlTypeName()).append("}");
+//			pkIndex.getAndIncrement();
+//		});
+//		if (logger.isDebugEnabled()) {
+//			logger.debug(builder.toString());
+//		}
+//		return builder.toString();
+//	}
 
-	public String batchUpdateSelective(@Param("clazz") Class<?> clazz
-			, @Param("list") List<?> poList, @Param("includeColumns") Set<String> columns) {
-		return BatchType.BatchUpdateSelective.name();
-	}
-
-	public String batchUpdate(@Param("clazz") Class<?> clazz
-			, @Param("list") List<?> poList, @Param("includeColumns") Set<String> columns) {
-		return BatchType.BatchUpdate.name();
-	}
+//	public String batchUpdateSelective(@Param("clazz") Class<?> clazz
+//			, @Param("list") List<?> poList, @Param("includeColumns") Set<String> columns) {
+//		return BatchType.BatchUpdateSelective.name();
+//	}
+//
+//	public String batchUpdate(@Param("clazz") Class<?> clazz
+//			, @Param("list") List<?> poList, @Param("includeColumns") Set<String> columns) {
+//		return BatchType.BatchUpdate.name();
+//	}
 
 	public String delete(@Param("map") Map<String, Object> map, @Param("clazz") Class<?> clazz) {
 		Table table = ORMapping.get(clazz);
@@ -707,26 +708,19 @@ public class MybatisSqlBuilder {
 		}).collect(Collectors.toList());
 	}
 
-	public String updateByCriteria(@Param("clazz") Class<?> clazz, @Param("criteria") Criteria<?> criteria
-			, @Param("columnMap") Map<String, Object> columnMap, @Param("map") Map<String, Object> parameterMap) {
-		Table table = ORMapping.get(clazz);
-		if (table == null) {
-			throw new RuntimeException("not a jpa standard class:" + clazz.getName());
-		}
+	public String updateByCriteria(@Param("table") Table table, @Param("po") Object po, @Param("columnFilter") Predicate<Column> filter
+			, @Param("criteria") Criteria<?> criteria, @Param("map") Map<String, Object> parameterMap) {
 		QueryBuilder sql = new QueryBuilder();
 		AtomicInteger counter = new AtomicInteger(1);
 		Map<String, TableWithAlias> tableAliasMap = new ConcurrentHashMap<>();
-		String tableName = getTableNameByCriteria(table, criteria);
+		String tableName = getTableNameByPO(table, po);
 		String rootAlias = createTableAlias(tableName, counter);
 		tableAliasMap.put(ROOT_TABLE_ALIAS_KEY, new TableWithAlias(null, table));
 		sql.update(tableName);
-		columnMap.forEach((key, value) -> {
-			Column column = table.getColumns().stream().filter(c -> Objects.equals(c.getJavaName(), key)).findFirst().orElse(null);
-			if (column == null) {
-				throw new RuntimeException("could not find column for property:" + key + ", in table " + table.getSqlName() + " of class:" + table.getJavaName());
-			}
-			sql.set(column.getSqlName() + BLANK + "=" + BLANK + "#{columnMap." + key + ",jdbcType=" + column.getSqlTypeName() + "}");
+		table.getColumns().stream().filter(filter).forEach(column -> {
+			sql.set(column.getSqlName() + BLANK + "=" + BLANK + "#{po." + column.getJavaName() + ",jdbcType=" + column.getSqlTypeName() + "}");
 		});
+
 		List<Condition> conditions = criteria.getConditions();
 		if (CollectionUtils.isNotEmpty(conditions)) {
 			for (Condition condition : conditions) {
@@ -740,59 +734,34 @@ public class MybatisSqlBuilder {
 		return sql.toString();
 	}
 
-	public String deleteByCriteria(@Param("clazz") Class<?> clazz, @Param("criteria") Criteria<?> criteria
-			, @Param("map") Map<String, Object> parameterMap, @Param("forceDelete") boolean forceDelete) {
-		Table table = ORMapping.get(clazz);
-		if (table == null) {
-			throw new RuntimeException("not a jpa standard class:" + clazz.getName());
-		}
+	public String deleteByCriteria(@Param("table") Table table, @Param("criteria") Criteria<?> criteria, @Param("map") Map<String, Object> parameterMap) {
 		QueryBuilder sql = new QueryBuilder();
 		AtomicInteger counter = new AtomicInteger(1);
 		Map<String, TableWithAlias> tableAliasMap = new ConcurrentHashMap<>();
 		String tableName = getTableNameByCriteria(table, criteria);
 		String rootAlias = createTableAlias(tableName, counter);
 		tableAliasMap.put(ROOT_TABLE_ALIAS_KEY, new TableWithAlias(null, table));
-		sql.delete(tableName);
+		//此处判断
+		Optional<Column> isDeleted = table.getColumns().stream().filter(Column::isDeleted).findAny();
+		if (isDeleted.isPresent()) {
+			Column isDeletedColumn = isDeleted.get();
+			sql.update(tableName);
+			String columnName = isDeletedColumn.getSqlName();
+			Class<?> type = isDeletedColumn.getJavaType();
+			sql.set(columnName + " = 1");
+		} else {
+			sql.delete(tableName);
+		}
 		List<Condition> conditions = criteria.getConditions();
 		if (CollectionUtils.isNotEmpty(conditions)) {
 			for (Condition condition : conditions) {
 				buildCondition(parameterMap, tableAliasMap, sql, condition);
 			}
 		}
-
 		if (logger.isDebugEnabled()) {
 			logger.debug(sql.toString());
 		}
 		return sql.toString();
-	}
-
-	public String get(@Param("clazz") Class<?> clazz, @Param("map") Map<String, Object> map) {
-		Table table = ORMapping.get(clazz);
-		if (table == null) {
-			throw new RuntimeException("not a jpa standard class:" + clazz.getName());
-		}
-		StringBuilder builder = new StringBuilder();
-		builder.append("select");
-		builder.append(BLANK);
-		buildSelectItem(null, table, builder);
-		builder.append(BLANK);
-		builder.append("from");
-		builder.append(BLANK);
-		List<Serializable> idValue = getPkValues(table, map);
-		builder.append(getTableNameByPkValues(table, idValue));
-		builder.append(BLANK).append("where").append(BLANK);
-		AtomicInteger pkIndex = new AtomicInteger(0);
-		table.getColumns().stream().filter(Column::isPk).forEach(column -> {
-			if (pkIndex.get() > 0) {
-				builder.append(BLANK).append("and").append(BLANK);
-			}
-			builder.append(column.getSqlName()).append(" = #{map.").append(column.getJavaName()).append(",jdbcType=").append(column.getSqlTypeName()).append("}");
-			pkIndex.getAndIncrement();
-		});
-		if (logger.isDebugEnabled()) {
-			logger.debug(builder.toString());
-		}
-		return builder.toString();
 	}
 
 	public String findByCriteria(@Param("clazz") Class<?> clazz, @Param("criteria") Criteria<?> criteria, @Param("map") Map<String, Object> map) {

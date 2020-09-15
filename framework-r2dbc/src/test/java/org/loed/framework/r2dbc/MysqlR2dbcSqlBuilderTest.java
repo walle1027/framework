@@ -104,7 +104,7 @@ public class MysqlR2dbcSqlBuilderTest {
 
 	@Test
 	public void testUpdate() {
-		Criteria<Person> criteria = Criteria.from(Person.class).and(Person::getId).is(person.getId())
+		Criteria<Person> criteria = Criteria.of(Person.class).and(Person::getId).is(person.getId())
 				.and(Person::getIsDeleted).is((byte) 0);
 		R2dbcQuery query = mysqlR2dbcSqlBuilder.updateByCriteria(person, ORMapping.get(Person.class), criteria, R2dbcSqlBuilder.ALWAYS_TRUE_FILTER);
 		printQuery(query);
@@ -112,7 +112,7 @@ public class MysqlR2dbcSqlBuilderTest {
 
 	@Test
 	public void testUpdateWith() {
-		Criteria<Person> criteria = Criteria.from(Person.class).and(Person::getId).is(person.getId())
+		Criteria<Person> criteria = Criteria.of(Person.class).and(Person::getId).is(person.getId())
 				.and(Person::getIsDeleted).is((byte) 0);
 		List<String> includes = new ArrayList<>();
 		includes.add(LambdaUtils.getPropFromLambda(Person::getName));
@@ -123,7 +123,7 @@ public class MysqlR2dbcSqlBuilderTest {
 
 	@Test
 	public void testUpdateWithout() {
-		Criteria<Person> criteria = Criteria.from(Person.class).and(Person::getId).is(person.getId())
+		Criteria<Person> criteria = Criteria.of(Person.class).and(Person::getId).is(person.getId())
 				.and(Person::getIsDeleted).is((byte) 0);
 		List<String> excludes = new ArrayList<>();
 		excludes.add(LambdaUtils.getPropFromLambda(Person::getSex));
@@ -134,7 +134,7 @@ public class MysqlR2dbcSqlBuilderTest {
 	@Test
 	public void testDelete() {
 		Table table = ORMapping.get(People.class);
-		R2dbcQuery query = mysqlR2dbcSqlBuilder.deleteByCriteria(table, Criteria.from(People.class).and(People::getId).is(1L)
+		R2dbcQuery query = mysqlR2dbcSqlBuilder.deleteByCriteria(table, Criteria.of(People.class).and(People::getId).is(1L)
 				.and(People::getVersion).is(0L));
 		printQuery(query);
 	}
@@ -142,7 +142,7 @@ public class MysqlR2dbcSqlBuilderTest {
 	@Test
 	public void testLogicDelete() {
 		Table table = ORMapping.get(Person.class);
-		R2dbcQuery query = mysqlR2dbcSqlBuilder.deleteByCriteria(table, Criteria.from(Person.class).and(Person::getId).is(1L)
+		R2dbcQuery query = mysqlR2dbcSqlBuilder.deleteByCriteria(table, Criteria.of(Person.class).and(Person::getId).is(1L)
 				.and(Person::getVersion).is(0L));
 		printQuery(query);
 	}
@@ -174,7 +174,7 @@ public class MysqlR2dbcSqlBuilderTest {
 
 	@Test
 	public void testJoinCriteria() {
-		Criteria<Student> criteria = Criteria.from(Student.class);
+		Criteria<Student> criteria = Criteria.of(Student.class);
 		criteria.and(Student::getName).is("zhangsan");
 		criteria.innerJoin(Student::getMyClass).and(Class::getGrade).is("2");
 		criteria.leftJoin(Student::getMyClass).leftJoin(Class::getStudentList).leftJoin(Student::getMyClass2).and(Class::getGrade)
@@ -188,7 +188,7 @@ public class MysqlR2dbcSqlBuilderTest {
 	}
 
 	private Criteria<Person> createCaseCoverageCriteria() {
-		Criteria<Person> criteria = Criteria.from(Person.class);
+		Criteria<Person> criteria = Criteria.of(Person.class);
 		List<Sex> sexes = new ArrayList<>();
 		sexes.add(Sex.Female);
 		sexes.add(Sex.Male);

@@ -5,6 +5,7 @@ import com.github.pagehelper.PageInfo;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.ibatis.annotations.*;
+import org.checkerframework.checker.units.qual.C;
 import org.loed.framework.common.ORMapping;
 import org.loed.framework.common.context.SystemContextHolder;
 import org.loed.framework.common.lambda.LambdaUtils;
@@ -13,10 +14,7 @@ import org.loed.framework.common.orm.Column;
 import org.loed.framework.common.orm.Table;
 import org.loed.framework.common.po.BasePO;
 import org.loed.framework.common.po.Identify;
-import org.loed.framework.common.query.Condition;
-import org.loed.framework.common.query.Criteria;
-import org.loed.framework.common.query.Operator;
-import org.loed.framework.common.query.Pagination;
+import org.loed.framework.common.query.*;
 import org.loed.framework.common.util.ReflectionUtils;
 import org.loed.framework.mybatis.listener.MybatisListenerContainer;
 import org.loed.framework.mybatis.listener.spi.*;
@@ -67,7 +65,7 @@ public interface BaseMapper<T, ID extends Serializable> {
 
 	/*******************************批量插入方法********************************/
 	@InsertProvider(type = MybatisSqlBuilder.class, method = "batchInsert")
-	int _batchInsert(@Param("list") List<T> poList, @Param("map") Map<String, Object> map);
+	int _batchInsert(@Param("list") List<T> poList);
 
 	default int batchInsert(@Param("list") List<T> poList) {
 		if (poList == null || poList.size() == 0) {
@@ -83,7 +81,7 @@ public interface BaseMapper<T, ID extends Serializable> {
 				}
 			}
 		}
-		int rows = _batchInsert(poList, new HashMap<>());
+		int rows = _batchInsert(poList);
 		//post insert listener 处理
 		List<PostInsertListener> postInsertListeners = MybatisListenerContainer.getPostInsertListeners();
 		if (CollectionUtils.isNotEmpty(postInsertListeners)) {
@@ -93,10 +91,10 @@ public interface BaseMapper<T, ID extends Serializable> {
 	}
 
 	/*******************************全部更新方法********************************/
-	@UpdateProvider(type = MybatisSqlBuilder.class, method = "update")
-	int _update(@Param("po") T po, @Param("columnFilter") Predicate<Column> includes);
+	@UpdateProvider(type = MybatisSqlBuilder.class, method = "updateByCriteria")
+	int _updateByCriteria(@Param("table") Table table, @Param("po") T po, @Param("columnFilter") Predicate<Column> filter, @Param("criteria") Criteria<T> criteria, @Param("map") Map<String, Object> parameterMap);
 
-	default int update(T po) {
+	default int update(T po, Predicate<Column> predicate) {
 		List<PreUpdateListener> preUpdateListeners = MybatisListenerContainer.getPreUpdateListeners();
 		//pre update listener 处理
 		if (CollectionUtils.isNotEmpty(preUpdateListeners)) {
@@ -108,8 +106,16 @@ public interface BaseMapper<T, ID extends Serializable> {
 			}
 		}
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
-
-		int rows = _update(po, UPDATABLE_FILTER);
+		Criteria<T> criteria = Criteria.from(entityClass);
+		Table table = ORMapping.get(entityClass);
+		List<Condition> conditions = commonConditions(table);
+		Column idColumn = table.getColumns().stream().filter(Column::isPk).findFirst().orElse(null);
+		if (idColumn == null) {
+			throw new RuntimeException("entity class :" + entityClass + " has no id column");
+		}
+		ID idValue = (ID) ReflectionUtils.getFieldValue(po, idColumn.getJavaName());
+		conditions.add(new Condition(idColumn.getJavaName(), Operator.equal, idValue));
+		int rows = _updateByCriteria(table, po, predicate, criteria, new HashMap<>());
 
 		//post update listener 处理
 		List<PostUpdateListener> postUpdateListeners = MybatisListenerContainer.getPostUpdateListeners();
@@ -119,95 +125,33 @@ public interface BaseMapper<T, ID extends Serializable> {
 		return rows;
 	}
 
+	default int update(T po) {
+		return update(po, UPDATABLE_FILTER);
+	}
+
 	default int updateWith(T po, SFunction<T, ?>... includes) {
-		List<PreUpdateListener> preUpdateListeners = MybatisListenerContainer.getPreUpdateListeners();
-		//pre update listener 处理
-		if (CollectionUtils.isNotEmpty(preUpdateListeners)) {
-			for (PreUpdateListener preInsertListener : preUpdateListeners) {
-				boolean execute = preInsertListener.preUpdate(po);
-				if (!execute) {
-					return 0;
-				}
-			}
-		}
-		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
 		Predicate<Column> predicate = UPDATABLE_FILTER;
 		if (includes != null && includes.length > 0) {
 			Set<String> includeProps = Arrays.stream(includes).map(LambdaUtils::getPropFromLambda).collect(Collectors.toSet());
 			predicate = predicate.and(new IncludeFilter(includeProps));
 		}
-		int rows = _update(po, predicate);
-
-		//post update listener 处理
-		List<PostUpdateListener> postUpdateListeners = MybatisListenerContainer.getPostUpdateListeners();
-		if (CollectionUtils.isNotEmpty(postUpdateListeners)) {
-			postUpdateListeners.forEach(postUpdateListener -> postUpdateListener.postUpdate(po));
-		}
-		return rows;
+		return update(po, predicate);
 	}
 
 	default int updateWithout(T po, SFunction<T, ?>... excludes) {
-		List<PreUpdateListener> preUpdateListeners = MybatisListenerContainer.getPreUpdateListeners();
-		//pre update listener 处理
-		if (CollectionUtils.isNotEmpty(preUpdateListeners)) {
-			for (PreUpdateListener preInsertListener : preUpdateListeners) {
-				boolean execute = preInsertListener.preUpdate(po);
-				if (!execute) {
-					return 0;
-				}
-			}
-		}
-		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
 		Predicate<Column> predicate = UPDATABLE_FILTER;
 		if (excludes != null && excludes.length > 0) {
 			Set<String> includeProps = Arrays.stream(excludes).map(LambdaUtils::getPropFromLambda).collect(Collectors.toSet());
 			predicate = predicate.and(new ExcludeFilter(includeProps));
 		}
-		int rows = _update(po, predicate);
-
-		//post update listener 处理
-		List<PostUpdateListener> postUpdateListeners = MybatisListenerContainer.getPostUpdateListeners();
-		if (CollectionUtils.isNotEmpty(postUpdateListeners)) {
-			postUpdateListeners.forEach(postUpdateListener -> postUpdateListener.postUpdate(po));
-		}
-		return rows;
+		return update(po, predicate);
 	}
 
 	default int updateNonBlank(T po) {
-		List<PreUpdateListener> preUpdateListeners = MybatisListenerContainer.getPreUpdateListeners();
-		//pre update listener 处理
-		if (CollectionUtils.isNotEmpty(preUpdateListeners)) {
-			for (PreUpdateListener preInsertListener : preUpdateListeners) {
-				boolean execute = preInsertListener.preUpdate(po);
-				if (!execute) {
-					return 0;
-				}
-			}
-		}
-		Set<String> includeColumns = null;
-
-		int rows = _update(po, new NonBlankFilter(po).and(UPDATABLE_FILTER));
-
-		//post update listener 处理
-		List<PostUpdateListener> postUpdateListeners = MybatisListenerContainer.getPostUpdateListeners();
-		if (CollectionUtils.isNotEmpty(postUpdateListeners)) {
-			postUpdateListeners.forEach(postUpdateListener -> postUpdateListener.postUpdate(po));
-		}
-		return rows;
+		return update(po, new NonBlankFilter(po).and(UPDATABLE_FILTER));
 	}
 
 	default int updateNonBlankAnd(T po, @Nullable SFunction<T, ?>... columns) {
-		List<PreUpdateListener> preUpdateListeners = MybatisListenerContainer.getPreUpdateListeners();
-		//pre update listener 处理
-		if (CollectionUtils.isNotEmpty(preUpdateListeners)) {
-			for (PreUpdateListener preInsertListener : preUpdateListeners) {
-				boolean execute = preInsertListener.preUpdate(po);
-				if (!execute) {
-					return 0;
-				}
-			}
-		}
-		Set<String> includeColumns = null;
 		Predicate<Column> filter = UPDATABLE_FILTER;
 		if (columns != null && columns.length > 0) {
 			Set<String> includes = Arrays.stream(columns).map(LambdaUtils::getPropFromLambda).collect(Collectors.toSet());
@@ -215,14 +159,7 @@ public interface BaseMapper<T, ID extends Serializable> {
 		} else {
 			filter = filter.and(new NonBlankFilter(po));
 		}
-		int rows = _update(po, filter);
-
-		//post update listener 处理
-		List<PostUpdateListener> postUpdateListeners = MybatisListenerContainer.getPostUpdateListeners();
-		if (CollectionUtils.isNotEmpty(postUpdateListeners)) {
-			postUpdateListeners.forEach(postUpdateListener -> postUpdateListener.postUpdate(po));
-		}
-		return rows;
+		return update(po, filter);
 	}
 
 	default int batchUpdateNonBlank(List<T> poList) {
@@ -245,10 +182,21 @@ public interface BaseMapper<T, ID extends Serializable> {
 		}
 
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
+		Criteria<T> criteria = Criteria.from(entityClass);
+		Table table = ORMapping.get(entityClass);
+		List<Condition> conditions = commonConditions(table);
+		Column idColumn = table.getColumns().stream().filter(Column::isPk).findFirst().orElse(null);
+		if (idColumn == null) {
+			throw new RuntimeException("entity class :" + entityClass + " has no id column");
+		}
+
 		int rows = 0;
 		for (T t : poList) {
+			ID idValue = (ID) ReflectionUtils.getFieldValue(t, idColumn.getJavaName());
+			conditions.add(new Condition(idColumn.getJavaName(), Operator.equal, idValue));
+
 			NonBlankFilter nonBlankFilter = new NonBlankFilter(t);
-			rows += _update(t, nonBlankFilter.and(UPDATABLE_FILTER));
+			rows += _updateByCriteria(table, t, nonBlankFilter.and(UPDATABLE_FILTER), criteria, new HashMap<>());
 		}
 
 		//post insert listener 处理
@@ -259,7 +207,7 @@ public interface BaseMapper<T, ID extends Serializable> {
 		return rows;
 	}
 
-	default int batchUpdate(List<T> poList, String... columns) {
+	default int batchUpdate(List<T> poList) {
 		if (poList == null || poList.size() == 0) {
 			return 0;
 		}
@@ -279,9 +227,18 @@ public interface BaseMapper<T, ID extends Serializable> {
 		}
 
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
+		Criteria<T> criteria = Criteria.from(entityClass);
+		Table table = ORMapping.get(entityClass);
+		List<Condition> conditions = commonConditions(table);
+		Column idColumn = table.getColumns().stream().filter(Column::isPk).findFirst().orElse(null);
+		if (idColumn == null) {
+			throw new RuntimeException("entity class :" + entityClass + " has no id column");
+		}
 		int rows = 0;
 		for (T t : poList) {
-			rows += _update(t, UPDATABLE_FILTER);
+			ID idValue = (ID) ReflectionUtils.getFieldValue(t, idColumn.getJavaName());
+			conditions.add(new Condition(idColumn.getJavaName(), Operator.equal, idValue));
+			rows += _updateByCriteria(table, t, UPDATABLE_FILTER, criteria, new HashMap<>());
 		}
 
 		//post insert listener 处理
@@ -292,9 +249,9 @@ public interface BaseMapper<T, ID extends Serializable> {
 		return rows;
 	}
 
-	/*******************************删除方法********************************/
-	@DeleteProvider(type = MybatisSqlBuilder.class, method = "delete")
-	int _delete(@Param("table") Table table, @Param("id") ID Id);
+	/*******************************按照查询条件删除********************************/
+	@DeleteProvider(type = MybatisSqlBuilder.class, method = "deleteByCriteria")
+	int _deleteByCriteria(@Param("table") Table table, @Param("criteria") Criteria<T> criteria, @Param("map") Map<String, Object> map);
 
 	default int delete(ID id) {
 		T po = null;
@@ -310,7 +267,16 @@ public interface BaseMapper<T, ID extends Serializable> {
 				}
 			}
 		}
-		int rows = _delete(ORMapping.get(entityClass), id);
+		Table table = ORMapping.get(entityClass);
+		List<Condition> conditions = commonConditions(table);
+		Column idColumn = table.getColumns().stream().filter(Column::isPk).findFirst().orElse(null);
+		if (idColumn == null) {
+			throw new RuntimeException("entity class :" + entityClass + " has no id column");
+		}
+		conditions.add(new Condition(idColumn.getJavaName(), Operator.equal, id));
+		Criteria<T> criteria = Criteria.from(entityClass);
+		criteria.setConditions(conditions);
+		int rows = _deleteByCriteria(table, criteria, new HashMap<>());
 		//post postDelete listener 处理
 		List<PostDeleteListener> postDeleteListeners = MybatisListenerContainer.getPostDeleteListeners();
 		if (CollectionUtils.isNotEmpty(postDeleteListeners)) {
@@ -328,71 +294,105 @@ public interface BaseMapper<T, ID extends Serializable> {
 	List<T> _shardingGetList(@Param("idList") List<Serializable> idList, @Param("clazz") Class<T> clazz);
 
 	//isdelted == 0
-	default List<T> getList(List<Serializable> idList) {
-		if (CollectionUtils.isEmpty(idList)) {
-			return new ArrayList<>();
-		}
-		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
-		Table table = ORMapping.get(entityClass);
-		if (table.isSharding()) {
-			return _shardingGetList(idList, entityClass);
-		}
-		Criteria<T> criteria = Criteria.from(entityClass);
-		criteria.and(Identify::getId).in(idList);
-		return findByCriteria(criteria);
-	}
+//	default List<T> getList(List<ID> idList) {
+//		if (CollectionUtils.isEmpty(idList)) {
+//			return new ArrayList<>();
+//		}
+//		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
+//		Table table = ORMapping.get(entityClass);
+//		if (table.isSharding()) {
+//			return _shardingGetList(idList, entityClass);
+//		}
+//		Criteria<T> criteria = Criteria.of(entityClass);
+//		criteria.setConditions(Identify::getId).in(idList);
+//		return findByCriteria(criteria);
+//	}
+//
+//	@SelectProvider(type = MybatisSqlBuilder.class, method = "shardingGetByIdList")
+//	List<T> _shardingByIdList(@Param("idList") List<Serializable> idList, @Param("clazz") Class<T> clazz);
+//
+//	default List<T> getByIdList(List<Serializable> idList) {
+//		if (CollectionUtils.isEmpty(idList)) {
+//			return new ArrayList<>();
+//		}
+//		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
+//		Table table = ORMapping.get(entityClass);
+//		if (table.isSharding()) {
+//			return _shardingByIdList(idList, entityClass);
+//		}
+//		Criteria<T> criteria = Criteria.of(entityClass);
+//		criteria.and(Identify::getId).in(idList);
+//		return _findByCriteria(entityClass, criteria, new HashMap<>());
+//	}
 
-	@SelectProvider(type = MybatisSqlBuilder.class, method = "shardingGetByIdList")
-	List<T> _shardingByIdList(@Param("idList") List<Serializable> idList, @Param("clazz") Class<T> clazz);
-
-	default List<T> getByIdList(List<Serializable> idList) {
-		if (CollectionUtils.isEmpty(idList)) {
-			return new ArrayList<>();
-		}
-		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
-		Table table = ORMapping.get(entityClass);
-		if (table.isSharding()) {
-			return _shardingByIdList(idList, entityClass);
-		}
-		Criteria<T> criteria = Criteria.from(entityClass);
-		criteria.and(Identify::getId).in(idList);
-		return _findByCriteria(entityClass, criteria, new HashMap<>());
-	}
-
-	/*******************************按照查询条件删除********************************/
-	@DeleteProvider(type = MybatisSqlBuilder.class, method = "deleteByCriteria")
-	int _deleteByCriteria(@Param("clazz") Class<T> clazz, @Param("criteria") Criteria<T> criteria, @Param("map") Map<String, Object> map);
-
-	@UpdateProvider(type = MybatisSqlBuilder.class, method = "updateByCriteria")
-	int _updateByCriteria(@Param("clazz") Class<T> clazz, @Param("criteria") Criteria<T> criteria, @Param("columnMap") Map<String, Object> columnMap, @Param("map") Map<String, Object> map);
 
 	default int deleteByCriteria(Criteria<T> criteria) {
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
-		if (ReflectionUtils.isSubClass(entityClass, CommonPO.class)) {
-			Map<String, Object> columnMap = new HashMap<>();
-			columnMap.put("isDeleted", 0);
-			columnMap.put("updateBy", SystemContextHolder.getAccountId());
-			columnMap.put("updateTime", new Date());
-			return _updateByCriteria(entityClass, criteria, columnMap, new HashMap<>());
+		Table table = ORMapping.get(entityClass);
+		List<Condition> conditions = commonConditions(table);
+		List<Condition> oldConditions = criteria.getConditions();
+		if (oldConditions != null) {
+			oldConditions.addAll(conditions);
+			criteria.setConditions(oldConditions);
 		} else {
-			return _deleteByCriteria(entityClass, criteria, new HashMap<>());
+			criteria.setConditions(conditions);
 		}
+		return _deleteByCriteria(table, criteria, new HashMap<>());
 	}
 
-	/*******************************按照主键查询********************************/
-	@SelectProvider(type = MybatisSqlBuilder.class, method = "get")
-	T _get(@Param("map") Map<String, Object> map, @Param("clazz") Class<T> clazz);
 
-	default T get(Serializable id) {
+	default List<Condition> commonConditions(Table table) {
+		Optional<Column> isDeleted = table.getColumns().stream().filter(Column::isDeleted).findAny();
+		Optional<Column> tenantId = table.getColumns().stream().filter(Column::isTenantId).findAny();
+		List<Condition> conditions = new ArrayList<>();
+		if (isDeleted.isPresent()) {
+			Column column = isDeleted.get();
+			Condition condition = new Condition();
+			condition.setPropertyName(column.getJavaName());
+			condition.setOperator(Operator.equal);
+			condition.setJoint(Joint.and);
+			Class<?> type = column.getJavaType();
+			if (type.getName().equals(Integer.class.getName()) || type.getName().equals(int.class.getName())) {
+				condition.setValue(0);
+			} else if (type.getName().equals(Byte.class.getName()) || type.getName().equals(byte.class.getName())) {
+				condition.setValue((byte) 0);
+			} else if (type.getName().equals(Boolean.class.getName()) || type.getName().equals(boolean.class.getName())) {
+				condition.setValue(false);
+			} else {
+				throw new RuntimeException("error type of isDeleted column");
+			}
+			conditions.add(condition);
+		}
+		if (tenantId.isPresent()) {
+			Column column = tenantId.get();
+			Condition condition = new Condition();
+			condition.setPropertyName(column.getJavaName());
+			condition.setOperator(Operator.equal);
+			condition.setJoint(Joint.and);
+			Class<?> type = column.getJavaType();
+			condition.setValue(SystemContextHolder.getTenantCode());
+			conditions.add(condition);
+		}
+		return conditions;
+	}
+
+	default T get(ID id) {
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
-		Map<String, Object> map = new HashMap<>();
-		map.put("id", id);
-		return _get(map, entityClass);
+		Table table = ORMapping.get(entityClass);
+		Column idColumn = table.getColumns().stream().filter(Column::isPk).findFirst().orElse(null);
+		if (idColumn == null) {
+			throw new RuntimeException("entity: " + entityClass + " has no id column");
+		}
+		Criteria<T> criteria = Criteria.from(entityClass);
+		Condition condition = new Condition();
+		condition.setPropertyName(idColumn.getJavaName());
+		condition.setValue(id);
+		return findOne(criteria);
 	}
 
 	default List<T> findByProperty(SFunction<T, ?> propName, Object propValue) {
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
-		Criteria<T> criteria = Criteria.from(entityClass);
+		Criteria<T> criteria = Criteria.of(entityClass);
 		return findByCriteria(criteria.and(propName).is(propValue));
 	}
 
@@ -451,7 +451,7 @@ public interface BaseMapper<T, ID extends Serializable> {
 			PageHelper.startPage(request.getPageNumber() + 1, request.getPageSize());
 		}
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
-		List<T> list = this.findByCriteria(criteria == null ? Criteria.from(entityClass) : criteria);
+		List<T> list = this.findByCriteria(criteria == null ? Criteria.of(entityClass) : criteria);
 		PageInfo<T> pageInfo = new PageInfo<>(list);
 		Pagination<T> response = new Pagination<>();
 		response.setTotal(pageInfo.getTotal());
@@ -477,7 +477,7 @@ public interface BaseMapper<T, ID extends Serializable> {
 
 	default boolean checkRepeat(Serializable id, SFunction<T, ?> lamda, Object propValue) {
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
-		Criteria<T> criteria = Criteria.from(entityClass);
+		Criteria<T> criteria = Criteria.of(entityClass);
 		criteria.and(lamda).is(propValue);
 		criteria.and(Identify::getId).isNot(propValue);
 		Long count = countByCriteria(criteria);
