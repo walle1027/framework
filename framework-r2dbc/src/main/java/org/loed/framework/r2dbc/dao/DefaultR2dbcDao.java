@@ -99,7 +99,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 		GenerationType idGenerationType = table.getIdGenerationType();
 		if (idGenerationType.equals(GenerationType.AUTO)) {
 			return execute.map((r, m) -> {
-				return (ID) r.get(0, idClass);
+				return r.get(0, idClass);
 			}).all().doOnError(err -> {
 				log.info(err.getMessage(), err);
 			}).last().map(id -> {
@@ -141,6 +141,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 		};
 	}
 
+	@SuppressWarnings("ConstantConditions")
 	protected <S extends T> Flux<S> doBatchInsert(List<S> entityList) {
 		R2dbcQuery query = r2dbcSqlBuilder.batchInsert(entityList, table);
 		DatabaseClient.GenericExecuteSpec execute = bind(query);
@@ -291,7 +292,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 		}
 		return Flux.merge(Flux.just(new Condition(idColumn.getJavaName(), Operator.equal, id)), commonConditions())
 				.collectList().map(conditions -> {
-					return r2dbcSqlBuilder.updateByCriteria(entity, table, criteriaWithCondition(conditions), columnFilter);
+					return r2dbcSqlBuilder.updateByCriteria(entity, table, criteriaWithCondition(conditions), columnFilter.and(Filters.INSERTABLE_FILTER));
 				}).flatMap(r2dbcQuery -> {
 					return execute(r2dbcQuery).thenReturn(entity);
 				});
