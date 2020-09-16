@@ -313,7 +313,7 @@ public interface R2dbcDao<T, ID> {
 	 * @param value    属性值
 	 * @return 查询的对象的集合
 	 */
-	Flux<T> findByProperty(@NonNull SFunction<T, ?> property, Object value);
+	<R> Flux<T> findByProperty(@NonNull SFunction<T, R> property, R value);
 
 	/**
 	 * 检查对象的某个属性是否重复，如果传入主键，将忽略主键对应的记录
@@ -325,7 +325,7 @@ public interface R2dbcDao<T, ID> {
 	 * @param value    属性值
 	 * @return 查询的对象的集合
 	 */
-	Mono<Boolean> isRepeated(@Nullable ID id, @NonNull SFunction<T, ?> property, @NonNull Object value);
+	<R> Mono<Boolean> isRepeated(@Nullable ID id, @NonNull SFunction<T, R> property, @NonNull R value);
 
 	/**
 	 * 按照动态条件查询记录，并且分页

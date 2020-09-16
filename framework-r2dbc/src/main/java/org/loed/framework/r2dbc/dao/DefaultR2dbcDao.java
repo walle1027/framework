@@ -396,7 +396,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 				}
 		).flatMap(crit -> {
 			if (CollectionUtils.isEmpty(crit.getConditions())) {
-				throw new RuntimeException("empty conditions to delete the entity ,this will ignore");
+				return Mono.error(new RuntimeException("empty conditions to delete the entity ,this will ignore"));
 			}
 			if (CollectionUtils.isNotEmpty(preDeleteListeners)) {
 				return this.find(crit).flatMap(preDeleteFunction()).collectList().flatMap(entityList -> {
@@ -432,7 +432,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	public Flux<T> find(@NonNull Criteria<T> criteria) {
 		List<Condition> conditions = criteria.getConditions() == null ? Collections.emptyList() : criteria.getConditions();
 		return Flux.merge(Flux.fromIterable(conditions), commonConditions()).collectList().map(cnd -> {
-			Criteria<T> criteriaNew = Criteria.from(criteria);
+			Criteria<T> criteriaNew = criteria.copy();
 			criteriaNew.setConditions(cnd);
 			return criteriaNew;
 		}).defaultIfEmpty(criteria).map(crt -> {
@@ -452,7 +452,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	public Mono<Long> count(@NonNull Criteria<T> criteria) {
 		List<Condition> conditions = criteria.getConditions() == null ? Collections.emptyList() : criteria.getConditions();
 		return Flux.merge(Flux.fromIterable(conditions), commonConditions()).collectList().map(cnds -> {
-			Criteria<T> criteriaNew = Criteria.from(criteria);
+			Criteria<T> criteriaNew = criteria.copy();
 			criteriaNew.setConditions(cnds);
 			return criteriaNew;
 		}).defaultIfEmpty(criteria)
@@ -464,14 +464,14 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	}
 
 	@Override
-	public Flux<T> findByProperty(SFunction<T, ?> property, Object value) {
+	public <R> Flux<T> findByProperty(SFunction<T, R> property, R value) {
 		Criteria<T> criteria = Criteria.from(entityClass);
 		criteria.and(property).is(value);
 		return find(criteria);
 	}
 
 	@Override
-	public Mono<Boolean> isRepeated(ID id, SFunction<T, ?> property, Object value) {
+	public <R> Mono<Boolean> isRepeated(ID id, SFunction<T, R> property, R value) {
 		Criteria<T> criteria = Criteria.from(entityClass);
 		criteria.and(property).is(value);
 		if (id != null) {
