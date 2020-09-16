@@ -7,7 +7,7 @@ import java.io.Serializable;
  * @version 1.0
  * @since 2017/8/16 下午4:14
  */
-public class SortProperty implements Serializable {
+public class SortProperty implements Serializable,Copyable<SortProperty> {
 	private String propertyName;
 	private Sort sort = Sort.ASC;
 
@@ -21,6 +21,11 @@ public class SortProperty implements Serializable {
 	public SortProperty(String propertyName, Sort sort) {
 		this.propertyName = propertyName;
 		this.sort = sort;
+	}
+
+	@Override
+	public SortProperty copy() {
+		return new SortProperty(this.propertyName,this.sort);
 	}
 
 	public String getPropertyName() {

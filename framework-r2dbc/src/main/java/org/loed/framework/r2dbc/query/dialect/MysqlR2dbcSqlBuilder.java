@@ -43,7 +43,7 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 		StringBuilder builder = new StringBuilder();
 		Map<String, R2dbcParam> params = new HashMap<>();
 		builder.append("insert into ").append(wrap(table.getSqlName())).append("(");
-		List<Column> columns = table.getColumns().stream().filter(INSERTABLE_FILTER).collect(Collectors.toList());
+		List<Column> columns = table.getColumns().stream().filter(Filters.INSERTABLE_FILTER).collect(Collectors.toList());
 		columns.forEach(column -> {
 			builder.append(wrap(column.getSqlName()));
 			builder.append(",");
@@ -67,7 +67,7 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 		StringBuilder builder = new StringBuilder();
 		Map<String, R2dbcParam> params = new HashMap<>();
 		builder.append("insert into ").append(wrap(table.getSqlName())).append("(");
-		List<Column> columns = table.getColumns().stream().filter(INSERTABLE_FILTER).collect(Collectors.toList());
+		List<Column> columns = table.getColumns().stream().filter(Filters.INSERTABLE_FILTER).collect(Collectors.toList());
 		columns.forEach(column -> {
 			builder.append(wrap(column.getSqlName()));
 			builder.append(",");
@@ -100,7 +100,7 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 		Map<String, R2dbcParam> params = new HashMap<>();
 		QueryBuilder builder = new QueryBuilder();
 		builder.update(wrap(table.getSqlName()));
-		table.getColumns().stream().filter(UPDATABLE_FILTER.and(columnFilter).or(VERSION_FILTER)).forEach(column -> {
+		table.getColumns().stream().filter(columnFilter.or(Filters.VERSION_FILTER)).forEach(column -> {
 			StringBuilder setBuilder = new StringBuilder();
 			if (column.isVersioned()) {
 				setBuilder.append(wrap(column.getSqlName())).append(BLANK).append("=").append(BLANK).append(wrap(column.getSqlName())).append(" + 1");
@@ -287,9 +287,7 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 		if (parentTable == null || parentAlias == null) {
 			throw new RuntimeException("error property path for join " + join.toString());
 		}
-		JoinTable joinTable = parentTable.getJoinTables().stream().filter(jt -> {
-			return jt.getFieldName().equals(target);
-		}).findFirst().orElse(null);
+		JoinTable joinTable = parentTable.getJoinTables().stream().filter(jt -> jt.getFieldName().equals(target)).findFirst().orElse(null);
 		if (joinTable == null) {
 			throw new RuntimeException("error join property -> " + uniquePath);
 		}
@@ -413,7 +411,7 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 				sql.where(joint + columnNameAlias + BLANK + condition.getOperator().value() + BLANK + ":" + start + BLANK
 						+ "and" + BLANK + ":" + end);
 				if (value instanceof Collection) {
-					if (((Collection) value).size() < 2) {
+					if (((Collection<?>) value).size() < 2) {
 						throw new IllegalArgumentException("parameter " + value + " length less than 2 when use between operator");
 					}
 					int i = 0;
@@ -616,7 +614,7 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 						builder.deleteCharAt(builder.length() - 1);
 					} else if (columnType.isEnum()) {
 						for (Object inValue : collectionValue) {
-							String enumName = ((Enum) inValue).name();
+							String enumName = ((Enum<?>) inValue).name();
 							builder.append("'");
 							builder.append(StringHelper.escapeSql(enumName));
 							builder.append("'");

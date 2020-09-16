@@ -3,6 +3,7 @@ package org.loed.framework.common.query;
 import lombok.Data;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.loed.framework.common.lambda.CFunction;
 import org.loed.framework.common.lambda.LambdaUtils;
@@ -15,6 +16,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import javax.persistence.criteria.JoinType;
 import java.io.Serializable;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author thomason
@@ -25,7 +27,7 @@ import java.util.*;
 @ToString
 @Slf4j
 @NotThreadSafe
-public final class Criteria<T> implements Serializable {
+public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 	private PropertySelector selector;
 
 	private List<Condition> conditions;
@@ -35,7 +37,7 @@ public final class Criteria<T> implements Serializable {
 	private TreeMap<String, Join> joins;
 
 	public static <S> Criteria<S> from(Class<S> clazz) {
-		return new Criteria<S>();
+		return new Criteria<>();
 	}
 
 	public static <S> Criteria<S> from(Criteria<S> criteria) {
@@ -51,14 +53,7 @@ public final class Criteria<T> implements Serializable {
 		this.conditions = new ArrayList<>();
 	}
 
-	private void criterion(Condition... condition) {
-		if (conditions == null) {
-			conditions = new ArrayList<>();
-		}
-		if (condition != null && condition.length > 0) {
-			conditions.addAll(Arrays.asList(condition));
-		}
-	}
+
 
 	@SafeVarargs
 	public final Criteria<T> includes(SFunction<T, ?>... functions) {
@@ -129,15 +124,7 @@ public final class Criteria<T> implements Serializable {
 		return this;
 	}
 
-	private void sort(SortProperty sortProperty) {
-		if (sortProperty == null) {
-			return;
-		}
-		if (this.sortProperties == null) {
-			this.sortProperties = new ArrayList<>();
-		}
-		sortProperties.add(sortProperty);
-	}
+
 
 	public <S> JoinBuilder<T, S> leftJoin(SFunction<T, S> lambda) {
 		return joinBuilder(LambdaUtils.getPropFromLambda(lambda), JoinType.LEFT);
@@ -169,20 +156,20 @@ public final class Criteria<T> implements Serializable {
 		join.setUniquePath(prop);
 		join.setJoinType(left);
 		join(join);
-		return new JoinBuilder<>(this, join, null);
+		return new JoinBuilder<>(this, join);
 	}
 
-	public ConditionSpec<T> where(SFunction<T, ?> lambda) {
+	public <R> ConditionSpec<T,R> where(SFunction<T, R> lambda) {
 		return and(lambda);
 	}
 
-	public ConditionSpec<T> and(SFunction<T, ?> lambda) {
+	public <R> ConditionSpec<T,R> and(SFunction<T, R> lambda) {
 		SerializedLambda resolve = LambdaUtils.resolve(lambda);
 		String prop = ReflectionUtils.methodToProperty(resolve.getImplMethodName());
 		return new ConditionSpec<>(this, Joint.and, prop);
 	}
 
-	public ConditionSpec<T> or(SFunction<T, ?> lambda) {
+	public <R> ConditionSpec<T,R> or(SFunction<T, R> lambda) {
 		SerializedLambda resolve = LambdaUtils.resolve(lambda);
 		String prop = ReflectionUtils.methodToProperty(resolve.getImplMethodName());
 		return new ConditionSpec<>(this, Joint.or, prop);
@@ -244,6 +231,25 @@ public final class Criteria<T> implements Serializable {
 		return this;
 	}
 
+	private void sort(SortProperty sortProperty) {
+		if (sortProperty == null) {
+			return;
+		}
+		if (this.sortProperties == null) {
+			this.sortProperties = new ArrayList<>();
+		}
+		sortProperties.add(sortProperty);
+	}
+
+	private void criterion(Condition... condition) {
+		if (conditions == null) {
+			conditions = new ArrayList<>();
+		}
+		if (condition != null && condition.length > 0) {
+			conditions.addAll(Arrays.asList(condition));
+		}
+	}
+
 	private void join(Join join) {
 		if (this.joins == null) {
 			this.joins = new TreeMap<>();
@@ -259,15 +265,33 @@ public final class Criteria<T> implements Serializable {
 		}
 	}
 
+	@Override
+	public Criteria<T> copy(){
+		Criteria<T> criteria = new Criteria<>();
+		criteria.conditions = this.conditions.stream().map(Condition::copy).collect(Collectors.toList());
+		if (CollectionUtils.isNotEmpty(this.sortProperties)){
+			criteria.sortProperties = this.sortProperties.stream().map(SortProperty::copy).collect(Collectors.toList());;
+		}
+		if (this.selector != null){
+			criteria.selector = this.selector.copy();
+		}
+		if (this.joins != null && !this.joins.isEmpty()){
+			TreeMap<String,Join> map = new TreeMap<>();
+			for (Map.Entry<String, Join> entry : joins.entrySet()) {
+				map.put(entry.getKey(),entry.getValue().copy());
+			}
+			criteria.joins = map;
+		}
+		return criteria;
+	}
+
 	public static class JoinBuilder<T, R> {
 		private final Join join;
-		private final JoinBuilder<T, ?> previous;
 		private final Criteria<T> criteria;
 
-		private JoinBuilder(Criteria<T> criteria, Join join, JoinBuilder<T, ?> previous) {
+		private JoinBuilder(Criteria<T> criteria, Join join) {
 			this.criteria = criteria;
 			this.join = join;
-			this.previous = previous;
 		}
 
 		public <S> JoinBuilder<T, S> leftJoin(SFunction<R, S> lambda) {
@@ -300,17 +324,17 @@ public final class Criteria<T> implements Serializable {
 			join.setTarget(prop);
 			join.setUniquePath(this.join.getUniquePath() + "." + prop);
 			this.criteria.join(join);
-			return new JoinBuilder<>(this.criteria, join, this);
+			return new JoinBuilder<>(this.criteria, join);
 		}
 
-		public ConditionSpec<T> and(SFunction<R, ?> lambda) {
+		public <S> ConditionSpec<T,S> and(SFunction<R, S> lambda) {
 			String prop = LambdaUtils.getPropFromLambda(lambda);
-			return new ConditionSpec<T>(criteria, Joint.and, this.join.getUniquePath() + Condition.PATH_SEPARATOR + prop);
+			return new ConditionSpec<>(criteria, Joint.and, this.join.getUniquePath() + Condition.PATH_SEPARATOR + prop);
 		}
 
-		public ConditionSpec<T> or(SFunction<R, ?> lambda) {
+		public <S> ConditionSpec<T,S> or(SFunction<R, S> lambda) {
 			String prop = LambdaUtils.getPropFromLambda(lambda);
-			return new ConditionSpec<T>(criteria, Joint.and, this.join.getUniquePath() + Condition.PATH_SEPARATOR + prop);
+			return new ConditionSpec<>(criteria, Joint.and, this.join.getUniquePath() + Condition.PATH_SEPARATOR + prop);
 		}
 
 		@SafeVarargs
@@ -345,7 +369,7 @@ public final class Criteria<T> implements Serializable {
 	 *
 	 * @param <T> 对象类型
 	 */
-	public static class ConditionSpec<T> {
+	public static class ConditionSpec<T,R> {
 		/**
 		 * 对象属性名，"." 代表级联属性
 		 */
@@ -365,7 +389,7 @@ public final class Criteria<T> implements Serializable {
 			this.joint = joint;
 		}
 
-		public Criteria<T> beginWith(@NonNull String value) {
+		public Criteria<T> beginWith(@NonNull R value) {
 			validateNonNull(value);
 			Condition condition = new Condition(property, Operator.beginWith, value);
 			condition.setJoint(joint);
@@ -373,7 +397,7 @@ public final class Criteria<T> implements Serializable {
 			return criteria;
 		}
 
-		public Criteria<T> notBeginWith(@NonNull String value) {
+		public Criteria<T> notBeginWith(@NonNull R value) {
 			validateNonNull(value);
 			Condition condition = new Condition(property, Operator.notBeginWith, value);
 			condition.setJoint(joint);
@@ -381,7 +405,7 @@ public final class Criteria<T> implements Serializable {
 			return criteria;
 		}
 
-		public Criteria<T> contains(@NonNull String value) {
+		public Criteria<T> contains(@NonNull R value) {
 			validateNonNull(value);
 			Condition condition = new Condition(property, Operator.contains, value);
 			condition.setJoint(joint);
@@ -389,7 +413,7 @@ public final class Criteria<T> implements Serializable {
 			return criteria;
 		}
 
-		public Criteria<T> notContains(@NonNull String value) {
+		public Criteria<T> notContains(@NonNull R value) {
 			validateNonNull(value);
 			Condition condition = new Condition(property, Operator.notContains, value);
 			condition.setJoint(joint);
@@ -397,7 +421,7 @@ public final class Criteria<T> implements Serializable {
 			return criteria;
 		}
 
-		public Criteria<T> endWith(@NonNull String value) {
+		public Criteria<T> endWith(@NonNull R value) {
 			validateNonNull(value);
 			Condition condition = new Condition(property, Operator.endWith, value);
 			condition.setJoint(joint);
@@ -405,7 +429,7 @@ public final class Criteria<T> implements Serializable {
 			return criteria;
 		}
 
-		public Criteria<T> notEndWith(@NonNull String value) {
+		public Criteria<T> notEndWith(@NonNull R value) {
 			validateNonNull(value);
 			Condition condition = new Condition(property, Operator.notEndWith, value);
 			condition.setJoint(joint);
@@ -413,7 +437,7 @@ public final class Criteria<T> implements Serializable {
 			return criteria;
 		}
 
-		public Criteria<T> between(@NonNull Object start, @NonNull Object end) {
+		public Criteria<T> between(@NonNull R start, @NonNull R end) {
 			validateNonNull(start);
 			validateNonNull(end);
 			Condition condition = new Condition(property, Operator.between, new Object[]{start, end});
@@ -422,7 +446,7 @@ public final class Criteria<T> implements Serializable {
 			return criteria;
 		}
 
-		public Criteria<T> notBetween(@NonNull Object start, @NonNull Object end) {
+		public Criteria<T> notBetween(@NonNull R start, @NonNull R end) {
 			validateNonNull(start);
 			validateNonNull(end);
 			Condition condition = new Condition(property, Operator.notBetween, new Object[]{start, end});
@@ -445,7 +469,7 @@ public final class Criteria<T> implements Serializable {
 			return criteria;
 		}
 
-		public Criteria<T> is(@NonNull Object value) {
+		public Criteria<T> is(@NonNull R value) {
 			validateNonNull(value);
 			Condition condition = new Condition(property, Operator.equal, value);
 			condition.setJoint(joint);
@@ -453,7 +477,7 @@ public final class Criteria<T> implements Serializable {
 			return criteria;
 		}
 
-		public Criteria<T> isNot(@NonNull Object value) {
+		public Criteria<T> isNot(@NonNull R value) {
 			validateNonNull(value);
 			Condition condition = new Condition(property, Operator.notEqual, value);
 			condition.setJoint(joint);
@@ -461,7 +485,7 @@ public final class Criteria<T> implements Serializable {
 			return criteria;
 		}
 
-		public Criteria<T> greaterThan(@NonNull Object value) {
+		public Criteria<T> greaterThan(@NonNull R value) {
 			validateNonNull(value);
 			Condition condition = new Condition(property, Operator.greaterThan, value);
 			condition.setJoint(joint);
@@ -469,7 +493,7 @@ public final class Criteria<T> implements Serializable {
 			return criteria;
 		}
 
-		public Criteria<T> greaterEqual(@NonNull Object value) {
+		public Criteria<T> greaterEqual(@NonNull R value) {
 			validateNonNull(value);
 			Condition condition = new Condition(property, Operator.greaterEqual, value);
 			condition.setJoint(joint);
@@ -477,7 +501,7 @@ public final class Criteria<T> implements Serializable {
 			return criteria;
 		}
 
-		public Criteria<T> lessEqual(@NonNull Object value) {
+		public Criteria<T> lessEqual(@NonNull R value) {
 			validateNonNull(value);
 			Condition condition = new Condition(property, Operator.lessEqual, value);
 			condition.setJoint(joint);
@@ -485,7 +509,7 @@ public final class Criteria<T> implements Serializable {
 			return criteria;
 		}
 
-		public Criteria<T> lessThan(@NonNull Object value) {
+		public Criteria<T> lessThan(@NonNull R value) {
 			validateNonNull(value);
 			Condition condition = new Condition(property, Operator.lessThan, value);
 			condition.setJoint(joint);
@@ -507,7 +531,7 @@ public final class Criteria<T> implements Serializable {
 			return criteria;
 		}
 
-		public Criteria<T> in(@NonNull Collection<?> values) {
+		public Criteria<T> in(@NonNull Collection<R> values) {
 			validateNonNull(values);
 			Condition condition = new Condition(property, Operator.in, values);
 			condition.setJoint(joint);
@@ -515,7 +539,7 @@ public final class Criteria<T> implements Serializable {
 			return criteria;
 		}
 
-		public Criteria<T> in(@NonNull int[] values) {
+		public Criteria<T> in(@NonNull R[] values) {
 			validateNonNull(values);
 			Condition condition = new Condition(property, Operator.in, values);
 			condition.setJoint(joint);
@@ -523,71 +547,7 @@ public final class Criteria<T> implements Serializable {
 			return criteria;
 		}
 
-		public Criteria<T> in(@NonNull long[] values) {
-			validateNonNull(values);
-			Condition condition = new Condition(property, Operator.in, values);
-			condition.setJoint(joint);
-			criteria.criterion(condition);
-			return criteria;
-		}
-
-		public Criteria<T> in(@NonNull char[] values) {
-			validateNonNull(values);
-			Condition condition = new Condition(property, Operator.in, values);
-			condition.setJoint(joint);
-			criteria.criterion(condition);
-			return criteria;
-		}
-
-		public Criteria<T> in(@NonNull double[] values) {
-			validateNonNull(values);
-			Condition condition = new Condition(property, Operator.in, values);
-			condition.setJoint(joint);
-			criteria.criterion(condition);
-			return criteria;
-		}
-
-		public Criteria<T> in(@NonNull byte[] values) {
-			validateNonNull(values);
-			Condition condition = new Condition(property, Operator.in, values);
-			condition.setJoint(joint);
-			criteria.criterion(condition);
-			return criteria;
-		}
-
-		public Criteria<T> in(@NonNull short[] values) {
-			validateNonNull(values);
-			Condition condition = new Condition(property, Operator.in, values);
-			condition.setJoint(joint);
-			criteria.criterion(condition);
-			return criteria;
-		}
-
-		public Criteria<T> in(@NonNull boolean[] values) {
-			validateNonNull(values);
-			Condition condition = new Condition(property, Operator.in, values);
-			condition.setJoint(joint);
-			criteria.criterion(condition);
-			return criteria;
-		}
-
-		public Criteria<T> in(@NonNull float[] values) {
-			validateNonNull(values);
-			Condition condition = new Condition(property, Operator.in, values);
-			condition.setJoint(joint);
-			criteria.criterion(condition);
-			return criteria;
-		}
-
-		public Criteria<T> in(@NonNull Object[] values) {
-			validateNonNull(values);
-			Condition condition = new Condition(property, Operator.in, values);
-			condition.setJoint(joint);
-			criteria.criterion(condition);
-			return criteria;
-		}
-
-		public Criteria<T> notIn(@NonNull Collection<?> values) {
+		public Criteria<T> notIn(@NonNull Collection<R> values) {
 			validateNonNull(values);
 			Condition condition = new Condition(property, Operator.notIn, values);
 			condition.setJoint(joint);
@@ -595,71 +555,7 @@ public final class Criteria<T> implements Serializable {
 			return criteria;
 		}
 
-		public Criteria<T> notIn(@NonNull int[] values) {
-			validateNonNull(values);
-			Condition condition = new Condition(property, Operator.notIn, values);
-			condition.setJoint(joint);
-			criteria.criterion(condition);
-			return criteria;
-		}
-
-		public Criteria<T> notIn(@NonNull long[] values) {
-			validateNonNull(values);
-			Condition condition = new Condition(property, Operator.notIn, values);
-			condition.setJoint(joint);
-			criteria.criterion(condition);
-			return criteria;
-		}
-
-		public Criteria<T> notIn(@NonNull char[] values) {
-			validateNonNull(values);
-			Condition condition = new Condition(property, Operator.notIn, values);
-			condition.setJoint(joint);
-			criteria.criterion(condition);
-			return criteria;
-		}
-
-		public Criteria<T> notIn(@NonNull double[] values) {
-			validateNonNull(values);
-			Condition condition = new Condition(property, Operator.notIn, values);
-			condition.setJoint(joint);
-			criteria.criterion(condition);
-			return criteria;
-		}
-
-		public Criteria<T> notIn(@NonNull byte[] values) {
-			validateNonNull(values);
-			Condition condition = new Condition(property, Operator.notIn, values);
-			condition.setJoint(joint);
-			criteria.criterion(condition);
-			return criteria;
-		}
-
-		public Criteria<T> notIn(@NonNull short[] values) {
-			validateNonNull(values);
-			Condition condition = new Condition(property, Operator.notIn, values);
-			condition.setJoint(joint);
-			criteria.criterion(condition);
-			return criteria;
-		}
-
-		public Criteria<T> notIn(@NonNull boolean[] values) {
-			validateNonNull(values);
-			Condition condition = new Condition(property, Operator.notIn, values);
-			condition.setJoint(joint);
-			criteria.criterion(condition);
-			return criteria;
-		}
-
-		public Criteria<T> notIn(@NonNull float[] values) {
-			validateNonNull(values);
-			Condition condition = new Condition(property, Operator.notIn, values);
-			condition.setJoint(joint);
-			criteria.criterion(condition);
-			return criteria;
-		}
-
-		public Criteria<T> notIn(@NonNull Object[] values) {
+		public Criteria<T> notIn(@NonNull R[] values) {
 			validateNonNull(values);
 			Condition condition = new Condition(property, Operator.notIn, values);
 			condition.setJoint(joint);
@@ -692,18 +588,18 @@ public final class Criteria<T> implements Serializable {
 
 		public <S> CascadeProperty<T, S> next(SFunction<R, S> lambda) {
 			String property = LambdaUtils.getPropFromLambda(lambda);
-			return new CascadeProperty<>(this.cascadeProperty + Condition.ALIAS_SEPARATOR + property, this.cascadeProperty);
+			return new CascadeProperty<>(this.cascadeProperty + Condition.PATH_SEPARATOR + property, this.cascadeProperty);
 		}
 
 		public <S> CascadeProperty<T, S> next(CFunction<R, S> lambda) {
 			String property = LambdaUtils.getPropFromLambda(lambda);
-			return new CascadeProperty<>(this.cascadeProperty + Condition.ALIAS_SEPARATOR + property, this.cascadeProperty);
+			return new CascadeProperty<>(this.cascadeProperty + Condition.PATH_SEPARATOR + property, this.cascadeProperty);
 		}
 	}
 
 	private static void validateNonNull(Object value) {
 		if (value == null) {
-			throw new IllegalStateException("value" + value + " is null");
+			throw new IllegalStateException("value is null");
 		}
 		if (value instanceof String) {
 			if (StringUtils.isBlank((CharSequence) value)) {

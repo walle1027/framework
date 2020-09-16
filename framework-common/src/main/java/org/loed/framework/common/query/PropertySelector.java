@@ -12,7 +12,7 @@ import java.util.Set;
  * @version 1.0
  * @since 2018/2/5 下午5:14
  */
-public class PropertySelector implements Serializable {
+public class PropertySelector implements Serializable,Copyable<PropertySelector> {
 	/**
 	 * 包含哪些属性
 	 */
@@ -22,9 +22,9 @@ public class PropertySelector implements Serializable {
 	 */
 	private Set<String> excludes;
 
-	PropertySelector include(String... includes) {
+	void include(String... includes) {
 		if (includes == null || includes.length == 0) {
-			return this;
+			return;
 		}
 		if (excludes != null && !excludes.isEmpty()) {
 			throw new RuntimeException("you can't both assign excludes and includes");
@@ -33,12 +33,11 @@ public class PropertySelector implements Serializable {
 			this.includes = new HashSet<>();
 		}
 		this.includes.addAll(Arrays.asList(includes));
-		return this;
 	}
 
-	PropertySelector exclude(String... excludes) {
+	void exclude(String... excludes) {
 		if (excludes == null || excludes.length == 0) {
-			return this;
+			return ;
 		}
 		if (includes != null && !includes.isEmpty()) {
 			throw new RuntimeException("you can't both assign includes and excludes");
@@ -47,7 +46,14 @@ public class PropertySelector implements Serializable {
 			this.excludes = new HashSet<>();
 		}
 		this.excludes.addAll(Arrays.asList(excludes));
-		return this;
+	}
+
+	@Override
+	public PropertySelector copy(){
+		PropertySelector propertySelector = new PropertySelector();
+		propertySelector.includes = this.includes;
+		propertySelector.excludes = this.excludes;
+		return propertySelector;
 	}
 
 	public Set<String> getIncludes() {

@@ -14,7 +14,7 @@ import javax.persistence.criteria.JoinType;
 @Data
 @EqualsAndHashCode
 @ToString
-public class Join {
+public class Join implements Copyable<Join> {
 	/**
 	 * 表之间的关联方式{@link JoinType#INNER,JoinType#LEFT,JoinType#RIGHT}
 	 */
@@ -27,4 +27,14 @@ public class Join {
 	 * 唯一的关联路径
 	 */
 	private String uniquePath;
+
+
+	@Override
+	public Join copy() {
+		Join join = new Join();
+		join.joinType = this.joinType;
+		join.target = this.target;
+		join.uniquePath = this.uniquePath;
+		return join;
+	}
 }

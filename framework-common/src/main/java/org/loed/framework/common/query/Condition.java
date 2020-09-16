@@ -1,15 +1,13 @@
 package org.loed.framework.common.query;
 
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.ToString;
-import org.apache.commons.collections4.CollectionUtils;
 import org.loed.framework.common.lambda.LambdaUtils;
 import org.loed.framework.common.lambda.SFunction;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 表单上的查询条件封装类
@@ -21,11 +19,7 @@ import java.util.List;
  * @version 1.0
  */
 @ToString
-public class Condition implements Serializable {
-	/**
-	 * 别名分隔符
-	 */
-	public static final String ALIAS_SEPARATOR = "_";
+public class Condition implements Serializable, Copyable<Condition> {
 	/**
 	 * 路径分隔符
 	 */
@@ -38,10 +32,6 @@ public class Condition implements Serializable {
 	 * 实体对应的属性名称
 	 */
 	private String propertyName;
-	/**
-	 * 多个属性之间的连接方式
-	 */
-//	private JoinType joinType = JoinType.INNER;
 	/**
 	 * 查询关系符号
 	 */
@@ -56,6 +46,18 @@ public class Condition implements Serializable {
 	private List<Condition> subConditions;
 
 	public Condition() {
+	}
+
+	@Override
+	public Condition copy(){
+		Condition condition = new Condition();
+		condition.joint = this.joint;
+		condition.propertyName = this.propertyName;
+		condition.value = this.value;
+		if (this.subConditions != null && this.subConditions.size() > 0){
+			condition.subConditions = this.subConditions.stream().map(Condition::copy).collect(Collectors.toList());
+		}
+		return condition;
 	}
 
 	public Condition(String propertyName, String value) {
@@ -77,81 +79,6 @@ public class Condition implements Serializable {
 
 	public boolean hasSubCondition() {
 		return this.subConditions != null && this.subConditions.size() > 0;
-	}
-
-	/**
-	 * 判断属性是否为关联属性
-	 *
-	 * @return
-	 */
-	@JsonIgnore
-	public boolean isRelativeProperty() {
-		if (propertyName != null && !propertyName.isEmpty()) {
-			if (propertyName.contains(PATH_SEPARATOR)) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	/**
-	 * 取得路径组
-	 * 如果属性是关联属性，
-	 * 那么这个将返回关联属性自动生成的别名
-	 * 别名声称规则为：将属性中的点号换成下划线
-	 * eg a.b  ---> a_b
-	 *
-	 * @return 路径组
-	 */
-	@JsonIgnore
-	public List<AssociationPath> getPathList() {
-		if (propertyName.contains(PATH_SEPARATOR)) {
-			List<AssociationPath> pathList = new ArrayList<AssociationPath>();
-			StringBuilder builder = new StringBuilder();
-			String s = propertyName;
-			while (s.contains(PATH_SEPARATOR)) {
-				if (builder.length() > 0) {
-					builder.append(PATH_SEPARATOR);
-				}
-				int i = s.indexOf(PATH_SEPARATOR);
-				builder.append(s.substring(0, i));
-				String path = builder.toString();
-				String alias = path.replace(PATH_SEPARATOR, ALIAS_SEPARATOR);
-				AssociationPath associationPath = new AssociationPath(path, alias);
-				pathList.add(associationPath);
-				//进入下一次循环
-				s = s.substring(i + 1);
-			}
-			return pathList;
-		}
-		return null;
-	}
-
-	/**
-	 * 取得在criteria中真实的属性名称
-	 * 如果为简单属性，直接返回属性名
-	 * 如果为复杂属性，返回复杂属性的别名+属性名
-	 *
-	 * @return
-	 */
-	@JsonIgnore
-	public String getRealPropertyName() {
-		if (isRelativeProperty()) {
-			String path = propertyName.substring(0, propertyName.lastIndexOf(PATH_SEPARATOR));
-			String prop = propertyName.substring(propertyName.lastIndexOf(PATH_SEPARATOR));
-			String alias = "";
-			List<AssociationPath> pathList = getPathList();
-			if (CollectionUtils.isNotEmpty(pathList)) {
-				for (AssociationPath associationPath : pathList) {
-					if (path.equals(associationPath.getPath())) {
-						alias = associationPath.getAlias();
-						break;
-					}
-				}
-			}
-			return alias + prop;
-		}
-		return propertyName;
 	}
 
 	public Joint getJoint() {
