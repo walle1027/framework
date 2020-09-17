@@ -3,26 +3,20 @@ package org.loed.framework.mybatis;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.ibatis.annotations.*;
-import org.checkerframework.checker.units.qual.C;
 import org.loed.framework.common.ORMapping;
 import org.loed.framework.common.context.SystemContextHolder;
 import org.loed.framework.common.lambda.LambdaUtils;
 import org.loed.framework.common.lambda.SFunction;
 import org.loed.framework.common.orm.Column;
 import org.loed.framework.common.orm.Table;
-import org.loed.framework.common.po.BasePO;
-import org.loed.framework.common.po.Identify;
 import org.loed.framework.common.query.*;
 import org.loed.framework.common.util.ReflectionUtils;
 import org.loed.framework.mybatis.listener.MybatisListenerContainer;
 import org.loed.framework.mybatis.listener.spi.*;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 
-import javax.persistence.GenerationType;
 import java.io.Serializable;
 import java.lang.reflect.ParameterizedType;
 import java.util.*;
@@ -115,7 +109,7 @@ public interface BaseMapper<T, ID extends Serializable> {
 		}
 		ID idValue = (ID) ReflectionUtils.getFieldValue(po, idColumn.getJavaName());
 		conditions.add(new Condition(idColumn.getJavaName(), Operator.equal, idValue));
-		int rows = _updateByCriteria(table, po, predicate, criteria, new HashMap<>());
+		int rows = _updateByCriteria(table, po, predicate.and(Filters.UPDATABLE_FILTER), criteria, new HashMap<>());
 
 		//post update listener 处理
 		List<PostUpdateListener> postUpdateListeners = MybatisListenerContainer.getPostUpdateListeners();
@@ -126,38 +120,38 @@ public interface BaseMapper<T, ID extends Serializable> {
 	}
 
 	default int update(T po) {
-		return update(po, UPDATABLE_FILTER);
+		return update(po,Filters. UPDATABLE_FILTER);
 	}
 
 	default int updateWith(T po, SFunction<T, ?>... includes) {
-		Predicate<Column> predicate = UPDATABLE_FILTER;
+		Predicate<Column> predicate =Filters. UPDATABLE_FILTER;
 		if (includes != null && includes.length > 0) {
 			Set<String> includeProps = Arrays.stream(includes).map(LambdaUtils::getPropFromLambda).collect(Collectors.toSet());
-			predicate = predicate.and(new IncludeFilter(includeProps));
+			predicate = predicate.and(new Filters.IncludeFilter(includeProps));
 		}
 		return update(po, predicate);
 	}
 
 	default int updateWithout(T po, SFunction<T, ?>... excludes) {
-		Predicate<Column> predicate = UPDATABLE_FILTER;
+		Predicate<Column> predicate =Filters. UPDATABLE_FILTER;
 		if (excludes != null && excludes.length > 0) {
 			Set<String> includeProps = Arrays.stream(excludes).map(LambdaUtils::getPropFromLambda).collect(Collectors.toSet());
-			predicate = predicate.and(new ExcludeFilter(includeProps));
+			predicate = predicate.and(new Filters.ExcludeFilter(includeProps));
 		}
 		return update(po, predicate);
 	}
 
 	default int updateNonBlank(T po) {
-		return update(po, new NonBlankFilter(po).and(UPDATABLE_FILTER));
+		return update(po, new Filters.NonBlankFilter(po).and(Filters.UPDATABLE_FILTER));
 	}
 
 	default int updateNonBlankAnd(T po, @Nullable SFunction<T, ?>... columns) {
-		Predicate<Column> filter = UPDATABLE_FILTER;
+		Predicate<Column> filter = Filters.UPDATABLE_FILTER;
 		if (columns != null && columns.length > 0) {
 			Set<String> includes = Arrays.stream(columns).map(LambdaUtils::getPropFromLambda).collect(Collectors.toSet());
-			filter = filter.and(new IncludeFilter(includes).or(new NonBlankFilter(po)));
+			filter = filter.and(new Filters.IncludeFilter(includes).or(new Filters.NonBlankFilter(po)));
 		} else {
-			filter = filter.and(new NonBlankFilter(po));
+			filter = filter.and(new Filters.NonBlankFilter(po));
 		}
 		return update(po, filter);
 	}
@@ -195,8 +189,8 @@ public interface BaseMapper<T, ID extends Serializable> {
 			ID idValue = (ID) ReflectionUtils.getFieldValue(t, idColumn.getJavaName());
 			conditions.add(new Condition(idColumn.getJavaName(), Operator.equal, idValue));
 
-			NonBlankFilter nonBlankFilter = new NonBlankFilter(t);
-			rows += _updateByCriteria(table, t, nonBlankFilter.and(UPDATABLE_FILTER), criteria, new HashMap<>());
+			Filters.NonBlankFilter nonBlankFilter = new Filters.NonBlankFilter(t);
+			rows += _updateByCriteria(table, t, nonBlankFilter.and(Filters.UPDATABLE_FILTER), criteria, new HashMap<>());
 		}
 
 		//post insert listener 处理
@@ -238,7 +232,7 @@ public interface BaseMapper<T, ID extends Serializable> {
 		for (T t : poList) {
 			ID idValue = (ID) ReflectionUtils.getFieldValue(t, idColumn.getJavaName());
 			conditions.add(new Condition(idColumn.getJavaName(), Operator.equal, idValue));
-			rows += _updateByCriteria(table, t, UPDATABLE_FILTER, criteria, new HashMap<>());
+			rows += _updateByCriteria(table, t, Filters.UPDATABLE_FILTER, criteria, new HashMap<>());
 		}
 
 		//post insert listener 处理
@@ -390,13 +384,13 @@ public interface BaseMapper<T, ID extends Serializable> {
 		return findOne(criteria);
 	}
 
-	default List<T> findByProperty(SFunction<T, ?> propName, Object propValue) {
+	default <R> List<T> findByProperty(SFunction<T, R> propName, R propValue) {
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
-		Criteria<T> criteria = Criteria.of(entityClass);
+		Criteria<T> criteria = Criteria.from(entityClass);
 		return findByCriteria(criteria.and(propName).is(propValue));
 	}
 
-	default T findOne(SFunction<T, ?> propName, Object propValue) {
+	default <R> T findOne(SFunction<T, R> propName, R propValue) {
 		List<T> list = findByProperty(propName, propValue);
 		return CollectionUtils.isNotEmpty(list) ? list.get(0) : null;
 	}
@@ -407,13 +401,10 @@ public interface BaseMapper<T, ID extends Serializable> {
 
 	default List<T> findByCriteria(Criteria<T> criteria) {
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
-		if (ReflectionUtils.isSubClass(entityClass, CommonPO.class)) {
-			criteria.getConditions().add(new Condition("isDeleted", Operator.equal, 0));
-		}
-		if (ReflectionUtils.isSubClass(entityClass, BasePO.class)) {
-			criteria.getConditions().add(new Condition("tenantCode", Operator.equal, SystemContextHolder.getTenantCode()));
-		}
-		return _findByCriteria(entityClass, criteria, new HashMap<>());
+		Table table = ORMapping.get(entityClass);
+		Criteria<T> copy = criteria.copy();
+		copy.getConditions().addAll(commonConditions(table));
+		return _findByCriteria(entityClass, copy, new HashMap<>());
 	}
 
 	default T findOne(Criteria<T> criteria) {
@@ -428,30 +419,12 @@ public interface BaseMapper<T, ID extends Serializable> {
 	 * @param request 查询条件
 	 * @return 分页查询结果
 	 */
-	/*default PageResponse<T> findPage(PageRequest request) {
-		if (request.isNeedPaging()) {
-			PageHelper.startPage(request.getPageNo(), request.getPageSize(), request.isNeedCount());
-		}
-		List<T> list = this.findByCriteria(request.getCriteria() == null ? Criteria.create() : request.getCriteria());
-		PageInfo<T> pageInfo = new PageInfo<>(list);
-		PageResponse<T> response = new PageResponse<>();
-		response.setTotalCount(pageInfo.getTotal());
-		response.setRows(pageInfo.getList());
-		return response;
-	}*/
-
-	/**
-	 * 分页查询对象
-	 *
-	 * @param request 查询条件
-	 * @return 分页查询结果
-	 */
 	default Pagination<T> findPage(PageRequest request, Criteria<T> criteria) {
 		if (request.isPaged()) {
 			PageHelper.startPage(request.getPageNumber() + 1, request.getPageSize());
 		}
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
-		List<T> list = this.findByCriteria(criteria == null ? Criteria.of(entityClass) : criteria);
+		List<T> list = this.findByCriteria(criteria == null ? Criteria.from(entityClass) : criteria);
 		PageInfo<T> pageInfo = new PageInfo<>(list);
 		Pagination<T> response = new Pagination<>();
 		response.setTotal(pageInfo.getTotal());
@@ -466,20 +439,22 @@ public interface BaseMapper<T, ID extends Serializable> {
 
 	default Long countByCriteria(Criteria<T> criteria) {
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
-		if (ReflectionUtils.isSubClass(entityClass, CommonPO.class)) {
-			criteria.getConditions().add(new Condition("isDeleted", Operator.equal, 0));
-		}
-		if (ReflectionUtils.isSubClass(entityClass, BasePO.class)) {
-			criteria.getConditions().add(new Condition("tenantCode", Operator.equal, SystemContextHolder.getTenantCode()));
-		}
-		return _countByCriteria(entityClass, criteria, new HashMap<>());
+		Table table = ORMapping.get(entityClass);
+		Criteria<T> copy = criteria.copy();
+		copy.getConditions().addAll(commonConditions(table));
+		return _countByCriteria(entityClass, copy, new HashMap<>());
 	}
 
-	default boolean checkRepeat(Serializable id, SFunction<T, ?> lamda, Object propValue) {
+	default <R> boolean  checkRepeat(ID id, SFunction<T, R> lamda, R propValue) {
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
-		Criteria<T> criteria = Criteria.of(entityClass);
+		Table table = ORMapping.get(entityClass);
+		Criteria<T> criteria = Criteria.from(entityClass);
 		criteria.and(lamda).is(propValue);
-		criteria.and(Identify::getId).isNot(propValue);
+		Column idColumn = table.getColumns().stream().filter(Column::isPk).findFirst().orElse(null);
+		if (idColumn == null) {
+			throw new RuntimeException("entity: " + entityClass + " has no id column");
+		}
+		criteria.getConditions().add(new Condition(idColumn.getJavaName(),Operator.notEqual,id));
 		Long count = countByCriteria(criteria);
 		return count > 0;
 	}
@@ -496,92 +471,5 @@ public interface BaseMapper<T, ID extends Serializable> {
 
 	default List<Map<String, Object>> query(String sql, Map<String, Object> params) {
 		return _query(sql, params);
-	}
-
-	/**
-	 * 默认过滤器
-	 */
-	Predicate<Column> ALWAYS_TRUE_FILTER = column -> true;
-
-	/**
-	 * 可插入列的过滤器
-	 */
-	Predicate<Column> INSERTABLE_FILTER = column -> {
-		boolean pk = column.isPk();
-		if (pk) {
-			GenerationType generationType = column.getIdGenerationType();
-			if (Objects.equals(generationType, GenerationType.AUTO)) {
-				return false;
-			} else {
-				return true;
-			}
-		}
-		return true;
-	};
-
-	/**
-	 * 可更新列的过滤器
-	 */
-	Predicate<Column> UPDATABLE_FILTER = Column::isUpdatable;
-
-	/**
-	 * 指定更新列的过滤器
-	 */
-	class IncludeFilter implements Predicate<Column> {
-		private final Collection<String> includes;
-
-		public IncludeFilter(@NonNull Collection<String> includes) {
-			this.includes = includes;
-		}
-
-		@Override
-		public boolean test(Column column) {
-			return includes.contains(column.getJavaName());
-		}
-	}
-
-	/**
-	 * 指定忽略列的过滤器
-	 */
-	class ExcludeFilter implements Predicate<Column> {
-		private final Collection<String> excludes;
-
-		public ExcludeFilter(@NonNull Collection<String> excludes) {
-			this.excludes = excludes;
-		}
-
-		@Override
-		public boolean test(Column column) {
-			return !excludes.contains(column.getJavaName());
-		}
-	}
-
-	/**
-	 * 动态判断属性为空的过滤器
-	 */
-	class NonBlankFilter implements Predicate<Column> {
-		private final Object object;
-
-		public NonBlankFilter(@NonNull Object object) {
-			this.object = object;
-		}
-
-		@Override
-		public boolean test(Column column) {
-			if (column.isPk()) {
-				return false;
-			}
-			if (column.isVersioned()) {
-				return false;
-			}
-			Object value = ReflectionUtils.getFieldValue(object, column.getJavaName());
-			if (value == null) {
-				return false;
-			}
-			if (value instanceof String) {
-				return StringUtils.isNotBlank((String) value);
-			}
-			return true;
-		}
 	}
 }
