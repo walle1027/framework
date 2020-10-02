@@ -8,5 +8,5 @@ import org.loed.framework.mybatis.test.po.Student;
  * @version 1.0
  * @since 2020/2/18 10:04 AM
  */
-public interface StudentMapper extends BaseMapper<Student> {
+public interface StudentMapper extends BaseMapper<Student,String> {
 }

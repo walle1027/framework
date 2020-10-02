@@ -1,7 +1,6 @@
 package org.loed.framework.mybatis.test.po;
 
 import lombok.Data;
-import org.loed.framework.common.po.BasePO;
 
 import javax.persistence.Index;
 import javax.persistence.Table;

@@ -1,11 +1,8 @@
 package org.loed.framework.common.util;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.loed.framework.common.po.BasePO;
-import org.loed.framework.common.po.CommonPO;
 import org.loed.framework.common.po.Identify;
 
-import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
 

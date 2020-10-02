@@ -1,10 +1,5 @@
 package org.loed.framework.common;
 
-
-import org.loed.framework.common.po.BasePO;
-
-import java.util.function.BiFunction;
-
 /**
  * 定义框架系统常量的类
  *
@@ -38,8 +33,4 @@ public interface SystemConstant {
 	String DEFAULT_VERSION = "default";
 
 	String DEFAULT_TENANT_CODE = "loed";
-
-	BiFunction<BasePO, BasePO, String[]> toBasePO = (po, vo) -> new String[]{};
-
-	BiFunction<BasePO, BasePO, String[]> fromBasePO = (vo, po) -> new String[]{"id", "version", "createTime", "updateTime", "createBy", "updateBy"};
 }

@@ -1,7 +1,6 @@
 package org.loed.framework.translate;
 
 import lombok.Data;
-import org.loed.framework.common.po.CommonPO;
 
 import javax.persistence.Column;
 import javax.persistence.OneToMany;

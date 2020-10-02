@@ -15,7 +15,7 @@ import org.loed.framework.translate.Teacher;
 public class CriteriaTest {
 	@Test
 	public void testFluent() {
-		Criteria<Student> criteria = Criteria.of(Student.class);
+		Criteria<Student> criteria = Criteria.from(Student.class);
 		criteria.and(Student::getAge).greaterThan(13)
 				.and(Student::getName).is("张三")
 				.or(Student::getCode).isNot("zhangsan");

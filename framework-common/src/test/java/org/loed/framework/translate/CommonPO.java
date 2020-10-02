@@ -1,10 +1,10 @@
-package org.loed.framework.r2dbc.po;
+package org.loed.framework.translate;
 
 import lombok.Data;
 import org.loed.framework.common.po.*;
 
 import javax.persistence.*;
-import java.time.LocalDateTime;
+import java.util.Date;
 
 /**
  * @author thomason
@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
  * @since 2020/2/10 5:12 PM
  */
 @Data
-public class CommonPO {
+public class CommonPO implements Identify {
 	/**
 	 * 主键
 	 */
@@ -31,7 +31,7 @@ public class CommonPO {
 	@Column(updatable = false)
 	@Temporal(value = TemporalType.TIMESTAMP)
 	@CreateTime
-	protected LocalDateTime createTime;
+	protected Date createTime;
 	/**
 	 * 创建者
 	 */
@@ -41,14 +41,14 @@ public class CommonPO {
 	/**
 	 * 更新时间
 	 */
-	@Column(insertable = false)
+	@Column()
 	@Temporal(value = TemporalType.TIMESTAMP)
 	@LastModifyTime
-	protected LocalDateTime updateTime;
+	protected Date updateTime;
 	/**
 	 * 最后修改者
 	 */
-	@Column(length = 32, insertable = false)
+	@Column(length = 32)
 	@LastModifyBy
 	protected String updateBy;
 	/**
@@ -56,5 +56,5 @@ public class CommonPO {
 	 */
 	@Column(length = 2)
 	@IsDeleted
-	protected Byte isDeleted;
+	protected Integer isDeleted;
 }

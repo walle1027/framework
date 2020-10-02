@@ -6,7 +6,6 @@ import org.loed.framework.r2dbc.listener.TestPostInsertListener;
 import org.loed.framework.r2dbc.listener.TestPreDeleteListener;
 import org.loed.framework.r2dbc.listener.spi.PostInsertListener;
 import org.loed.framework.r2dbc.listener.spi.PreDeleteListener;
-import org.loed.framework.r2dbc.listener.spi.PreInsertListener;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -22,11 +21,6 @@ import org.springframework.context.annotation.Bean;
 public class R2dbcApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(R2dbcApplication.class, args);
-	}
-
-	@Bean
-	PreInsertListener defaultPreInsertListener2() {
-		return new DefaultPreInsertListener2();
 	}
 
 	@Bean
