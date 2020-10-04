@@ -19,18 +19,15 @@ public class DatabaseResolver {
 	 * Logger for this class
 	 */
 	private static final Logger _log = LoggerFactory.getLogger(DatabaseResolver.class);
-	private static DatabaseResolver instance = new DatabaseResolver();
 	// Properties props;
-	public String catalog;
-	public String schema;
+	private final String catalog;
+	private final String schema;
 
-	private DatabaseResolver() {
-
+	public DatabaseResolver(String catalog, String schema) {
+		this.catalog = catalog;
+		this.schema = schema;
 	}
 
-	public static DatabaseResolver getInstance() {
-		return instance;
-	}
 
 	public Table getTable(Connection conn, String sqlTableName) throws Exception {
 		DatabaseMetaData dbMetaData = conn.getMetaData();

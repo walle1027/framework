@@ -254,7 +254,7 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 		}
 		if (this.joins.containsKey(join.getUniquePath())) {
 			Join exists = this.joins.get(join.getUniquePath());
-			if (Objects.equals(exists, join)) {
+			if (!Objects.equals(exists, join)) {
 				log.error("same path with different joins ");
 				throw new RuntimeException("same path with different joins " + join);
 			}

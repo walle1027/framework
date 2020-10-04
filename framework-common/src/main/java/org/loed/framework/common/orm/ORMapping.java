@@ -1,11 +1,7 @@
-package org.loed.framework.common;
+package org.loed.framework.common.orm;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.loed.framework.common.orm.JoinTable;
-import org.loed.framework.common.orm.Relation;
-import org.loed.framework.common.orm.Sharding;
-import org.loed.framework.common.orm.Table;
 import org.loed.framework.common.po.CreateBy;
 import org.loed.framework.common.po.CreateTime;
 import org.loed.framework.common.po.IsDeleted;
@@ -54,7 +50,7 @@ public class ORMapping {
 			table.setCatalog(clazzAnnotation.catalog());
 			table.setSchema(clazzAnnotation.schema());
 			//处理索引
-			Index[] indexes = clazzAnnotation.indexes();
+			javax.persistence.Index[] indexes = clazzAnnotation.indexes();
 			Arrays.stream(indexes).forEach(t -> {
 				String indexName = t.name();
 				String columnList = t.columnList();
@@ -68,10 +64,10 @@ public class ORMapping {
 			//处理列
 			List<Field> fields = ReflectionUtils.getDeclaredFields(k);
 			List<org.loed.framework.common.orm.Column> columns = fields.stream().filter(f -> {
-				Column columnAnno = f.getAnnotation(Column.class);
+				javax.persistence.Column columnAnno = f.getAnnotation(javax.persistence.Column.class);
 				return columnAnno != null;
 			}).map(field -> {
-				Column columnAnno = field.getAnnotation(Column.class);
+				javax.persistence.Column columnAnno = field.getAnnotation(javax.persistence.Column.class);
 				org.loed.framework.common.orm.Column column = new org.loed.framework.common.orm.Column(table);
 				column.setJavaName(field.getName());
 				Class<?> type = field.getType();
@@ -131,15 +127,16 @@ public class ORMapping {
 				}
 			});
 			//检查是否分表
-			Sharding sharding = k.getAnnotation(Sharding.class);
-			if (sharding != null) {
-				Set<String> columnSet = Arrays.stream(sharding.columns()).collect(Collectors.toSet());
+			HashSharding hashSharding = k.getAnnotation(HashSharding.class);
+			if (hashSharding != null) {
+				table.setShardingType(Table.ShardingType.hash);
+				Set<String> columnSet = Arrays.stream(hashSharding.columns()).collect(Collectors.toSet());
 				List<org.loed.framework.common.orm.Column> shardingColumns = table.getColumns().stream().
 						filter(r -> columnSet.contains(r.getSqlName())).collect(Collectors.toList());
 				if (shardingColumns.size() > 0) {
 					table.setSharding(true);
-					table.setShardingCount(sharding.count());
-					table.setShardingAlias(sharding.alias());
+					table.setShardingCount(hashSharding.count());
+					table.setShardingAlias(hashSharding.alias());
 					shardingColumns.forEach(s -> s.setShardingColumn(true));
 				} else {
 					logger.error("error config");
@@ -228,7 +225,7 @@ public class ORMapping {
 		List<org.loed.framework.common.orm.JoinColumn> columns = new ArrayList<>();
 		JoinColumns joinColumns = field.getAnnotation(JoinColumns.class);
 		if (joinColumns == null) {
-			JoinColumn joinColumn = field.getAnnotation(JoinColumn.class);
+			javax.persistence.JoinColumn joinColumn = field.getAnnotation(javax.persistence.JoinColumn.class);
 			if (joinColumn == null) {
 				return null;
 			}
@@ -254,9 +251,9 @@ public class ORMapping {
 				}
 			});*/
 		} else {
-			JoinColumn[] values = joinColumns.value();
+			javax.persistence.JoinColumn[] values = joinColumns.value();
 			if (values.length > 0) {
-				for (JoinColumn value : values) {
+				for (javax.persistence.JoinColumn value : values) {
 					String joinName = value.name();
 					if (StringUtils.isNotBlank(value.referencedColumnName())) {
 						columns.add(new org.loed.framework.common.orm.JoinColumn(joinName, value.referencedColumnName()));

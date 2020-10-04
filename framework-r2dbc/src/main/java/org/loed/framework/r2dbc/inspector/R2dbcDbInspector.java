@@ -4,7 +4,7 @@ import io.r2dbc.spi.ConnectionFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.loed.framework.common.ORMapping;
+import org.loed.framework.common.orm.ORMapping;
 import org.loed.framework.common.orm.schema.Column;
 import org.loed.framework.common.orm.schema.Index;
 import org.loed.framework.common.lock.ZKDistributeLock;

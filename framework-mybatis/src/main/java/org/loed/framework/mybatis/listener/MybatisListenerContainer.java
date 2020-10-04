@@ -1,10 +1,12 @@
 package org.loed.framework.mybatis.listener;
 
 
+import org.loed.framework.mybatis.listener.spi.*;
 import org.apache.commons.collections4.CollectionUtils;
 import org.loed.framework.mybatis.listener.spi.*;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -20,69 +22,63 @@ public class MybatisListenerContainer {
 	private static List<PostUpdateListener> postUpdateListeners;
 	private static List<PostDeleteListener> postDeleteListeners;
 
-	public static void addPreInsertListeners(List<PreInsertListener> listeners) {
+	public static void registerPreInsertListeners(List<PreInsertListener> listeners) {
 		if (CollectionUtils.isNotEmpty(listeners)) {
-			for (Object listener : listeners) {
-				if (preInsertListeners == null) {
-					preInsertListeners = new ArrayList<>();
-				}
-				preInsertListeners.add((PreInsertListener) listener);
+			if (preInsertListeners == null) {
+				preInsertListeners = new ArrayList<>();
 			}
+			preInsertListeners.addAll(listeners);
+			preInsertListeners.sort(Comparator.comparing(PreInsertListener::getOrder));
 		}
 	}
 
-	public static void addPreUpdateListeners(List<PreUpdateListener> listeners) {
+	public static void registerPostInsertListeners(List<PostInsertListener> listeners) {
 		if (CollectionUtils.isNotEmpty(listeners)) {
-			for (Object listener : listeners) {
-				if (preUpdateListeners == null) {
-					preUpdateListeners = new ArrayList<>();
-				}
-				preUpdateListeners.add((PreUpdateListener) listener);
+			if (postInsertListeners == null) {
+				postInsertListeners = new ArrayList<>();
 			}
+			postInsertListeners.addAll(listeners);
+			postInsertListeners.sort(Comparator.comparing(PostInsertListener::getOrder));
 		}
 	}
 
-	public static void addPreDeleteListeners(List<PreDeleteListener> listeners) {
+	public static void registerPreUpdateListeners(List<PreUpdateListener> listeners) {
 		if (CollectionUtils.isNotEmpty(listeners)) {
-			for (Object listener : listeners) {
-				if (preDeleteListeners == null) {
-					preDeleteListeners = new ArrayList<>();
-				}
-				preDeleteListeners.add((PreDeleteListener) listener);
+			if (preUpdateListeners == null) {
+				preUpdateListeners = new ArrayList<>();
 			}
-		}
-	}
-
-	public static void addPostInsertListeners(List<PostInsertListener> listeners) {
-		if (CollectionUtils.isNotEmpty(listeners)) {
-			for (Object listener : listeners) {
-				if (postInsertListeners == null) {
-					postInsertListeners = new ArrayList<>();
-				}
-				postInsertListeners.add((PostInsertListener) listener);
-			}
+			preUpdateListeners.addAll(listeners);
+			preUpdateListeners.sort(Comparator.comparing(PreUpdateListener::getOrder));
 		}
 	}
 
 	public static void registerPostUpdateListeners(List<PostUpdateListener> listeners) {
 		if (CollectionUtils.isNotEmpty(listeners)) {
-			for (Object listener : listeners) {
-				if (postUpdateListeners == null) {
-					postUpdateListeners = new ArrayList<>();
-				}
-				postUpdateListeners.add((PostUpdateListener) listener);
+			if (postUpdateListeners == null) {
+				postUpdateListeners = new ArrayList<>();
 			}
+			postUpdateListeners.addAll(listeners);
+			postUpdateListeners.sort(Comparator.comparing(PostUpdateListener::getOrder));
+		}
+	}
+
+	public static void registerPreDeleteListeners(List<PreDeleteListener> listeners) {
+		if (CollectionUtils.isNotEmpty(listeners)) {
+			if (preDeleteListeners == null) {
+				preDeleteListeners = new ArrayList<>();
+			}
+			preDeleteListeners.addAll(listeners);
+			preDeleteListeners.sort(Comparator.comparing(PreDeleteListener::getOrder));
 		}
 	}
 
 	public static void registerPostDeleteListeners(List<PostDeleteListener> listeners) {
 		if (CollectionUtils.isNotEmpty(listeners)) {
-			for (Object listener : listeners) {
-				if (postDeleteListeners == null) {
-					postDeleteListeners = new ArrayList<>();
-				}
-				postDeleteListeners.add((PostDeleteListener) listener);
+			if (postDeleteListeners == null) {
+				postDeleteListeners = new ArrayList<>();
 			}
+			postDeleteListeners.addAll(listeners);
+			postDeleteListeners.sort(Comparator.comparing(PostDeleteListener::getOrder));
 		}
 	}
 

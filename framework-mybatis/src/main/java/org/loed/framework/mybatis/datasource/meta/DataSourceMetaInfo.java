@@ -1,10 +1,10 @@
 package org.loed.framework.mybatis.datasource.meta;
 
 
-import lombok.Data;
-import org.apache.commons.lang3.StringUtils;
 import org.loed.framework.common.balancer.Balanceable;
 import org.loed.framework.mybatis.datasource.readwriteisolate.ReadWriteStrategy;
+import lombok.Data;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.Serializable;
 import java.util.Objects;

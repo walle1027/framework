@@ -65,6 +65,10 @@ public class Table {
 	 */
 	private boolean sharding;
 	/**
+	 * 分表方式
+	 */
+	private ShardingType shardingType;
+	/**
 	 * 分表别名
 	 */
 	private String shardingAlias;
@@ -107,5 +111,16 @@ public class Table {
 			return false;
 		}
 		return columns.stream().anyMatch(Column::isVersioned);
+	}
+
+	public static enum ShardingType {
+		/**
+		 * hash分表
+		 */
+		hash,
+		/**
+		 * 范围分表
+		 */
+		range
 	}
 }

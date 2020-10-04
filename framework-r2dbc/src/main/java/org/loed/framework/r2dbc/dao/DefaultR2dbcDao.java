@@ -2,7 +2,7 @@ package org.loed.framework.r2dbc.dao;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
-import org.loed.framework.common.ORMapping;
+import org.loed.framework.common.orm.ORMapping;
 import org.loed.framework.common.context.ReactiveSystemContext;
 import org.loed.framework.common.lambda.LambdaUtils;
 import org.loed.framework.common.lambda.SFunction;

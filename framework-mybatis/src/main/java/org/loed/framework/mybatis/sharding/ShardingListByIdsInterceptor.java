@@ -1,6 +1,16 @@
 package org.loed.framework.mybatis.sharding;
 
 
+import org.loed.framework.common.SpringUtils;
+import org.loed.framework.common.context.SystemContextHolder;
+import org.loed.framework.common.orm.Column;
+import org.loed.framework.common.orm.ORMapping;
+import org.loed.framework.common.orm.Table;
+import org.loed.framework.mybatis.BatchOperation;
+import org.loed.framework.mybatis.BatchType;
+import org.loed.framework.mybatis.MybatisSqlBuilder;
+import org.loed.framework.mybatis.MybatisUtils;
+import org.loed.framework.mybatis.interceptor.impl.BasePreProcessInterceptor;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -15,19 +25,11 @@ import org.apache.ibatis.plugin.Signature;
 import org.apache.ibatis.scripting.defaults.RawSqlSource;
 import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
-import org.loed.framework.common.ORMapping;
-import org.loed.framework.common.SpringUtils;
-import org.loed.framework.common.orm.Table;
-import org.loed.framework.mybatis.BatchOperation;
-import org.loed.framework.mybatis.BatchType;
-import org.loed.framework.mybatis.MybatisUtils;
-import org.loed.framework.mybatis.interceptor.BasePreProcessInterceptor;
 import org.springframework.util.Assert;
 
 import java.io.Serializable;
 import java.util.*;
-
-import static org.loed.framework.mybatis.MybatisSqlBuilder.BLANK;
+import java.util.stream.Collectors;
 
 
 @Intercepts(
@@ -62,16 +64,16 @@ public class ShardingListByIdsInterceptor extends BasePreProcessInterceptor<Pair
 		if (idList.size() < batchSize) {
 			return queryOneBatch(table, executor, ms, rowBounds, resultHandler, idList, includeAll);
 		}
-		List<List> lists = sliceBatch(idList, batchSize);
-		ArrayList result = new ArrayList<>(idList.size());
-		for (List batches : lists) {
-			List batchResult = queryOneBatch(table, executor, ms, rowBounds, resultHandler, batches, includeAll);
+		List<List<Serializable>> lists = sliceIdList(idList, batchSize);
+		ArrayList<Object> result = new ArrayList<>(idList.size());
+		for (List<Serializable> batches : lists) {
+			List<Object> batchResult = queryOneBatch(table, executor, ms, rowBounds, resultHandler, batches, includeAll);
 			result.addAll(batchResult);
 		}
 		return result;
 	}
 
-	private List queryOneBatch(Table table, Executor executor, MappedStatement ms, RowBounds rowBounds, ResultHandler resultHandler, List<Serializable> idList, boolean includeAll) throws java.sql.SQLException {
+	private List<Object> queryOneBatch(Table table, Executor executor, MappedStatement ms, RowBounds rowBounds, ResultHandler resultHandler, List<Serializable> idList, boolean includeAll) throws java.sql.SQLException {
 		Map<String, List<Serializable>> shardingTableToIdsMap = new HashMap<>();
 		ShardingManager shardingManager = getShardingManager();
 
@@ -124,22 +126,30 @@ public class ShardingListByIdsInterceptor extends BasePreProcessInterceptor<Pair
 	}
 
 	private void processOneShard(StringBuilder builder, Table table, String shardingTableName, String ids, boolean includeAll) {
+		Column idColumn = table.getColumns().stream().filter(Column::isPk).findFirst().get();
 		builder.append("select");
-		builder.append(BLANK);
+		builder.append(MybatisSqlBuilder.BLANK);
 		table.getColumns().forEach(column -> {
-			builder.append(BLANK).append(column.getSqlName()).append(BLANK).append("as").append(BLANK).append(column.getJavaName());
+			builder.append(MybatisSqlBuilder.BLANK).append(column.getSqlName()).append(MybatisSqlBuilder.BLANK).append("as").append(MybatisSqlBuilder.BLANK).append(column.getJavaName());
 			builder.append(",");
 		});
 		builder.deleteCharAt(builder.length() - 1);
-		builder.append(BLANK);
+		builder.append(MybatisSqlBuilder.BLANK);
 		builder.append("from");
-		builder.append(BLANK);
+		builder.append(MybatisSqlBuilder.BLANK);
 		builder.append(shardingTableName);
-		builder.append(BLANK).append("where").append(BLANK);
-		builder.append("id in (").append(ids).append(")");
-		builder.append(BLANK);
+		builder.append(MybatisSqlBuilder.BLANK).append("where").append(MybatisSqlBuilder.BLANK);
+		builder.append(idColumn.getSqlName()).append(" in (").append(ids).append(")");
+		builder.append(MybatisSqlBuilder.BLANK);
 		if (!includeAll) {
-			builder.append("and is_deleted = 0").append(BLANK);
+			Optional<Column> isDeleted = table.getColumns().stream().filter(Column::isDeleted).findFirst();
+			isDeleted.ifPresent(column -> {
+				builder.append(" and ").append(column.getSqlName()).append(" = 0 ");
+			});
+			Optional<Column> isTenantId = table.getColumns().stream().filter(Column::isTenantId).findFirst();
+			isTenantId.ifPresent(column -> {
+				builder.append(" and ").append(column.getSqlName()).append(" = '").append(SystemContextHolder.getTenantCode()).append("' ");
+			});
 		}
 	}
 
@@ -184,13 +194,29 @@ public class ShardingListByIdsInterceptor extends BasePreProcessInterceptor<Pair
 	}
 
 	private String concatIds(List<Serializable> list) {
-		StringBuilder sb = new StringBuilder();
-		for (Serializable element : list) {
-			sb.append("'").append(element).append("'").append(",");
+		return list.stream().map(id -> {
+			if (id instanceof String) {
+				return "'" + id + "'";
+			}
+			return id + "";
+		}).collect(Collectors.joining(","));
+	}
+
+
+	private List<List<Serializable>> sliceIdList(List<Serializable> idList, int batchSize) {
+		int size = idList.size();
+		int numOfBatch = size / batchSize + 1;
+		List<List<Serializable>> batches = new ArrayList<>(numOfBatch);
+		int currentEndIndex = 0;
+		for (int i = 0; i < numOfBatch; i++) {
+			currentEndIndex = currentEndIndex + batchSize;
+			if (size <= currentEndIndex) {
+				batches.add(idList.subList(i * batchSize, size));
+				break;
+			} else {
+				batches.add(idList.subList(i * batchSize, currentEndIndex));
+			}
 		}
-		if (list.size() > 0) {
-			sb.deleteCharAt(sb.length() - 1);
-		}
-		return sb.toString();
+		return batches;
 	}
 }

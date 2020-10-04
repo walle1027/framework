@@ -1,9 +1,9 @@
 package org.loed.framework.mybatis.datasource.creator.druid;
 
 import com.alibaba.druid.pool.DruidDataSource;
-import org.loed.framework.mybatis.datasource.meta.DruidProperties;
 import org.loed.framework.mybatis.datasource.creator.DataSourceCreator;
 import org.loed.framework.mybatis.datasource.meta.DataSourceMetaInfo;
+import org.loed.framework.mybatis.datasource.meta.DruidProperties;
 
 import javax.sql.DataSource;
 

@@ -1,10 +1,10 @@
 package org.loed.framework.mybatis.datasource.readwriteisolate;
 
-import lombok.extern.slf4j.Slf4j;
 import org.loed.framework.common.util.SerializeUtils;
 import org.loed.framework.mybatis.datasource.creator.DataSourceCreator;
 import org.loed.framework.mybatis.datasource.meta.DataSourceMetaInfo;
 import org.loed.framework.mybatis.datasource.readwriteisolate.provider.ReadWriteDataSourceProvider;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.sql.DataSource;
 import java.io.PrintWriter;

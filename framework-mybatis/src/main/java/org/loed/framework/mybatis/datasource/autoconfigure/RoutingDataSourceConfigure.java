@@ -1,7 +1,6 @@
 package org.loed.framework.mybatis.datasource.autoconfigure;
 
 import org.loed.framework.common.ConfigureConstant;
-import org.loed.framework.mybatis.inspector.autoconfigure.DataSourceProperties;
 import org.loed.framework.mybatis.datasource.meta.DatabaseMetaInfo;
 import org.loed.framework.mybatis.datasource.meta.DatabaseMetaInfoProvider;
 import org.loed.framework.mybatis.datasource.meta.impl.DefaultDatabaseMetaInfoProvider;
@@ -9,6 +8,7 @@ import org.loed.framework.mybatis.datasource.meta.impl.ZKDatabaseMetaInfoProvide
 import org.loed.framework.mybatis.datasource.routing.AbstractRoutingDataSource;
 import org.loed.framework.mybatis.datasource.routing.impl.C3p0RoutingDataSource;
 import org.loed.framework.mybatis.datasource.routing.impl.DruidRoutingDataSource;
+import org.loed.framework.mybatis.inspector.autoconfigure.DataSourceProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -46,14 +46,14 @@ public class RoutingDataSourceConfigure {
 		}
 		Map<String, DatabaseMetaInfo> newConfigs = new HashMap<>();
 		for (Map.Entry<String, DatabaseMetaInfo> entry : configs.entrySet()) {
-			String tenantCode = entry.getKey();
+			String tenantId = entry.getKey();
 			DatabaseMetaInfo databaseMetaInfo = entry.getValue();
 			//TODO 处理
-			databaseMetaInfo.setHorizontalShardingKey("tenantCode");
-			databaseMetaInfo.setHorizontalShardingValue(tenantCode);
+			databaseMetaInfo.setHorizontalShardingKey("tenantId");
+			databaseMetaInfo.setHorizontalShardingValue(tenantId);
 			databaseMetaInfo.setDatabase(dataSourceProperties.getDatabaseName());
 			databaseMetaInfo.setStrategy(null);
-			String key = defaultMetaInfoProvider.buildKey(tenantCode, null);
+			String key = defaultMetaInfoProvider.buildKey(tenantId, null);
 			newConfigs.put(key, databaseMetaInfo);
 		}
 		dataSourceProperties.getRouting().setConfigs(newConfigs);

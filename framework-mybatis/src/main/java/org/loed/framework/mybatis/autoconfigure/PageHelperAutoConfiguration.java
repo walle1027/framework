@@ -1,16 +1,15 @@
 package org.loed.framework.mybatis.autoconfigure;
 
 import com.github.pagehelper.PageInterceptor;
-import org.apache.ibatis.session.SqlSessionFactory;
 import org.loed.framework.mybatis.interceptor.ChainedInterceptor;
 import org.loed.framework.mybatis.interceptor.NamedWrapperInterceptor;
+import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.ImportResource;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
 

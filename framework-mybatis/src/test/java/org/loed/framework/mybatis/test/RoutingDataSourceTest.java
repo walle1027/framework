@@ -1,7 +1,7 @@
 package org.loed.framework.mybatis.test;
 
-import org.junit.Before;
 import org.loed.framework.mybatis.datasource.routing.AbstractRoutingDataSource;
+import org.junit.Before;
 
 /**
  * @author Thomason

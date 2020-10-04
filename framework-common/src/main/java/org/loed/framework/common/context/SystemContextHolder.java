@@ -30,7 +30,7 @@ public class SystemContextHolder {
 			systemContext = new SystemContext();
 			contextMap.set(systemContext);
 		}
-		return SystemContextHolder.getContextMap();
+		return systemContext.getContextMap();
 	}
 
 	public static SystemContext getSystemContext() {

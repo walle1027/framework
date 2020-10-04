@@ -1,5 +1,12 @@
-package org.loed.framework.mybatis.interceptor;
+package org.loed.framework.mybatis.interceptor.impl;
 
+import org.loed.framework.common.data.DataType;
+import org.loed.framework.common.orm.Column;
+import org.loed.framework.common.orm.ORMapping;
+import org.loed.framework.common.orm.Table;
+import org.loed.framework.common.util.ReflectionUtils;
+import org.loed.framework.mybatis.BaseMapper;
+import org.loed.framework.mybatis.MybatisSqlBuilder;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.MappedStatement;
@@ -7,12 +14,6 @@ import org.apache.ibatis.mapping.SqlSource;
 import org.apache.ibatis.plugin.Intercepts;
 import org.apache.ibatis.plugin.Invocation;
 import org.apache.ibatis.plugin.Signature;
-import org.loed.framework.common.ORMapping;
-import org.loed.framework.common.orm.Column;
-import org.loed.framework.common.orm.Table;
-import org.loed.framework.common.data.DataType;
-import org.loed.framework.common.util.ReflectionUtils;
-import org.loed.framework.mybatis.MybatisSqlBuilder;
 
 import javax.persistence.GenerationType;
 import java.sql.*;
@@ -114,7 +115,7 @@ public class InsertInterceptor extends BasePreProcessInterceptor<Boolean> {
 		SqlSource sqlSource = ms.getSqlSource();
 		BoundSql boundSql = sqlSource.getBoundSql(args[1]);
 		String sql = boundSql.getSql();
-		return MybatisSqlBuilder.INSERT.equals(sql);
+		return BaseMapper.INSERT.equals(sql);
 	}
 
 	@Override

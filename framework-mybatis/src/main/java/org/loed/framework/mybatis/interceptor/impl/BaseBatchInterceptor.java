@@ -1,22 +1,22 @@
-package org.loed.framework.mybatis.interceptor;
+package org.loed.framework.mybatis.interceptor.impl;
 
+import org.loed.framework.common.orm.Column;
+import org.loed.framework.common.orm.ORMapping;
+import org.loed.framework.common.orm.Table;
+import org.loed.framework.mybatis.BatchOperation;
+import org.loed.framework.mybatis.BatchType;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.plugin.Invocation;
-import org.loed.framework.common.ORMapping;
-import org.loed.framework.common.orm.Table;
-import org.loed.framework.mybatis.BatchOperation;
-import org.loed.framework.mybatis.BatchOperationException;
-import org.loed.framework.mybatis.BatchType;
 
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.function.Predicate;
 
 
-public abstract class BaseBatchInterceptor extends BasePreProcessInterceptor<Triple<BatchType, List, Table>> implements BatchOperation {
+public abstract class BaseBatchInterceptor extends BasePreProcessInterceptor<Triple<BatchType, List<Object>, Table>> implements BatchOperation {
 
 
 	protected int batchSize = 500;
@@ -29,7 +29,7 @@ public abstract class BaseBatchInterceptor extends BasePreProcessInterceptor<Tri
 	}
 
 	@Override
-	protected Triple<BatchType, List, Table> preProcess(Invocation invocation) {
+	protected Triple<BatchType, List<Object>, Table> preProcess(Invocation invocation) {
 		BatchType batchType = getBatchType(invocation);
 		if (batchType == BatchType.None) {
 			return Triple.of(batchType, null, null);
@@ -39,12 +39,12 @@ public abstract class BaseBatchInterceptor extends BasePreProcessInterceptor<Tri
 		if (!(parameterMap instanceof HashMap)) {
 			throw new RuntimeException("mybatis parameterMap is not a hash map");
 		}
-		HashMap parameterHashMap = (HashMap) parameterMap;
+		HashMap<Object, Object> parameterHashMap = (HashMap<Object, Object>) parameterMap;
 		Object parameter = parameterHashMap.get("list");
 		if (!(parameter instanceof List)) {
 			throw new RuntimeException("parameter of batch insert is not a list");
 		}
-		List poList = (List) parameter;
+		List<Object> poList = (List<Object>) parameter;
 		if (CollectionUtils.isEmpty(poList)) {
 			return Triple.of(batchType, poList, null);
 		}
@@ -58,17 +58,17 @@ public abstract class BaseBatchInterceptor extends BasePreProcessInterceptor<Tri
 
 
 	@Override
-	protected Object doIntercept(Invocation invocation, Triple<BatchType, List, Table> context) throws Throwable {
+	protected Object doIntercept(Invocation invocation, Triple<BatchType, List<Object>, Table> context) throws Throwable {
 		Object[] args = invocation.getArgs();
 		Object parameterMap = args[1];
 		Executor executor = (Executor) invocation.getTarget();
-		return doBatch(executor, context, (HashMap) parameterMap);
+		return doBatch(executor, context, (HashMap<Object, Object>) parameterMap);
 	}
 
 
-	private int doBatch(Executor executor, Triple<BatchType, List, Table> context, HashMap parameterMap) throws SQLException {
+	private int doBatch(Executor executor, Triple<BatchType, List<Object>, Table> context, HashMap<Object, Object> parameterMap) throws SQLException {
 		BatchType batchType = context.getLeft();
-		List poList = context.getMiddle();
+		List<Object> poList = context.getMiddle();
 		if (CollectionUtils.isEmpty(poList)) {
 			return 0;
 		}
@@ -85,19 +85,10 @@ public abstract class BaseBatchInterceptor extends BasePreProcessInterceptor<Tri
 					rows = doBatchInsert(executor, poList, table);
 					break;
 				case BatchUpdateSelective:
-					Object includeColumns = parameterMap.get("includeColumns");
-					if (!(includeColumns instanceof Set)) {
-						throw new BatchOperationException("includeColumns is not a list");
-					}
-					rows = doBatchUpdateSelective(executor, poList, table, (Set<String>) includeColumns);
+					rows = doBatchUpdateSelective(executor, poList, table, (Predicate<Column>) parameterMap.get("columnFilter"));
 					break;
 				case BatchUpdate:
-					Object columns = parameterMap.get("includeColumns");
-					if (!(columns instanceof Set)) {
-						throw new BatchOperationException("columns is not a list");
-					}
-					//TODO
-					rows = doBatchUpdate(executor, poList, table, (Set<String>) columns);
+					rows = doBatchUpdate(executor, poList, table, (Predicate<Column>) parameterMap.get("columnFilter"));
 					break;
 				default:
 					break;
@@ -117,7 +108,7 @@ public abstract class BaseBatchInterceptor extends BasePreProcessInterceptor<Tri
 	 * @return
 	 * @throws SQLException
 	 */
-	protected abstract int doBatchInsert(Executor executor, List poList, Table table) throws SQLException;
+	protected abstract int doBatchInsert(Executor executor, List<Object> poList, Table table) throws SQLException;
 
 	/**
 	 * 批量更新
@@ -125,11 +116,11 @@ public abstract class BaseBatchInterceptor extends BasePreProcessInterceptor<Tri
 	 * @param executor
 	 * @param poList
 	 * @param table
-	 * @param includeColumns
+	 * @param predicate
 	 * @return
 	 * @throws SQLException
 	 */
-	protected abstract int doBatchUpdateSelective(Executor executor, List poList, Table table, Set<String> includeColumns) throws SQLException;
+	protected abstract int doBatchUpdateSelective(Executor executor, List<Object> poList, Table table, Predicate<Column> predicate) throws SQLException;
 
 
 	/**
@@ -138,10 +129,10 @@ public abstract class BaseBatchInterceptor extends BasePreProcessInterceptor<Tri
 	 * @param executor
 	 * @param poList
 	 * @param table
-	 * @param columns
+	 * @param predicate
 	 * @return
 	 * @throws SQLException
 	 */
-	protected abstract int doBatchUpdate(Executor executor, List poList, Table table, Set<String> columns) throws SQLException;
+	protected abstract int doBatchUpdate(Executor executor, List<Object> poList, Table table, Predicate<Column> predicate) throws SQLException;
 
 }

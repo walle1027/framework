@@ -1,9 +1,9 @@
 package org.loed.framework.mybatis.datasource.autoconfigure;
 
 
-import org.aopalliance.aop.Advice;
 import org.loed.framework.mybatis.datasource.readwriteisolate.ReadWriteAop;
 import org.loed.framework.mybatis.datasource.readwriteisolate.ReadWriteIsolation;
+import org.aopalliance.aop.Advice;
 import org.springframework.aop.Advisor;
 import org.springframework.aop.aspectj.AspectJExpressionPointcutAdvisor;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,11 +1,11 @@
 package org.loed.framework.mybatis.inspector.dialect.impl;
 
-import org.apache.commons.lang3.StringUtils;
+import org.loed.framework.common.data.DataType;
 import org.loed.framework.common.orm.Column;
 import org.loed.framework.common.orm.Index;
 import org.loed.framework.common.orm.Table;
-import org.loed.framework.common.data.DataType;
 import org.loed.framework.mybatis.inspector.dialect.Dialect;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Collections;
 import java.util.List;
@@ -206,6 +206,12 @@ public class MysqlDialect implements Dialect {
 				case DataType.DT_BigDecimal:
 					definition = "decimal(" + column.getLength() + "," + column.getScale() + ")";
 					break;
+				case DataType.DT_LocalDate:
+					definition = "date";
+					break;
+				case DataType.DT_LocalDateTime:
+					definition = "datetime(6)";
+					break;
 				default:
 					definition = "varchar(255)";
 					break;
@@ -230,8 +236,7 @@ public class MysqlDialect implements Dialect {
 				"index" + BLANK +
 				index.getName() + BLANK +
 				"on" + BLANK + index.getTable().getSqlName() +
-				"(" + index.getColumnList() + ")" +
-				";");
+				"(" + index.getColumnList() + ")");
 	}
 
 	private boolean isKeyword(String name) {

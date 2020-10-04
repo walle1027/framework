@@ -49,32 +49,39 @@ public class Condition implements Serializable, Copyable<Condition> {
 	}
 
 	@Override
-	public Condition copy(){
+	public Condition copy() {
 		Condition condition = new Condition();
 		condition.joint = this.joint;
 		condition.propertyName = this.propertyName;
+		condition.operator = this.operator;
 		condition.value = this.value;
-		if (this.subConditions != null && this.subConditions.size() > 0){
+		if (this.subConditions != null && this.subConditions.size() > 0) {
 			condition.subConditions = this.subConditions.stream().map(Condition::copy).collect(Collectors.toList());
 		}
 		return condition;
 	}
 
-	public Condition(String propertyName, String value) {
-		this.propertyName = propertyName;
-		this.value = value;
+	public Condition(String propertyName, Object value) {
+		this(Joint.and, propertyName, Operator.equal, value);
 	}
 
 	public Condition(String propertyName, Operator operator, Object value) {
+		this(Joint.and, propertyName, operator, value);
+	}
+
+	public <T> Condition(SFunction<T, ?> lambda, Operator operator, Object value) {
+		this(Joint.and, LambdaUtils.getPropFromLambda(lambda), operator, value);
+	}
+
+	public Condition(Joint joint, String propertyName, Operator operator, Object value) {
+		this.joint = joint;
 		this.propertyName = propertyName;
 		this.operator = operator;
 		this.value = value;
 	}
 
-	public <T> Condition(SFunction<T, ?> lambda, Operator operator, Object value) {
-		this.propertyName = LambdaUtils.getPropFromLambda(lambda);
-		this.operator = operator;
-		this.value = value;
+	public <T> Condition(Joint joint, SFunction<T,?> lambda, Operator operator, Object value) {
+		this(joint,LambdaUtils.getPropFromLambda(lambda),operator,value);
 	}
 
 	public boolean hasSubCondition() {

@@ -4,6 +4,8 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.time.LocalDateTime;
+import java.util.Date;
 
 /**
  * @author thomason
@@ -13,4 +15,5 @@ import java.lang.annotation.Target;
 @Target({ElementType.FIELD,ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface CreateTime {
+	Class<?>[] supportedTypes() default {Date.class, java.sql.Date.class, LocalDateTime.class};
 }

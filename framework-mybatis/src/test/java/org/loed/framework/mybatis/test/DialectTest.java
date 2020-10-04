@@ -1,11 +1,11 @@
 package org.loed.framework.mybatis.test;
 
-import org.junit.Test;
-import org.loed.framework.common.ORMapping;
+import org.loed.framework.common.orm.ORMapping;
 import org.loed.framework.common.orm.Table;
 import org.loed.framework.mybatis.inspector.dialect.Dialect;
 import org.loed.framework.mybatis.inspector.dialect.impl.MysqlDialect;
 import org.loed.framework.mybatis.test.po.User;
+import org.junit.Test;
 
 import java.util.List;
 

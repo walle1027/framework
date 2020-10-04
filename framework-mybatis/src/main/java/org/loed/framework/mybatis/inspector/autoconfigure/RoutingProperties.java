@@ -1,7 +1,7 @@
 package org.loed.framework.mybatis.inspector.autoconfigure;
 
-import lombok.Data;
 import org.loed.framework.mybatis.datasource.meta.DatabaseMetaInfo;
+import lombok.Data;
 
 import java.util.Map;
 
@@ -12,5 +12,5 @@ import java.util.Map;
  */
 @Data
 public class RoutingProperties {
-	private Map<String ,DatabaseMetaInfo > configs;
+	private Map<String , DatabaseMetaInfo> configs;
 }

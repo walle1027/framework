@@ -1,13 +1,13 @@
 package org.loed.framework.mybatis.datasource.routing;
 
 import com.mchange.v2.c3p0.ComboPooledDataSource;
-import org.apache.commons.collections4.CollectionUtils;
 import org.loed.framework.common.RoutingDataSource;
 import org.loed.framework.common.context.SystemContextHolder;
 import org.loed.framework.mybatis.datasource.meta.DatabaseMetaInfo;
 import org.loed.framework.mybatis.datasource.meta.DatabaseMetaInfoProvider;
 import org.loed.framework.mybatis.datasource.readwriteisolate.ReadWriteContext;
 import org.loed.framework.mybatis.datasource.readwriteisolate.ReadWriteStrategy;
+import org.apache.commons.collections4.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;

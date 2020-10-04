@@ -1,11 +1,11 @@
 package org.loed.framework.mybatis.sharding.table.impl;
 
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.loed.framework.common.orm.Table;
 import org.loed.framework.mybatis.sharding.ShardingManager;
 import org.loed.framework.mybatis.sharding.table.po.IdMapping;
 import org.loed.framework.mybatis.sharding.table.po.ShardingMapping;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.io.Serializable;
@@ -23,7 +23,11 @@ import java.util.stream.Collectors;
  */
 public class RedisShardingManager implements ShardingManager {
 
-	private StringRedisTemplate redisTemplate;
+	private final StringRedisTemplate redisTemplate;
+
+	public RedisShardingManager(StringRedisTemplate redisTemplate) {
+		this.redisTemplate = redisTemplate;
+	}
 
 	@Override
 	public int saveShardingMappings(ShardingMapping... shardingMappings) {
@@ -119,9 +123,5 @@ public class RedisShardingManager implements ShardingManager {
 
 	public StringRedisTemplate getRedisTemplate() {
 		return redisTemplate;
-	}
-
-	public void setRedisTemplate(StringRedisTemplate redisTemplate) {
-		this.redisTemplate = redisTemplate;
 	}
 }

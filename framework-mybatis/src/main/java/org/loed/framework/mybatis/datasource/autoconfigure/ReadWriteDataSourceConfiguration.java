@@ -8,7 +8,6 @@ import org.loed.framework.common.balancer.BalanceStrategy;
 import org.loed.framework.common.balancer.Balancer;
 import org.loed.framework.common.balancer.BalancerFactory;
 import org.loed.framework.common.zookeeper.ZKHolder;
-import org.loed.framework.mybatis.inspector.autoconfigure.DataSourceProperties;
 import org.loed.framework.mybatis.datasource.creator.DataSourceCreator;
 import org.loed.framework.mybatis.datasource.creator.druid.DruidDataSourceCreator;
 import org.loed.framework.mybatis.datasource.creator.druid.DruidDataSourceDecorator;
@@ -17,6 +16,7 @@ import org.loed.framework.mybatis.datasource.readwriteisolate.ReadWriteIsolateDa
 import org.loed.framework.mybatis.datasource.readwriteisolate.provider.ReadWriteDataSourceProvider;
 import org.loed.framework.mybatis.datasource.readwriteisolate.provider.support.ConfiguredReadWriteDataSourceProvider;
 import org.loed.framework.mybatis.datasource.readwriteisolate.provider.support.ZKReadWriteDataSourceProvider;
+import org.loed.framework.mybatis.inspector.autoconfigure.DataSourceProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;

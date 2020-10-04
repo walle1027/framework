@@ -1,7 +1,7 @@
 package org.loed.framework.mybatis.datasource.meta;
 
-import lombok.Data;
 import org.loed.framework.mybatis.datasource.readwriteisolate.ReadWriteStrategy;
+import lombok.Data;
 
 import java.io.Serializable;
 

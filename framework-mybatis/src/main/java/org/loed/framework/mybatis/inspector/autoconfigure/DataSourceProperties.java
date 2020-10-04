@@ -1,11 +1,11 @@
 package org.loed.framework.mybatis.inspector.autoconfigure;
 
-import lombok.Data;
 import org.loed.framework.common.ConfigureConstant;
 import org.loed.framework.common.balancer.BalanceStrategy;
 import org.loed.framework.common.context.SystemContext;
 import org.loed.framework.mybatis.datasource.meta.DataSourceMetaInfo;
 import org.loed.framework.mybatis.datasource.meta.DruidProperties;
+import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.List;

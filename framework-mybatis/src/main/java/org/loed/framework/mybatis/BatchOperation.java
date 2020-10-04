@@ -1,15 +1,15 @@
 package org.loed.framework.mybatis;
 
-import org.apache.commons.collections4.CollectionUtils;
+import org.loed.framework.common.data.DataType;
+import org.loed.framework.common.orm.Column;
+import org.loed.framework.common.orm.Filters;
+import org.loed.framework.common.orm.Table;
+import org.loed.framework.common.util.ReflectionUtils;
+import org.loed.framework.common.util.StringHelper;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.mapping.SqlSource;
 import org.apache.ibatis.plugin.Invocation;
-import org.loed.framework.common.orm.Column;
-import org.loed.framework.common.orm.Table;
-import org.loed.framework.common.data.DataType;
-import org.loed.framework.common.util.ReflectionUtils;
-import org.loed.framework.common.util.StringHelper;
 
 import javax.persistence.GenerationType;
 import java.io.StringReader;
@@ -20,11 +20,9 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
-import static org.loed.framework.mybatis.MybatisSqlBuilder.BLANK;
 
 
 /**
@@ -32,13 +30,11 @@ import static org.loed.framework.mybatis.MybatisSqlBuilder.BLANK;
  */
 @SuppressWarnings("Duplicates")
 public interface BatchOperation {
-	SimpleDateFormat ddf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
-	SimpleDateFormat tsdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
 
-	default List<List> sliceBatch(List poList, int batchSize) {
+	default List<List<Object>> sliceBatch(List<Object> poList, int batchSize) {
 		int size = poList.size();
 		int numOfBatch = size / batchSize + 1;
-		List<List> batches = new ArrayList<>(numOfBatch);
+		List<List<Object>> batches = new ArrayList<>(numOfBatch);
 		int currentEndIndex = 0;
 		for (int i = 0; i < numOfBatch; i++) {
 			currentEndIndex = currentEndIndex + batchSize;
@@ -61,21 +57,24 @@ public interface BatchOperation {
 		MappedStatement mappedStatement = MybatisUtils.copyFromNewSql(ms, boundSql, sql);
 		args[0] = mappedStatement;
 		try {
+			if (BaseMapper.BATCH_INSERT.equals(sql)) {
+				return BatchType.BatchInsert;
+			}
 			return BatchType.valueOf(sql);
 		} catch (IllegalArgumentException ex) {
 			return BatchType.None;
 		}
 	}
 
-	default int doOneBatchInsert(Connection conn, List poList, Table table, String sql) throws SQLException {
+	default <T> int doOneBatchInsert(Connection conn, List<T> poList, Table table, String sql) throws SQLException {
 		List<Column> insertList = table.getColumns().stream().filter(Column::isInsertable).collect(Collectors.toList());
 		Column pkColumn = table.getColumns().stream().filter(Column::isPk).findFirst().orElse(null);
 		boolean autoGenerateId = false;
 		if (pkColumn != null && GenerationType.AUTO.equals(pkColumn.getIdGenerationType())) {
 			autoGenerateId = true;
 		}
-		int[] resultArr = null;
-		PreparedStatement ps = null;
+		int[] resultArr;
+		PreparedStatement ps;
 		if (autoGenerateId) {
 			ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 		} else {
@@ -135,90 +134,68 @@ public interface BatchOperation {
 	}
 
 	default String buildUpdateSelective(List<Column> columns, StringBuilder builder, String tableSqlName,
-	                                    Object po, Table table, Set<String> includeColumns) {
-		boolean hasInclude = CollectionUtils.isNotEmpty(includeColumns);
+	                                    Object po, Table table, Predicate<Column> predicate) {
 		builder.append("update")
-				.append(BLANK)
+				.append(MybatisSqlBuilder.BLANK)
 				.append(tableSqlName)
-				.append(BLANK)
-				.append("set").append(BLANK);
-		if (table.hasVersionColumn()) {
-			Column versionColumn = table.getVersionColumn();
-			builder.append(versionColumn.getSqlName()).append(BLANK).append("=").append(BLANK)
-					.append(versionColumn.getSqlName()).append(" + 1 ,");
-		}
-		for (Column column : columns) {
-			if (!column.isUpdatable()) {
-				continue;
+				.append(MybatisSqlBuilder.BLANK)
+				.append("set").append(MybatisSqlBuilder.BLANK);
+		Predicate<Column> filter = predicate == null ? Filters.UPDATABLE_FILTER : Filters.UPDATABLE_FILTER.and(predicate);
+		String set = table.getColumns().stream().filter(filter.and(new Filters.NonBlankFilter(po)).or(Filters.VERSION_FILTER).and(Filters.ID_FILTER.negate())).map(column -> {
+			StringBuilder setBuilder = new StringBuilder();
+			if (column.isVersioned()) {
+				setBuilder.append(column.getSqlName()).append(MybatisSqlBuilder.BLANK).append("=").append(MybatisSqlBuilder.BLANK)
+						.append(column.getSqlName()).append(" + 1").append(MybatisSqlBuilder.BLANK);
+			} else {
+				Object fieldValue = ReflectionUtils.getFieldValue(po, column.getJavaName());
+				setBuilder.append(MybatisSqlBuilder.BLANK);
+				setBuilder.append(column.getSqlName()).append("=").append(getSqlForVal(fieldValue, column)).append(MybatisSqlBuilder.BLANK);
 			}
-			Object fieldValue = ReflectionUtils.getFieldValue(po, column.getJavaName());
-			boolean include = false;
-			if (hasInclude && includeColumns.contains(column.getJavaName())) {
-				include = true;
-			} else if (fieldValue != null) {
-				include = true;
-			}
-			if (include) {
-				builder.append(BLANK);
-				builder.append(column.getSqlName()).append("=").append(getSqlForVal(fieldValue, column)).append(",");
-			}
-		}
-		builder.deleteCharAt(builder.length() - 1);
-		builder.append(BLANK).append("where").append(BLANK);
+			return setBuilder.toString();
+		}).collect(Collectors.joining(","));
+		builder.append(set);
+		builder.append(MybatisSqlBuilder.BLANK).append("where").append(MybatisSqlBuilder.BLANK);
 
 		AtomicInteger pkIndex = new AtomicInteger(0);
 		table.getColumns().stream().filter(Column::isPk).forEach(column -> {
 			if (pkIndex.get() > 0) {
-				builder.append(BLANK).append("and").append(BLANK);
+				builder.append(MybatisSqlBuilder.BLANK).append("and").append(MybatisSqlBuilder.BLANK);
 			}
 			Object fieldValue = ReflectionUtils.getFieldValue(po, column.getJavaName());
-			builder.append(column.getSqlName()).append("='").append(fieldValue).append("'").append(BLANK);
+			builder.append(column.getSqlName()).append("='").append(fieldValue).append("'").append(MybatisSqlBuilder.BLANK);
 			pkIndex.getAndIncrement();
 		});
 		return builder.toString();
 	}
 
 	default String buildUpdate(List<Column> columns, StringBuilder builder, String tableSqlName,
-	                           Object po, Table table, Set<String> includeColumns) {
-		boolean hasInclude = CollectionUtils.isNotEmpty(includeColumns);
+	                           Object po, Table table, Predicate<Column> predicate) {
 		builder.append("update")
-				.append(BLANK)
+				.append(MybatisSqlBuilder.BLANK)
 				.append(tableSqlName)
-				.append(BLANK)
-				.append("set").append(BLANK);
-		if (table.hasVersionColumn()) {
-			Column versionColumn = table.getVersionColumn();
-			builder.append(versionColumn.getSqlName()).append(BLANK).append("=").append(BLANK)
-					.append(versionColumn.getSqlName()).append(" + 1 ,");
-		}
-		for (Column column : columns) {
-			if (!column.isUpdatable()) {
-				continue;
-			}
-			boolean include = false;
-			if (hasInclude) {
-				if (includeColumns.contains(column.getJavaName())) {
-					include = true;
-				}
+				.append(MybatisSqlBuilder.BLANK)
+				.append("set").append(MybatisSqlBuilder.BLANK);
+		Predicate<Column> filter = predicate == null ? Filters.UPDATABLE_FILTER : predicate.and(Filters.UPDATABLE_FILTER);
+		String set = table.getColumns().stream().filter(filter.or(Filters.VERSION_FILTER).and(Filters.ID_FILTER.negate())).map(column -> {
+			StringBuilder setBuilder = new StringBuilder();
+			if (column.isVersioned()) {
+				setBuilder.append(column.getSqlName()).append(MybatisSqlBuilder.BLANK).append("=").append(MybatisSqlBuilder.BLANK)
+						.append(column.getSqlName()).append(" + 1").append(MybatisSqlBuilder.BLANK);
 			} else {
-				include = true;
-			}
-			if (include) {
 				Object fieldValue = ReflectionUtils.getFieldValue(po, column.getJavaName());
-				builder.append(BLANK);
-				builder.append(column.getSqlName()).append("=").append(getSqlForVal(fieldValue, column)).append(",");
+				setBuilder.append(MybatisSqlBuilder.BLANK);
+				setBuilder.append(column.getSqlName()).append("=").append(getSqlForVal(fieldValue, column)).append(MybatisSqlBuilder.BLANK);
 			}
-		}
-		builder.deleteCharAt(builder.length() - 1);
-		builder.append(BLANK).append("where").append(BLANK);
-
+			return setBuilder.toString();
+		}).collect(Collectors.joining(","));
+		builder.append(set).append(MybatisSqlBuilder.BLANK).append("where").append(MybatisSqlBuilder.BLANK);
 		AtomicInteger pkIndex = new AtomicInteger(0);
 		table.getColumns().stream().filter(Column::isPk).forEach(column -> {
 			if (pkIndex.get() > 0) {
-				builder.append(BLANK).append("and").append(BLANK);
+				builder.append(MybatisSqlBuilder.BLANK).append("and").append(MybatisSqlBuilder.BLANK);
 			}
 			Object fieldValue = ReflectionUtils.getFieldValue(po, column.getJavaName());
-			builder.append(column.getSqlName()).append("='").append(fieldValue).append("'").append(BLANK);
+			builder.append(column.getSqlName()).append("='").append(fieldValue).append("'").append(MybatisSqlBuilder.BLANK);
 			pkIndex.getAndIncrement();
 		});
 		return builder.toString();
@@ -226,19 +203,19 @@ public interface BatchOperation {
 
 	default String buildInsertSql(String tableSqlName, List<Column> columns, StringBuilder builder) {
 		builder.append("insert into");
-		builder.append(BLANK);
+		builder.append(MybatisSqlBuilder.BLANK);
 		builder.append(tableSqlName);
-		builder.append(BLANK).append("(");
+		builder.append(MybatisSqlBuilder.BLANK).append("(");
 		for (Column column : columns) {
 			if (column.isInsertable()) {
-				builder.append(BLANK).append(column.getSqlName()).append(",");
+				builder.append(MybatisSqlBuilder.BLANK).append(column.getSqlName()).append(",");
 			}
 		}
 		builder.deleteCharAt(builder.length() - 1);
-		builder.append(")").append(BLANK).append("values").append(BLANK).append("(");
+		builder.append(")").append(MybatisSqlBuilder.BLANK).append("values").append(MybatisSqlBuilder.BLANK).append("(");
 		for (Column column : columns) {
 			if (column.isInsertable()) {
-				builder.append(BLANK).append("?").append(",");
+				builder.append(MybatisSqlBuilder.BLANK).append("?").append(",");
 			}
 		}
 		builder.deleteCharAt(builder.length() - 1).append(")");
@@ -323,6 +300,7 @@ public interface BatchOperation {
 
 					switch (column.getSqlType()) {
 						case Types.DATE:
+							SimpleDateFormat ddf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
 							if (parameterAsDate instanceof java.sql.Date) {
 								return ddf.format(parameterAsDate);
 							} else {
@@ -331,7 +309,7 @@ public interface BatchOperation {
 						case Types.TIMESTAMP:
 							SimpleDateFormat tsdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
 							if (parameterAsDate instanceof Timestamp) {
-								return tsdf.format((Timestamp) parameterAsDate) + ".0";
+								return tsdf.format(parameterAsDate) + ".0";
 							} else {
 								return tsdf.format(new Timestamp(parameterAsDate.getTime())) + ".0";
 							}
@@ -439,7 +417,7 @@ public interface BatchOperation {
 			case Types.NUMERIC:
 
 				if (parameterAsNum instanceof BigDecimal) {
-					BigDecimal scaledBigDecimal = null;
+					BigDecimal scaledBigDecimal;
 
 					try {
 						scaledBigDecimal = ((BigDecimal) parameterAsNum).setScale(scale);
@@ -455,7 +433,7 @@ public interface BatchOperation {
 				} else if (parameterAsNum instanceof java.math.BigInteger) {
 					return StringHelper.fixDecimalExponent(StringHelper.consistentToString(new BigDecimal((java.math.BigInteger) parameterAsNum, scale)));
 				} else {
-					return StringHelper.fixDecimalExponent(StringHelper.consistentToString(new BigDecimal(parameterAsNum.doubleValue())));
+					return StringHelper.fixDecimalExponent(StringHelper.consistentToString(BigDecimal.valueOf(parameterAsNum.doubleValue())));
 				}
 		}
 		throw new RuntimeException("convert to number fail " + val.getClass().getName() + "   " + val.toString());
@@ -520,20 +498,20 @@ public interface BatchOperation {
 		char c;
 		char separator;
 		StringReader reader = new StringReader(dt + " ");
-		ArrayList<Object[]> vec = new ArrayList<Object[]>();
-		ArrayList<Object[]> vecRemovelist = new ArrayList<Object[]>();
+		ArrayList<Object[]> vec = new ArrayList<>();
+		ArrayList<Object[]> vecRemovelist = new ArrayList<>();
 		Object[] nv = new Object[3];
 		Object[] v;
-		nv[0] = Character.valueOf('y');
+		nv[0] = 'y';
 		nv[1] = new StringBuilder();
-		nv[2] = Integer.valueOf(0);
+		nv[2] = 0;
 		vec.add(nv);
 
 		if (toTime) {
 			nv = new Object[3];
-			nv[0] = Character.valueOf('h');
+			nv[0] = 'h';
 			nv[1] = new StringBuilder();
-			nv[2] = Integer.valueOf(0);
+			nv[2] = 0;
 			vec.add(nv);
 		}
 
@@ -543,17 +521,17 @@ public interface BatchOperation {
 
 			for (count = 0; count < maxvecs; count++) {
 				v = vec.get(count);
-				n = ((Integer) v[2]).intValue();
-				c = getSuccessor(((Character) v[0]).charValue(), n);
+				n = (Integer) v[2];
+				c = getSuccessor((Character) v[0], n);
 
 				if (!Character.isLetterOrDigit(separator)) {
-					if ((c == ((Character) v[0]).charValue()) && (c != 'S')) {
+					if ((c == (Character) v[0]) && (c != 'S')) {
 						vecRemovelist.add(v);
 					} else {
 						((StringBuilder) v[1]).append(separator);
 
 						if ((c == 'X') || (c == 'Y')) {
-							v[2] = Integer.valueOf(4);
+							v[2] = 4;
 						}
 					}
 				} else {
@@ -561,33 +539,33 @@ public interface BatchOperation {
 						c = 'y';
 						nv = new Object[3];
 						nv[1] = (new StringBuilder(((StringBuilder) v[1]).toString())).append('M');
-						nv[0] = Character.valueOf('M');
-						nv[2] = Integer.valueOf(1);
+						nv[0] = 'M';
+						nv[2] = 1;
 						vec.add(nv);
 					} else if (c == 'Y') {
 						c = 'M';
 						nv = new Object[3];
 						nv[1] = (new StringBuilder(((StringBuilder) v[1]).toString())).append('d');
-						nv[0] = Character.valueOf('d');
-						nv[2] = Integer.valueOf(1);
+						nv[0] = 'd';
+						nv[2] = 1;
 						vec.add(nv);
 					}
 
 					((StringBuilder) v[1]).append(c);
 
-					if (c == ((Character) v[0]).charValue()) {
-						v[2] = Integer.valueOf(n + 1);
+					if (c == (Character) v[0]) {
+						v[2] = n + 1;
 					} else {
-						v[0] = Character.valueOf(c);
-						v[2] = Integer.valueOf(1);
+						v[0] = c;
+						v[2] = 1;
 					}
 				}
 			}
 
 			int size = vecRemovelist.size();
 
-			for (int i = 0; i < size; i++) {
-				v = vecRemovelist.get(i);
+			for (Object[] objects : vecRemovelist) {
+				v = objects;
 				vec.remove(v);
 			}
 
@@ -598,8 +576,8 @@ public interface BatchOperation {
 
 		for (int i = 0; i < size; i++) {
 			v = vec.get(i);
-			c = ((Character) v[0]).charValue();
-			n = ((Integer) v[2]).intValue();
+			c = (Character) v[0];
+			n = (Integer) v[2];
 
 			boolean bk = getSuccessor(c, n) != c;
 			boolean atEnd = (((c == 's') || (c == 'm') || ((c == 'h') && toTime)) && bk);

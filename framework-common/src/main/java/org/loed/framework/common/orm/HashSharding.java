@@ -13,7 +13,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  */
 @Target(TYPE)
 @Retention(RUNTIME)
-public @interface Sharding {
+public @interface HashSharding {
 	int count() default 10;
 
 	//分表时的别名

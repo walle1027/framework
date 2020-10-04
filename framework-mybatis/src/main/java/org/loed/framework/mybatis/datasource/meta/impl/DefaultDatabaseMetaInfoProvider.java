@@ -1,9 +1,9 @@
 package org.loed.framework.mybatis.datasource.meta.impl;
 
-import org.apache.commons.lang3.StringUtils;
 import org.loed.framework.mybatis.datasource.meta.DatabaseMetaInfo;
 import org.loed.framework.mybatis.datasource.meta.DatabaseMetaInfoProvider;
 import org.loed.framework.mybatis.datasource.readwriteisolate.ReadWriteStrategy;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.HashMap;
 import java.util.List;
@@ -75,10 +75,10 @@ public class DefaultDatabaseMetaInfoProvider implements DatabaseMetaInfoProvider
 		return null;
 	}
 
-	public String buildKey(String tenantCode, ReadWriteStrategy strategy) {
+	public String buildKey(String tenantId, ReadWriteStrategy strategy) {
 		StringBuilder builder = new StringBuilder();
-		if (StringUtils.isNotBlank(tenantCode)) {
-			builder.append(tenantCode).append(".");
+		if (StringUtils.isNotBlank(tenantId)) {
+			builder.append(tenantId).append(".");
 		}
 		if (StringUtils.isNotBlank(name)) {
 			builder.append(name).append(".");

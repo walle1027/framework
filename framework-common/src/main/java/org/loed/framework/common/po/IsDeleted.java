@@ -13,4 +13,5 @@ import java.lang.annotation.Target;
 @Target({ElementType.FIELD,ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface IsDeleted {
+	Class<?>[] supportedTypes() default {Integer.class, int.class, Byte.class, byte.class};
 }

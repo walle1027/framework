@@ -1,11 +1,11 @@
 package org.loed.framework.mybatis.inspector.dialect.impl;
 
-import org.apache.commons.lang3.StringUtils;
+import org.loed.framework.common.data.DataType;
 import org.loed.framework.common.orm.Column;
 import org.loed.framework.common.orm.Index;
 import org.loed.framework.common.orm.Table;
-import org.loed.framework.common.data.DataType;
 import org.loed.framework.mybatis.inspector.dialect.Dialect;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.persistence.GenerationType;
 import java.util.ArrayList;

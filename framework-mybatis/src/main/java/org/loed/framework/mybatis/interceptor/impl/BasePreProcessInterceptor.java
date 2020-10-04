@@ -1,5 +1,6 @@
-package org.loed.framework.mybatis.interceptor;
+package org.loed.framework.mybatis.interceptor.impl;
 
+import org.loed.framework.mybatis.interceptor.BaseInterceptor;
 import org.apache.ibatis.plugin.Invocation;
 
 /**

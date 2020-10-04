@@ -1,15 +1,15 @@
 package org.loed.framework.mybatis.inspector.autoconfigure;
 
-import org.apache.commons.collections.CollectionUtils;
-import org.loed.framework.common.ORMapping;
 import org.loed.framework.common.RoutingDataSource;
 import org.loed.framework.common.ThreadPoolExecutor;
 import org.loed.framework.common.lock.ZKDistributeLock;
-import org.loed.framework.common.orm.Table;
+import org.loed.framework.common.orm.ORMapping;
 import org.loed.framework.common.orm.schema.Column;
 import org.loed.framework.common.orm.schema.Index;
+import org.loed.framework.common.orm.schema.Table;
 import org.loed.framework.mybatis.inspector.DatabaseResolver;
 import org.loed.framework.mybatis.inspector.dialect.Dialect;
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,7 +90,7 @@ public class DbInspector {
 	}
 
 	private void doInspect(List<String> packages) {
-		List<Table> tables = scanJPATables(packages);
+		List<org.loed.framework.common.orm.Table> tables = scanJPATables(packages);
 		//没有要同步的表，直接返回
 		if (CollectionUtils.isEmpty(tables)) {
 			return;
@@ -123,13 +123,13 @@ public class DbInspector {
 		}
 	}
 
-	private List<Table> scanJPATables(List<String> packages) {
+	private List<org.loed.framework.common.orm.Table> scanJPATables(List<String> packages) {
 		Set<String> classNames = scanPackages(packages);
-		List<Table> jpaTables = new ArrayList<>();
+		List<org.loed.framework.common.orm.Table> jpaTables = new ArrayList<>();
 		for (String className : classNames) {
 			try {
 				Class<?> clazz = Class.forName(className);
-				Table jpaTable = ORMapping.get(clazz);
+				org.loed.framework.common.orm.Table jpaTable = ORMapping.get(clazz);
 				if (jpaTable == null) {
 					continue;
 				}
@@ -147,13 +147,13 @@ public class DbInspector {
 	 * @param jpaTables  JPA对象
 	 * @param dataSource 数据源
 	 */
-	private void processOneDataSource(List<Table> jpaTables, DataSource dataSource) {
+	private void processOneDataSource(List<org.loed.framework.common.orm.Table> jpaTables, DataSource dataSource) {
 		try {
 			int size = jpaTables.size();
 			CountDownLatch latch = new CountDownLatch(size);
 			List<String> ddlList = new CopyOnWriteArrayList<>();
 			//按照数据库的表的个数，创建对应个数的线程池
-			for (Table table : jpaTables) {
+			for (org.loed.framework.common.orm.Table table : jpaTables) {
 				threadPoolExecutor.execute(() -> {
 					String javaName = table.getJavaName();
 					Connection connection = null;
@@ -162,7 +162,7 @@ public class DbInspector {
 						connection.setAutoCommit(false);
 						if (table.isSharding()) {
 							for (int i = 1; i <= table.getShardingCount(); i++) {
-								Table shardingTable = new Table();
+								org.loed.framework.common.orm.Table shardingTable = new org.loed.framework.common.orm.Table();
 								shardingTable.setSqlName(table.getSqlName() + "_" + i);
 								shardingTable.setCatalog(table.getCatalog());
 								shardingTable.setSchema(table.getSchema());
@@ -263,11 +263,11 @@ public class DbInspector {
 //		}
 	}
 
-	private void processOneTable(Connection connection, Table table, List<String> ddlList) {
-		DatabaseResolver resolver = DatabaseResolver.getInstance();
+	private void processOneTable(Connection connection, org.loed.framework.common.orm.Table table, List<String> ddlList) {
+		DatabaseResolver resolver = new DatabaseResolver(getCatalogSafely(connection), getSchemaSafely(connection));
 		try {
 			String tableName = table.getSqlName();
-			org.loed.framework.common.orm.schema.Table dbTable = resolver.getTable(connection, tableName);
+			Table dbTable = resolver.getTable(connection, tableName);
 			List<org.loed.framework.common.orm.Column> tableColumns = table.getColumns() == null ? Collections.EMPTY_LIST : table.getColumns();
 			List<org.loed.framework.common.orm.Index> indexList = table.getIndices() == null ? Collections.EMPTY_LIST : table.getIndices();
 			if (dbTable == null) {
@@ -343,6 +343,22 @@ public class DbInspector {
 			}
 		}
 		return classNames;
+	}
+
+	private String getCatalogSafely(Connection connection) {
+		try {
+			return connection.getCatalog();
+		} catch (Throwable ignored) {
+		}
+		return null;
+	}
+
+	private String getSchemaSafely(Connection connection) {
+		try {
+			return connection.getSchema();
+		} catch (Throwable ignored) {
+		}
+		return null;
 	}
 
 	public void setDataSource(DataSource dataSource) {

@@ -1,12 +1,12 @@
 package org.loed.framework.mybatis.sharding.table.impl;
 
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.ibatis.session.SqlSession;
-import org.apache.ibatis.session.SqlSessionFactory;
 import org.loed.framework.common.orm.Table;
 import org.loed.framework.mybatis.sharding.ShardingManager;
 import org.loed.framework.mybatis.sharding.table.po.IdMapping;
 import org.loed.framework.mybatis.sharding.table.po.ShardingMapping;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.ibatis.session.SqlSession;
+import org.apache.ibatis.session.SqlSessionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -139,7 +139,7 @@ public class JdbcShardingManager implements ShardingManager {
 		builder.append("select table_name, sharding_table_name, sharding_key, sharding_value from t_sharding_mapping where table_name = '").append(table.getSqlName()).append("'").append(" and sharding_value = '").append(shardingValue).append("'");
 		try (SqlSession session = sqlSessionFactory.openSession(true)) {
 			Connection connection = session.getConnection();
-			try (PreparedStatement prepareStatement = connection.prepareStatement(builder.toString())) {
+			try (PreparedStatement prepareStatement = connection.prepareStatement(builder.toString(), ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
 				ResultSet resultSet = prepareStatement.executeQuery();
 				ShardingMapping shardingMapping = new ShardingMapping();
 				if (resultSet != null) {
@@ -166,7 +166,7 @@ public class JdbcShardingManager implements ShardingManager {
 		builder.append("select table_name, id, sharding_key, sharding_value,sharding_table_name from t_id_mapping where table_name = '").append(table.getSqlName()).append("'").append(" and id = ").append(id);
 		try (SqlSession session = sqlSessionFactory.openSession(true)) {
 			Connection connection = session.getConnection();
-			try (PreparedStatement prepareStatement = connection.prepareStatement(builder.toString())) {
+			try (PreparedStatement prepareStatement = connection.prepareStatement(builder.toString(), ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
 				ResultSet resultSet = prepareStatement.executeQuery();
 				if (resultSet != null) {
 					if (resultSet.first()) {
@@ -198,7 +198,7 @@ public class JdbcShardingManager implements ShardingManager {
 		builder.append(")");
 		try (SqlSession session = sqlSessionFactory.openSession(true)) {
 			Connection connection = session.getConnection();
-			try (PreparedStatement prepareStatement = connection.prepareStatement(builder.toString())) {
+			try (PreparedStatement prepareStatement = connection.prepareStatement(builder.toString(), ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
 				ResultSet resultSet = prepareStatement.executeQuery();
 				if (resultSet != null) {
 					while (resultSet.next()) {
@@ -231,7 +231,7 @@ public class JdbcShardingManager implements ShardingManager {
 		builder.append(")");
 		try (SqlSession session = sqlSessionFactory.openSession(true)) {
 			Connection connection = session.getConnection();
-			try (PreparedStatement prepareStatement = connection.prepareStatement(builder.toString())) {
+			try (PreparedStatement prepareStatement = connection.prepareStatement(builder.toString(), ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
 				ResultSet resultSet = prepareStatement.executeQuery();
 				if (resultSet != null) {
 					while (resultSet.next()) {
