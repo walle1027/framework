@@ -50,7 +50,7 @@ public class PluginProxy {
 		String methodName = signature.getName();
 		String methodSignature = ReflectionUtils.buildMethodSignature(targetClass, methodName, parameterTypes);
 		Plugin plugin;
-		plugin = provider.getPlugin(SystemContextHolder.getTenantCode(), methodSignature);
+		plugin = provider.getPlugin(SystemContextHolder.getTenantId(), methodSignature);
 		if (plugin != null) {
 			return pluginResult(jp, plugin);
 		}
@@ -61,7 +61,7 @@ public class PluginProxy {
 
 	private Object pluginResult(ProceedingJoinPoint jp, Plugin plugin) throws Exception {
 		if (logger.isDebugEnabled()) {
-			logger.debug("tenantCode:" + SystemContextHolder.getTenantCode() + ", method:" + plugin.getSignature() + " has plugin:" + plugin);
+			logger.debug("tenantCode:" + SystemContextHolder.getTenantId() + ", method:" + plugin.getSignature() + " has plugin:" + plugin);
 		}
 		//http请求
 		Object[] args = jp.getArgs();

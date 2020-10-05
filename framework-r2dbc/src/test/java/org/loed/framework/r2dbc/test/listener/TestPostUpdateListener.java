@@ -1,6 +1,6 @@
-package org.loed.framework.r2dbc.listener;
+package org.loed.framework.r2dbc.test.listener;
 
-import org.loed.framework.r2dbc.listener.spi.PostUpdateListener;
+import org.loed.framework.r2dbc.test.listener.spi.PostUpdateListener;
 import reactor.core.publisher.Mono;
 
 /**
@@ -8,7 +8,7 @@ import reactor.core.publisher.Mono;
  * @version 1.0
  * @since 2020/8/8 10:07 上午
  */
-public class TestPostUpdateListner implements PostUpdateListener {
+public class TestPostUpdateListener implements PostUpdateListener {
 	@Override
 	public <T> Mono<T> postUpdate(T object) {
 		return null;

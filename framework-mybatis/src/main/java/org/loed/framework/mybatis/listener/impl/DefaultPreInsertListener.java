@@ -122,14 +122,14 @@ public class DefaultPreInsertListener implements PreInsertListener {
 					continue;
 				}
 				if (type.getName().equals(String.class.getName())) {
-					ReflectionUtils.setFieldValue(object, field, SystemContextHolder.getTenantCode());
+					ReflectionUtils.setFieldValue(object, field, SystemContextHolder.getTenantId());
 				} else if (type.getName().equals(Long.class.getName())) {
 					if (StringUtils.isNotBlank(SystemContextHolder.getUserId())) {
-						ReflectionUtils.setFieldValue(object, field, Long.valueOf(SystemContextHolder.getTenantCode()));
+						ReflectionUtils.setFieldValue(object, field, Long.valueOf(SystemContextHolder.getTenantId()));
 					}
 				} else if (type.getName().equals(BigInteger.class.getName())) {
 					if (StringUtils.isNotBlank(SystemContextHolder.getUserId())) {
-						ReflectionUtils.setFieldValue(object, field, BigInteger.valueOf(Long.parseLong(SystemContextHolder.getTenantCode())));
+						ReflectionUtils.setFieldValue(object, field, BigInteger.valueOf(Long.parseLong(SystemContextHolder.getTenantId())));
 					}
 				}
 			}

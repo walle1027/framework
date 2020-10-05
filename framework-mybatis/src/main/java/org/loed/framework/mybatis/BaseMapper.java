@@ -549,7 +549,7 @@ public interface BaseMapper<T, ID extends Serializable> {
 			Condition condition = new Condition();
 			condition.setPropertyName(column.getJavaName());
 			condition.setOperator(Operator.equal);
-			condition.setValue(SystemContextHolder.getTenantCode());
+			condition.setValue(SystemContextHolder.getTenantId());
 			conditions.add(condition);
 		}
 		return conditions;

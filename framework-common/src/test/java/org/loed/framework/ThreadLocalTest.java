@@ -26,7 +26,7 @@ public class ThreadLocalTest {
 				@Override
 				public void run() {
 					try {
-						SystemContextHolder.setTenantCode("safdasdf");
+						SystemContextHolder.setTenantId("safdasdf");
 						Thread.sleep(10L);
 					} catch (InterruptedException e) {
 						e.printStackTrace();

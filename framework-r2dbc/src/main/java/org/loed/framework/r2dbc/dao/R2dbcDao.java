@@ -346,4 +346,13 @@ public interface R2dbcDao<T, ID> {
 	 * @return 查询结果
 	 */
 	Flux<T> select(@NonNull String sql, @NonNull Map<String, R2dbcParam> params);
+
+	/**
+	 * 执行一个自定义的dml语句
+	 *
+	 * @param sql    查询语句
+	 * @param params sql 查询参数
+	 * @return 影响行数
+	 */
+	Mono<Integer> execute(@NonNull String sql, @Nullable Map<String, R2dbcParam> params);
 }

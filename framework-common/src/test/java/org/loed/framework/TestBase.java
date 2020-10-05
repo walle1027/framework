@@ -20,7 +20,7 @@ public class TestBase {
 	@Before
 	public void setUp() throws Exception {
 		SystemContextHolder.setUserId("wishstar");
-		SystemContextHolder.setTenantCode("default");
+		SystemContextHolder.setTenantId("default");
 		SystemContextHolder.setUserName("杨涛");
 		ServiceLocator.setApplicationContext(applicationContext);
 	}

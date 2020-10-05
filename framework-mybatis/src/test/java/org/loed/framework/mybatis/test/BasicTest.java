@@ -34,7 +34,7 @@ public class BasicTest {
 
 	@Before
 	public void setUp() throws Exception {
-		SystemContextHolder.setTenantCode("mybatis_test_tenant");
+		SystemContextHolder.setTenantId("mybatis_test_tenant");
 		SystemContextHolder.setAccountId("mybatis_test_accountId");
 		SystemContextHolder.setUserId("mybatis_test_userId");
 	}

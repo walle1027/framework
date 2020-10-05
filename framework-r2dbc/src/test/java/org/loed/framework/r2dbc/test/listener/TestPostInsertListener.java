@@ -1,7 +1,7 @@
-package org.loed.framework.r2dbc.listener;
+package org.loed.framework.r2dbc.test.listener;
 
 import lombok.extern.slf4j.Slf4j;
-import org.loed.framework.r2dbc.listener.spi.PostInsertListener;
+import org.loed.framework.r2dbc.test.listener.spi.PostInsertListener;
 import reactor.core.publisher.Mono;
 
 /**

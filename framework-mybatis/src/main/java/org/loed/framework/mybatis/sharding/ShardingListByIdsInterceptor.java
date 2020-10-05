@@ -148,7 +148,7 @@ public class ShardingListByIdsInterceptor extends BasePreProcessInterceptor<Pair
 			});
 			Optional<Column> isTenantId = table.getColumns().stream().filter(Column::isTenantId).findFirst();
 			isTenantId.ifPresent(column -> {
-				builder.append(" and ").append(column.getSqlName()).append(" = '").append(SystemContextHolder.getTenantCode()).append("' ");
+				builder.append(" and ").append(column.getSqlName()).append(" = '").append(SystemContextHolder.getTenantId()).append("' ");
 			});
 		}
 	}

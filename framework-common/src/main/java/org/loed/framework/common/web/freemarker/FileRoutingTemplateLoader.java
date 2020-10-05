@@ -61,7 +61,7 @@ public class FileRoutingTemplateLoader implements TemplateLoader {
 		String path = null;
 		try {
 			String appVersion = SystemContextHolder.getAppVersion();
-			path = SystemContextHolder.getTenantCode() + "/" + appVersion + "/" + name;
+			path = SystemContextHolder.getTenantId() + "/" + appVersion + "/" + name;
 			if (routingMap.containsKey(path)) {
 				return routingMap.get(path);
 			}
@@ -72,8 +72,8 @@ public class FileRoutingTemplateLoader implements TemplateLoader {
 					return file;
 				}
 			}*/
-			logger.debug("template:" + name + " for tenant:[" + SystemContextHolder.getTenantCode() + "] and version:[" + appVersion + "] don'st exists");
-			path = SystemContextHolder.getTenantCode() + "/" + SystemConstant.DEFAULT_VERSION + "/" + name;
+			logger.debug("template:" + name + " for tenant:[" + SystemContextHolder.getTenantId() + "] and version:[" + appVersion + "] don'st exists");
+			path = SystemContextHolder.getTenantId() + "/" + SystemConstant.DEFAULT_VERSION + "/" + name;
 			if (routingMap.containsKey(path)) {
 				return routingMap.get(path);
 			}
@@ -84,7 +84,7 @@ public class FileRoutingTemplateLoader implements TemplateLoader {
 					return file;
 				}
 			}*/
-			logger.debug("template:" + name + " for tenant:[" + SystemContextHolder.getTenantCode() + "] and version:[basic] don'st exists");
+			logger.debug("template:" + name + " for tenant:[" + SystemContextHolder.getTenantId() + "] and version:[basic] don'st exists");
 			path = SystemConstant.DEFAULT_TENANT_CODE + "/" + appVersion + "/" + name;
 			if (routingMap.containsKey(path)) {
 				return routingMap.get(path);
@@ -96,7 +96,7 @@ public class FileRoutingTemplateLoader implements TemplateLoader {
 					return file;
 				}
 			}*/
-			logger.debug("template:" + name + " for tenant:" + SystemContextHolder.getTenantCode() + " don'st exists");
+			logger.debug("template:" + name + " for tenant:" + SystemContextHolder.getTenantId() + " don'st exists");
 			path = SystemConstant.DEFAULT_TENANT_CODE + "/" + SystemConstant.DEFAULT_VERSION + "/" + name;
 			if (routingMap.containsKey(path)) {
 				return routingMap.get(path);

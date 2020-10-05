@@ -67,7 +67,7 @@ public class SystemContextFilter implements Filter, Ordered {
 							log.debug("request {} has  header: {}, with value {}", requestURI, SystemContext.CONTEXT_USER_AGENT, headerVal);
 						}
 					} else if (StringUtils.equalsIgnoreCase(curHeader, SystemContext.CONTEXT_TENANT_ID)) {
-						SystemContextHolder.setTenantCode(headerVal);
+						SystemContextHolder.setTenantId(headerVal);
 						if (log.isDebugEnabled()) {
 							log.debug("request {} has  header: {}, with value {}", requestURI, SystemContext.CONTEXT_TENANT_ID, headerVal);
 						}

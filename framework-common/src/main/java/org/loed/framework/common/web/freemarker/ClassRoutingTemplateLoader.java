@@ -23,24 +23,24 @@ public class ClassRoutingTemplateLoader extends URLTemplateLoader {
 	protected URL getURL(String name) {
 		String fullPath = null;
 		String appVersion = SystemContextHolder.getAppVersion();
-		fullPath = templateLoaderPath + "/" + SystemContextHolder.getTenantCode() + "/" + appVersion + "/" + name;
+		fullPath = templateLoaderPath + "/" + SystemContextHolder.getTenantId() + "/" + appVersion + "/" + name;
 		URL url = Thread.currentThread().getContextClassLoader().getResource(fullPath);
 		if (url != null) {
 			return url;
 		}
-		logger.debug("template:" + name + " for tenant:[" + SystemContextHolder.getTenantCode() + "] and version:[" + appVersion + "] don'st exists");
-		fullPath = templateLoaderPath + "/" + SystemContextHolder.getTenantCode() + "/" + SystemConstant.DEFAULT_VERSION + "/" + name;
+		logger.debug("template:" + name + " for tenant:[" + SystemContextHolder.getTenantId() + "] and version:[" + appVersion + "] don'st exists");
+		fullPath = templateLoaderPath + "/" + SystemContextHolder.getTenantId() + "/" + SystemConstant.DEFAULT_VERSION + "/" + name;
 		url = Thread.currentThread().getContextClassLoader().getResource(fullPath);
 		if (url != null) {
 			return url;
 		}
-		logger.debug("template:" + name + " for tenant:[" + SystemContextHolder.getTenantCode() + "] and version:[basic] don'st exists");
+		logger.debug("template:" + name + " for tenant:[" + SystemContextHolder.getTenantId() + "] and version:[basic] don'st exists");
 		fullPath = templateLoaderPath + "/" + SystemConstant.DEFAULT_TENANT_CODE + "/" + appVersion + "/" + name;
 		url = Thread.currentThread().getContextClassLoader().getResource(fullPath);
 		if (url != null) {
 			return url;
 		}
-		logger.debug("template:" + name + " for tenant:" + SystemContextHolder.getTenantCode() + " don'st exists");
+		logger.debug("template:" + name + " for tenant:" + SystemContextHolder.getTenantId() + " don'st exists");
 		fullPath = templateLoaderPath + "/" + SystemConstant.DEFAULT_TENANT_CODE + "/" + SystemConstant.DEFAULT_VERSION + "/" + name;
 		url = Thread.currentThread().getContextClassLoader().getResource(fullPath);
 		if (url != null) {

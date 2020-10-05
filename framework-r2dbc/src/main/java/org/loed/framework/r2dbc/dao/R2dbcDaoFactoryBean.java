@@ -4,7 +4,7 @@ import io.r2dbc.spi.ConnectionFactory;
 import org.loed.framework.common.util.SerializeUtils;
 import org.loed.framework.r2dbc.R2dbcDialect;
 import org.loed.framework.r2dbc.autoconfigure.R2dbcProperties;
-import org.loed.framework.r2dbc.listener.spi.*;
+import org.loed.framework.r2dbc.test.listener.spi.*;
 import org.loed.framework.r2dbc.query.R2dbcSqlBuilder;
 import org.loed.framework.r2dbc.query.R2dbcSqlBuilderFactory;
 import org.loed.framework.r2dbc.routing.R2dbcPropertiesProvider;

@@ -1,4 +1,4 @@
-package org.loed.framework.r2dbc.listener.impl;
+package org.loed.framework.r2dbc.test.listener.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import org.loed.framework.common.context.ReactiveSystemContext;
@@ -8,7 +8,7 @@ import org.loed.framework.common.po.CreateTime;
 import org.loed.framework.common.po.IsDeleted;
 import org.loed.framework.common.po.TenantId;
 import org.loed.framework.common.util.ReflectionUtils;
-import org.loed.framework.r2dbc.listener.spi.PreInsertListener;
+import org.loed.framework.r2dbc.test.listener.spi.PreInsertListener;
 import org.springframework.core.Ordered;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;

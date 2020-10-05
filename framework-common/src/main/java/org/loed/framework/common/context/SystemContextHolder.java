@@ -211,17 +211,17 @@ public class SystemContextHolder {
 	}
 
 
-	public static String getTenantCode() {
-		String tenantCode = get(SystemContext.CONTEXT_TENANT_ID);
-		if (tenantCode == null || tenantCode.isEmpty()) {
+	public static String getTenantId() {
+		String tenantId = get(SystemContext.CONTEXT_TENANT_ID);
+		if (tenantId == null || tenantId.isEmpty()) {
 			return SystemContext.DEFAULT_TENANT_ID;
 		}
-		return tenantCode;
+		return tenantId;
 	}
 
 
-	public static void setTenantCode(String tenantCode) {
-		set(SystemContext.CONTEXT_TENANT_ID, tenantCode);
+	public static void setTenantId(String tenantId) {
+		set(SystemContext.CONTEXT_TENANT_ID, tenantId);
 	}
 
 

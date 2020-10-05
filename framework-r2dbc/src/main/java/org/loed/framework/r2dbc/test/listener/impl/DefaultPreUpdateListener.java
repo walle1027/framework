@@ -1,4 +1,4 @@
-package org.loed.framework.r2dbc.listener.impl;
+package org.loed.framework.r2dbc.test.listener.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import org.loed.framework.common.context.ReactiveSystemContext;
@@ -7,7 +7,7 @@ import org.loed.framework.common.data.DataType;
 import org.loed.framework.common.po.LastModifyBy;
 import org.loed.framework.common.po.LastModifyTime;
 import org.loed.framework.common.util.ReflectionUtils;
-import org.loed.framework.r2dbc.listener.spi.PreUpdateListener;
+import org.loed.framework.r2dbc.test.listener.spi.PreUpdateListener;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

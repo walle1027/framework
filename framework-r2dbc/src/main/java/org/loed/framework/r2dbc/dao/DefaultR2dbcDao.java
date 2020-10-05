@@ -13,8 +13,8 @@ import org.loed.framework.common.po.TenantId;
 import org.loed.framework.common.query.*;
 import org.loed.framework.common.util.ReflectionUtils;
 import org.loed.framework.r2dbc.R2dbcException;
-import org.loed.framework.r2dbc.listener.OrderedListener;
-import org.loed.framework.r2dbc.listener.spi.*;
+import org.loed.framework.r2dbc.test.listener.OrderedListener;
+import org.loed.framework.r2dbc.test.listener.spi.*;
 import org.loed.framework.r2dbc.query.R2dbcParam;
 import org.loed.framework.r2dbc.query.R2dbcQuery;
 import org.loed.framework.r2dbc.query.R2dbcSqlBuilder;
@@ -517,6 +517,11 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	@Override
 	public Flux<T> select(@NonNull String sql, @NonNull Map<String, R2dbcParam> params) {
 		return query(new R2dbcQuery(sql, params));
+	}
+
+	@Override
+	public Mono<Integer> execute(String sql, Map<String, R2dbcParam> params) {
+		return execute(new R2dbcQuery(sql, params));
 	}
 
 	private Mono<Integer> execute(R2dbcQuery query) {

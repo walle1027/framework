@@ -1,10 +1,10 @@
 package org.loed.framework.r2dbc.autoconfigure;
 
 import io.r2dbc.spi.ConnectionFactory;
-import org.loed.framework.r2dbc.listener.impl.DefaultPreInsertListener;
-import org.loed.framework.r2dbc.listener.impl.DefaultPreUpdateListener;
-import org.loed.framework.r2dbc.listener.spi.PreInsertListener;
-import org.loed.framework.r2dbc.listener.spi.PreUpdateListener;
+import org.loed.framework.r2dbc.test.listener.impl.DefaultPreInsertListener;
+import org.loed.framework.r2dbc.test.listener.impl.DefaultPreUpdateListener;
+import org.loed.framework.r2dbc.test.listener.spi.PreInsertListener;
+import org.loed.framework.r2dbc.test.listener.spi.PreUpdateListener;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

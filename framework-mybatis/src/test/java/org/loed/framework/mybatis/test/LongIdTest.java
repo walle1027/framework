@@ -39,7 +39,7 @@ public class LongIdTest {
 	@Before
 	public void setUp() {
 		SystemContextHolder.setUserId(1 + "");
-		SystemContextHolder.setTenantCode(1 + "");
+		SystemContextHolder.setTenantId(1 + "");
 		SystemContextHolder.setAccountId(1 + "");
 	}
 
