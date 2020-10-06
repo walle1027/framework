@@ -2,10 +2,12 @@ package org.loed.framework.r2dbc.test;
 
 import org.loed.framework.r2dbc.autoconfigure.R2dbcDaoScanner;
 import org.loed.framework.r2dbc.autoconfigure.R2dbcDbInspector;
+import org.loed.framework.r2dbc.test.dao.LongIdDao;
 import org.loed.framework.r2dbc.test.listener.TestPostInsertListener;
 import org.loed.framework.r2dbc.test.listener.TestPreDeleteListener;
 import org.loed.framework.r2dbc.test.listener.spi.PostInsertListener;
 import org.loed.framework.r2dbc.test.listener.spi.PreDeleteListener;
+import org.loed.framework.r2dbc.test.po.LongId;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -16,8 +18,8 @@ import org.springframework.context.annotation.Bean;
  * @since 2020/4/30 4:03 PM
  */
 @SpringBootApplication
-@R2dbcDaoScanner(basePackages = "org.loed.framework.r2dbc.dao")
-@R2dbcDbInspector(basePackages = "org.loed.framework.r2dbc.po")
+@R2dbcDaoScanner(basePackageClasses = LongIdDao.class)
+@R2dbcDbInspector(basePackageClasses = LongId.class)
 public class R2dbcApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(R2dbcApplication.class, args);
