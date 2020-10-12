@@ -1,5 +1,6 @@
 package org.loed.framework.r2dbc.test;
 
+import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -10,9 +11,9 @@ import org.loed.framework.common.context.SystemContext;
 import org.loed.framework.common.query.Criteria;
 import org.loed.framework.common.query.Pagination;
 import org.loed.framework.r2dbc.query.R2dbcParam;
-import org.loed.framework.r2dbc.test.dao.LongIdDao;
+import org.loed.framework.r2dbc.test.dao.StringIdDao;
 import org.loed.framework.r2dbc.test.po.EnumProp;
-import org.loed.framework.r2dbc.test.po.LongId;
+import org.loed.framework.r2dbc.test.po.StringId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageRequest;
@@ -34,34 +35,36 @@ import java.util.stream.Collectors;
 /**
  * @author thomason
  * @version 1.0
- * @since 2020/9/30 11:02 上午
+ * @since 2020/10/12 10:53 上午
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = R2dbcApplication.class)
-public class LongIdTest {
+public class StringIdTest {
 	@Autowired
-	private LongIdDao longIdDao;
+	private StringIdDao stringIdDao;
 
 	private SystemContext systemContext;
 
 	@Before
 	public void setUp() throws Exception {
 		systemContext = new SystemContext();
-		systemContext.setAccountId("1");
-		systemContext.setTenantId("1");
+		systemContext.setAccountId("r2dbc_test_account_id");
+		systemContext.setTenantId("r2dbc_test_tenant_id");
+		systemContext.setUserId("r2dbc_test_user_id");
 	}
 
 	@Test
 	public void testInsert() {
-		Mono<LongId> po = longIdDao.insert(insert()).map(LongId::getId).flatMap(id -> {
-			return longIdDao.get(id);
+		Mono<StringId> po = stringIdDao.insert(insert()).map(StringId::getId).flatMap(id -> {
+			return stringIdDao.get(id);
 		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(po.log()).expectNextMatches(p -> {
-			Assert.assertEquals((long) p.getId(), 1L);
 			Assert.assertEquals((long) p.getVersion(), 0);
-			Assert.assertEquals((long) p.getCreateBy(), 1L);
-			Assert.assertEquals(p.getProp1(), "LongId");
+			Assert.assertEquals(p.getCreateBy(), systemContext.getUserId());
+			Assert.assertEquals(p.getProp1(), "StringId");
 			Assert.assertEquals((int) p.getProp2(), Integer.MAX_VALUE);
+			Assert.assertEquals(p.getProp3(), 1.00d, 2);
+			Assert.assertEquals(p.getProp4(), 1.00f, 2);
 			Assert.assertEquals((long) p.getProp5(), Long.MAX_VALUE);
 			Assert.assertEquals(p.getProp6(), BigInteger.valueOf(Long.MAX_VALUE));
 			Assert.assertEquals(p.getProp7().intValue(), BigDecimal.ONE.intValue());
@@ -74,17 +77,19 @@ public class LongIdTest {
 
 	@Test
 	public void testBatchInsert() {
-		Mono<List<LongId>> insertResult = longIdDao.batchInsert(batchInsert()).flatMap(po -> {
-			return longIdDao.get(po.getId());
+		Mono<List<StringId>> insertResult = stringIdDao.batchInsert(batchInsert()).flatMap(po -> {
+			return stringIdDao.get(po.getId());
 		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(insertResult.log()).expectNextMatches(insertList -> {
 			for (int i = 0; i < insertList.size(); i++) {
-				LongId p = insertList.get(i);
-				Long id = p.getId();
+				StringId p = insertList.get(i);
+				String id = p.getId();
 				Assert.assertEquals((long) p.getVersion(), 0);
-				Assert.assertEquals((long) p.getCreateBy(), 1L);
-				Assert.assertEquals(p.getProp1(), "LongId" + id);
+				Assert.assertEquals(p.getCreateBy(), systemContext.getUserId());
+				Assert.assertTrue(StringUtils.startsWith(p.getProp1(), "StringId"));
 				Assert.assertEquals((int) p.getProp2(), Integer.MAX_VALUE);
+				Assert.assertEquals(p.getProp3(), 1.00d, 2);
+				Assert.assertEquals(p.getProp4(), 1.00f, 2);
 				Assert.assertEquals((long) p.getProp5(), Long.MAX_VALUE);
 				Assert.assertEquals(p.getProp6(), BigInteger.valueOf(Long.MAX_VALUE));
 				Assert.assertEquals(p.getProp7().intValue(), BigDecimal.ONE.intValue());
@@ -98,7 +103,7 @@ public class LongIdTest {
 
 	@Test
 	public void testUpdate() {
-		Mono<LongId> update = longIdDao.insert(insert()).map(po -> {
+		Mono<StringId> update = stringIdDao.insert(insert()).map(po -> {
 			po.setProp1("testUpdate");
 			po.setProp2(Integer.MIN_VALUE);
 			po.setProp3(2.00D);
@@ -113,15 +118,14 @@ public class LongIdTest {
 			po.setProp12(EnumProp.enum2);
 			return po;
 		}).flatMap(po -> {
-			return longIdDao.update(po);
+			return stringIdDao.update(po);
 		}).flatMap(po -> {
-			return longIdDao.get(po.getId());
+			return stringIdDao.get(po.getId());
 		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(update.log()).expectNextMatches(p -> {
-			Assert.assertEquals((long) p.getId(), 1L);
 			Assert.assertEquals((long) p.getVersion(), 1L);
-			Assert.assertEquals((long) p.getCreateBy(), 1L);
-			Assert.assertEquals((long) p.getUpdateBy(), 1L);
+			Assert.assertEquals(p.getCreateBy(), systemContext.getUserId());
+			Assert.assertEquals(p.getUpdateBy(), systemContext.getUserId());
 			Assert.assertEquals(p.getProp1(), "testUpdate");
 			Assert.assertEquals((int) p.getProp2(), Integer.MIN_VALUE);
 			Assert.assertEquals((double) p.getProp3(), 2.00d, 2);
@@ -138,7 +142,7 @@ public class LongIdTest {
 
 	@Test
 	public void testUpdateWith() {
-		Mono<LongId> update = longIdDao.insert(insert()).map(po -> {
+		Mono<StringId> update = stringIdDao.insert(insert()).map(po -> {
 			po.setProp1("testUpdate");
 			po.setProp2(Integer.MIN_VALUE);
 			po.setProp3(2.01D);
@@ -153,19 +157,18 @@ public class LongIdTest {
 			po.setProp12(EnumProp.enum2);
 			return po;
 		}).flatMap(po -> {
-			return longIdDao.updateWith(po, LongId::getProp1, LongId::getProp2);
+			return stringIdDao.updateWith(po, StringId::getProp1, StringId::getProp2);
 		}).flatMap(po -> {
-			return longIdDao.get(po.getId());
+			return stringIdDao.get(po.getId());
 		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(update.log()).expectNextMatches(p -> {
-			Assert.assertEquals((long) p.getId(), 1L);
 			Assert.assertEquals((long) p.getVersion(), 1L);
-			Assert.assertEquals((long) p.getCreateBy(), 1L);
-			Assert.assertEquals((long) p.getUpdateBy(), 1L);
+			Assert.assertEquals(p.getCreateBy(), systemContext.getUserId());
+			Assert.assertEquals(p.getUpdateBy(), systemContext.getUserId());
 			Assert.assertEquals(p.getProp1(), "testUpdate");
 			Assert.assertEquals((int) p.getProp2(), Integer.MIN_VALUE);
-			Assert.assertEquals((double) p.getProp3(), 1.00d, 2);
-			Assert.assertEquals((float) p.getProp4(), 1.00f, 2);
+			Assert.assertEquals(p.getProp3(), 1.00d, 2);
+			Assert.assertEquals(p.getProp4(), 1.00f, 2);
 			Assert.assertEquals((long) p.getProp5(), Long.MAX_VALUE);
 			Assert.assertEquals(p.getProp6(), BigInteger.valueOf(Long.MAX_VALUE));
 			Assert.assertEquals(p.getProp7().intValue(), BigDecimal.ONE.intValue());
@@ -178,7 +181,7 @@ public class LongIdTest {
 
 	@Test
 	public void testUpdateWithout() {
-		Mono<LongId> update = longIdDao.insert(insert()).map(po -> {
+		Mono<StringId> update = stringIdDao.insert(insert()).map(po -> {
 			po.setProp1("testUpdate");
 			po.setProp2(Integer.MIN_VALUE);
 			po.setProp3(2.00D);
@@ -193,19 +196,18 @@ public class LongIdTest {
 			po.setProp12(EnumProp.enum2);
 			return po;
 		}).flatMap(po -> {
-			return longIdDao.updateWithout(po, LongId::getProp1, LongId::getProp2);
+			return stringIdDao.updateWithout(po, StringId::getProp1, StringId::getProp2);
 		}).flatMap(po -> {
-			return longIdDao.get(po.getId());
+			return stringIdDao.get(po.getId());
 		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(update.log()).expectNextMatches(p -> {
-			Assert.assertEquals((long) p.getId(), 1L);
 			Assert.assertEquals((long) p.getVersion(), 1L);
-			Assert.assertEquals((long) p.getCreateBy(), 1L);
-			Assert.assertEquals((long) p.getUpdateBy(), 1L);
-			Assert.assertEquals(p.getProp1(), "LongId");
+			Assert.assertEquals(p.getCreateBy(), systemContext.getUserId());
+			Assert.assertEquals(p.getUpdateBy(), systemContext.getUserId());
+			Assert.assertEquals(p.getProp1(), "StringId");
 			Assert.assertEquals((int) p.getProp2(), Integer.MAX_VALUE);
-			Assert.assertEquals((double) p.getProp3(), 2.00d, 2);
-			Assert.assertEquals((float) p.getProp4(), 2.00f, 2);
+			Assert.assertEquals(p.getProp3(), 2.00d, 2);
+			Assert.assertEquals(p.getProp4(), 2.00f, 2);
 			Assert.assertEquals((long) p.getProp5(), Long.MIN_VALUE);
 			Assert.assertEquals(p.getProp6(), BigInteger.valueOf(Long.MIN_VALUE));
 			Assert.assertEquals(p.getProp7().intValue(), BigDecimal.TEN.intValue());
@@ -218,7 +220,7 @@ public class LongIdTest {
 
 	@Test
 	public void testUpdateNonBlank() {
-		Mono<LongId> update = longIdDao.insert(insert()).map(po -> {
+		Mono<StringId> update = stringIdDao.insert(insert()).map(po -> {
 			po.setProp1("testUpdate");
 			po.setProp2(Integer.MIN_VALUE);
 			po.setProp3(null);
@@ -233,19 +235,18 @@ public class LongIdTest {
 			po.setProp12(EnumProp.enum2);
 			return po;
 		}).flatMap(po -> {
-			return longIdDao.updateNonBlank(po);
+			return stringIdDao.updateNonBlank(po);
 		}).flatMap(po -> {
-			return longIdDao.get(po.getId());
+			return stringIdDao.get(po.getId());
 		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(update.log()).expectNextMatches(p -> {
-			Assert.assertEquals((long) p.getId(), 1L);
 			Assert.assertEquals((long) p.getVersion(), 1L);
-			Assert.assertEquals((long) p.getCreateBy(), 1L);
-			Assert.assertEquals((long) p.getUpdateBy(), 1L);
+			Assert.assertEquals(p.getCreateBy(), systemContext.getUserId());
+			Assert.assertEquals(p.getUpdateBy(), systemContext.getUserId());
 			Assert.assertEquals(p.getProp1(), "testUpdate");
 			Assert.assertEquals((int) p.getProp2(), Integer.MIN_VALUE);
-			Assert.assertEquals((double) p.getProp3(), 1.00d, 2);
-			Assert.assertEquals((float) p.getProp4(), 1.00f, 2);
+			Assert.assertEquals(p.getProp3(), 1.00d, 2);
+			Assert.assertEquals(p.getProp4(), 1.00f, 2);
 			Assert.assertEquals((long) p.getProp5(), Long.MAX_VALUE);
 			Assert.assertEquals(p.getProp6(), BigInteger.valueOf(Long.MIN_VALUE));
 			Assert.assertEquals(p.getProp7().intValue(), BigDecimal.TEN.intValue());
@@ -258,7 +259,7 @@ public class LongIdTest {
 
 	@Test
 	public void testUpdateNonBlankAnd() {
-		Mono<LongId> update = longIdDao.insert(insert()).map(po -> {
+		Mono<StringId> update = stringIdDao.insert(insert()).map(po -> {
 			po.setProp1("testUpdate");
 			po.setProp2(Integer.MIN_VALUE);
 			po.setProp3(null);
@@ -273,19 +274,18 @@ public class LongIdTest {
 			po.setProp12(EnumProp.enum2);
 			return po;
 		}).flatMap(po -> {
-			return longIdDao.updateNonBlankAnd(po, LongId::getProp3);
+			return stringIdDao.updateNonBlankAnd(po, StringId::getProp3);
 		}).flatMap(po -> {
-			return longIdDao.get(po.getId());
+			return stringIdDao.get(po.getId());
 		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(update.log()).expectNextMatches(p -> {
-			Assert.assertEquals((long) p.getId(), 1L);
 			Assert.assertEquals((long) p.getVersion(), 1L);
-			Assert.assertEquals((long) p.getCreateBy(), 1L);
-			Assert.assertEquals((long) p.getUpdateBy(), 1L);
+			Assert.assertEquals(p.getCreateBy(), systemContext.getUserId());
+			Assert.assertEquals(p.getUpdateBy(), systemContext.getUserId());
 			Assert.assertEquals(p.getProp1(), "testUpdate");
 			Assert.assertEquals((int) p.getProp2(), Integer.MIN_VALUE);
 			Assert.assertNull(p.getProp3());
-			Assert.assertEquals((float) p.getProp4(), 1.00f, 2);
+			Assert.assertEquals(p.getProp4(), 1.00f, 2);
 			Assert.assertEquals((long) p.getProp5(), Long.MAX_VALUE);
 			Assert.assertEquals(p.getProp6(), BigInteger.valueOf(Long.MIN_VALUE));
 			Assert.assertEquals(p.getProp7().intValue(), BigDecimal.TEN.intValue());
@@ -298,8 +298,8 @@ public class LongIdTest {
 
 	@Test
 	public void testBatchUpdate() {
-		Mono<List<LongId>> batchUpdate = longIdDao.batchInsert(batchInsert()).collectList().flatMapMany(poList -> {
-			for (LongId po : poList) {
+		Mono<List<StringId>> batchUpdate = stringIdDao.batchInsert(batchInsert()).collectList().flatMapMany(poList -> {
+			for (StringId po : poList) {
 				po.setProp1("testUpdate" + po.getId());
 				po.setProp2(Integer.MIN_VALUE);
 				po.setProp3(2.00D);
@@ -313,19 +313,19 @@ public class LongIdTest {
 				po.setProp11((byte) 1);
 				po.setProp12(EnumProp.enum2);
 			}
-			return longIdDao.batchUpdate(poList);
+			return stringIdDao.batchUpdate(poList);
 		}).collectList().flatMapMany(updateList -> {
-			return longIdDao.find(Criteria.from(LongId.class).and(LongId::getId).in(updateList.stream().map(LongId::getId).collect(Collectors.toList())));
+			return stringIdDao.find(Criteria.from(StringId.class).and(StringId::getId).in(updateList.stream().map(StringId::getId).collect(Collectors.toList())));
 		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(batchUpdate.log()).expectNextMatches(poList -> {
-			for (LongId p : poList) {
+			for (StringId p : poList) {
 				Assert.assertEquals((long) p.getVersion(), 1L);
-				Assert.assertEquals((long) p.getCreateBy(), 1L);
-				Assert.assertEquals((long) p.getUpdateBy(), 1L);
-				Assert.assertEquals(p.getProp1(), "testUpdate" + p.getId());
+				Assert.assertEquals(p.getCreateBy(), systemContext.getUserId());
+				Assert.assertEquals(p.getUpdateBy(), systemContext.getUserId());
+				Assert.assertTrue(StringUtils.startsWith(p.getProp1(), "testUpdate"));
 				Assert.assertEquals((int) p.getProp2(), Integer.MIN_VALUE);
-				Assert.assertEquals((double) p.getProp3(), 2.00d, 2);
-				Assert.assertEquals((float) p.getProp4(), 2.00f, 2);
+				Assert.assertEquals(p.getProp3(), 2.00d, 2);
+				Assert.assertEquals(p.getProp4(), 2.00f, 2);
 				Assert.assertEquals((long) p.getProp5(), Long.MIN_VALUE);
 				Assert.assertEquals(p.getProp6(), BigInteger.valueOf(Long.MIN_VALUE));
 				Assert.assertEquals(p.getProp7().intValue(), BigDecimal.TEN.intValue());
@@ -338,8 +338,8 @@ public class LongIdTest {
 
 	@Test
 	public void testBatchUpdateWith() {
-		Mono<List<LongId>> batchUpdate = longIdDao.batchInsert(batchInsert()).collectList().flatMapMany(poList -> {
-			for (LongId po : poList) {
+		Mono<List<StringId>> batchUpdate = stringIdDao.batchInsert(batchInsert()).collectList().flatMapMany(poList -> {
+			for (StringId po : poList) {
 				po.setProp1("testUpdate" + po.getId());
 				po.setProp2(Integer.MIN_VALUE);
 				po.setProp3(2.00D);
@@ -353,16 +353,16 @@ public class LongIdTest {
 				po.setProp11((byte) 1);
 				po.setProp12(EnumProp.enum2);
 			}
-			return longIdDao.batchUpdateWith(poList, LongId::getProp1, LongId::getProp2);
+			return stringIdDao.batchUpdateWith(poList, StringId::getProp1, StringId::getProp2);
 		}).collectList().flatMapMany(updateList -> {
-			return longIdDao.find(Criteria.from(LongId.class).and(LongId::getId).in(updateList.stream().map(LongId::getId).collect(Collectors.toList())));
+			return stringIdDao.find(Criteria.from(StringId.class).and(StringId::getId).in(updateList.stream().map(StringId::getId).collect(Collectors.toList())));
 		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(batchUpdate.log()).expectNextMatches(poList -> {
-			for (LongId p : poList) {
+			for (StringId p : poList) {
 				Assert.assertEquals((long) p.getVersion(), 1L);
-				Assert.assertEquals((long) p.getCreateBy(), 1L);
-				Assert.assertEquals((long) p.getUpdateBy(), 1L);
-				Assert.assertEquals(p.getProp1(), "testUpdate" + p.getId());
+				Assert.assertEquals(p.getCreateBy(), systemContext.getUserId());
+				Assert.assertEquals(p.getUpdateBy(), systemContext.getUserId());
+				Assert.assertTrue(StringUtils.startsWith(p.getProp1(), "testUpdate"));
 				Assert.assertEquals((int) p.getProp2(), Integer.MIN_VALUE);
 				Assert.assertEquals((double) p.getProp3(), 1.00d, 2);
 				Assert.assertEquals((float) p.getProp4(), 1.00f, 2);
@@ -380,8 +380,8 @@ public class LongIdTest {
 
 	@Test
 	public void testBatchUpdateWithout() {
-		Mono<List<LongId>> batchUpdate = longIdDao.batchInsert(batchInsert()).collectList().flatMapMany(poList -> {
-			for (LongId po : poList) {
+		Mono<List<StringId>> batchUpdate = stringIdDao.batchInsert(batchInsert()).collectList().flatMapMany(poList -> {
+			for (StringId po : poList) {
 				po.setProp1("testUpdate" + po.getId());
 				po.setProp2(Integer.MIN_VALUE);
 				po.setProp3(2.00D);
@@ -395,19 +395,19 @@ public class LongIdTest {
 				po.setProp11((byte) 1);
 				po.setProp12(EnumProp.enum2);
 			}
-			return longIdDao.batchUpdateWithout(poList, LongId::getProp1, LongId::getProp2);
+			return stringIdDao.batchUpdateWithout(poList, StringId::getProp1, StringId::getProp2);
 		}).collectList().flatMapMany(updateList -> {
-			return longIdDao.find(Criteria.from(LongId.class).and(LongId::getId).in(updateList.stream().map(LongId::getId).collect(Collectors.toList())));
+			return stringIdDao.find(Criteria.from(StringId.class).and(StringId::getId).in(updateList.stream().map(StringId::getId).collect(Collectors.toList())));
 		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(batchUpdate.log()).expectNextMatches(poList -> {
-			for (LongId p : poList) {
+			for (StringId p : poList) {
 				Assert.assertEquals((long) p.getVersion(), 1L);
-				Assert.assertEquals((long) p.getCreateBy(), 1L);
-				Assert.assertEquals((long) p.getUpdateBy(), 1L);
-				Assert.assertEquals(p.getProp1(), "LongId" + p.getId());
+				Assert.assertEquals(p.getCreateBy(), systemContext.getUserId());
+				Assert.assertEquals(p.getUpdateBy(), systemContext.getUserId());
+				Assert.assertTrue(StringUtils.startsWith(p.getProp1(), "StringId"));
 				Assert.assertEquals((int) p.getProp2(), Integer.MAX_VALUE);
-				Assert.assertEquals((double) p.getProp3(), 2.00d, 2);
-				Assert.assertEquals((float) p.getProp4(), 2.00f, 2);
+				Assert.assertEquals(p.getProp3(), 2.00d, 2);
+				Assert.assertEquals(p.getProp4(), 2.00f, 2);
 				Assert.assertEquals((long) p.getProp5(), Long.MIN_VALUE);
 				Assert.assertEquals(p.getProp6(), BigInteger.valueOf(Long.MIN_VALUE));
 				Assert.assertEquals(p.getProp7().intValue(), BigDecimal.TEN.intValue());
@@ -422,8 +422,8 @@ public class LongIdTest {
 
 	@Test
 	public void testBatchUpdateNonBlank() {
-		Mono<List<LongId>> batchUpdate = longIdDao.batchInsert(batchInsert()).collectList().flatMapMany(poList -> {
-			for (LongId po : poList) {
+		Mono<List<StringId>> batchUpdate = stringIdDao.batchInsert(batchInsert()).collectList().flatMapMany(poList -> {
+			for (StringId po : poList) {
 				po.setProp1("testUpdate" + po.getId());
 				po.setProp2(Integer.MIN_VALUE);
 				po.setProp3(null);
@@ -437,19 +437,19 @@ public class LongIdTest {
 				po.setProp11((byte) 1);
 				po.setProp12(EnumProp.enum2);
 			}
-			return longIdDao.batchUpdateNonBlank(poList);
+			return stringIdDao.batchUpdateNonBlank(poList);
 		}).collectList().flatMapMany(updateList -> {
-			return longIdDao.find(Criteria.from(LongId.class).and(LongId::getId).in(updateList.stream().map(LongId::getId).collect(Collectors.toList())));
+			return stringIdDao.find(Criteria.from(StringId.class).and(StringId::getId).in(updateList.stream().map(StringId::getId).collect(Collectors.toList())));
 		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(batchUpdate.log()).expectNextMatches(poList -> {
-			for (LongId p : poList) {
+			for (StringId p : poList) {
 				Assert.assertEquals((long) p.getVersion(), 1L);
-				Assert.assertEquals((long) p.getCreateBy(), 1L);
-				Assert.assertEquals((long) p.getUpdateBy(), 1L);
-				Assert.assertEquals(p.getProp1(), "testUpdate" + p.getId());
+				Assert.assertEquals(p.getCreateBy(), systemContext.getUserId());
+				Assert.assertEquals(p.getUpdateBy(), systemContext.getUserId());
+				Assert.assertTrue(StringUtils.startsWith(p.getProp1(), "testUpdate"));
 				Assert.assertEquals((int) p.getProp2(), Integer.MIN_VALUE);
-				Assert.assertEquals((double) p.getProp3(), 1.00d, 2);
-				Assert.assertEquals((float) p.getProp4(), 1.00f, 2);
+				Assert.assertEquals(p.getProp3(), 1.00d, 2);
+				Assert.assertEquals(p.getProp4(), 1.00f, 2);
 				Assert.assertEquals((long) p.getProp5(), Long.MAX_VALUE);
 				Assert.assertEquals(p.getProp6(), BigInteger.valueOf(Long.MIN_VALUE));
 				Assert.assertEquals(p.getProp7().intValue(), BigDecimal.TEN.intValue());
@@ -464,8 +464,8 @@ public class LongIdTest {
 
 	@Test
 	public void testBatchUpdateNonBlankAnd() {
-		Mono<List<LongId>> batchUpdate = longIdDao.batchInsert(batchInsert()).collectList().flatMapMany(poList -> {
-			for (LongId po : poList) {
+		Mono<List<StringId>> batchUpdate = stringIdDao.batchInsert(batchInsert()).collectList().flatMapMany(poList -> {
+			for (StringId po : poList) {
 				po.setProp1("testUpdate" + po.getId());
 				po.setProp2(Integer.MIN_VALUE);
 				po.setProp3(null);
@@ -479,19 +479,19 @@ public class LongIdTest {
 				po.setProp11((byte) 1);
 				po.setProp12(EnumProp.enum2);
 			}
-			return longIdDao.batchUpdateNonBlankAnd(poList, LongId::getProp3);
+			return stringIdDao.batchUpdateNonBlankAnd(poList, StringId::getProp3);
 		}).collectList().flatMapMany(updateList -> {
-			return longIdDao.find(Criteria.from(LongId.class).and(LongId::getId).in(updateList.stream().map(LongId::getId).collect(Collectors.toList())));
+			return stringIdDao.find(Criteria.from(StringId.class).and(StringId::getId).in(updateList.stream().map(StringId::getId).collect(Collectors.toList())));
 		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(batchUpdate.log()).expectNextMatches(poList -> {
-			for (LongId p : poList) {
+			for (StringId p : poList) {
 				Assert.assertEquals((long) p.getVersion(), 1L);
-				Assert.assertEquals((long) p.getCreateBy(), 1L);
-				Assert.assertEquals((long) p.getUpdateBy(), 1L);
-				Assert.assertEquals(p.getProp1(), "testUpdate" + p.getId());
+				Assert.assertEquals(p.getCreateBy(), systemContext.getUserId());
+				Assert.assertEquals(p.getUpdateBy(), systemContext.getUserId());
+				Assert.assertTrue(StringUtils.startsWith(p.getProp1(), "testUpdate"));
 				Assert.assertEquals((int) p.getProp2(), Integer.MIN_VALUE);
 				Assert.assertNull(p.getProp3());
-				Assert.assertEquals((float) p.getProp4(), 1.00f, 2);
+				Assert.assertEquals(p.getProp4(), 1.00f, 2);
 				Assert.assertEquals((long) p.getProp5(), Long.MAX_VALUE);
 				Assert.assertEquals(p.getProp6(), BigInteger.valueOf(Long.MIN_VALUE));
 				Assert.assertEquals(p.getProp7().intValue(), BigDecimal.TEN.intValue());
@@ -505,14 +505,13 @@ public class LongIdTest {
 
 	@Test
 	public void testGet() {
-		Mono<LongId> get = longIdDao.insert(insert()).flatMap(po -> {
-			return longIdDao.get(po.getId());
+		Mono<StringId> get = stringIdDao.insert(insert()).flatMap(po -> {
+			return stringIdDao.get(po.getId());
 		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(get.log()).expectNextMatches(p -> {
-			Assert.assertEquals((long) p.getId(), 1L);
 			Assert.assertEquals((long) p.getVersion(), 0);
-			Assert.assertEquals((long) p.getCreateBy(), 1L);
-			Assert.assertEquals(p.getProp1(), "LongId");
+			Assert.assertEquals(p.getCreateBy(), systemContext.getUserId());
+			Assert.assertTrue(StringUtils.startsWith(p.getProp1(), "StringId"));
 			Assert.assertEquals((int) p.getProp2(), Integer.MAX_VALUE);
 			Assert.assertEquals(p.getProp3(), 1.00d, 2);
 			Assert.assertEquals(p.getProp4(), 1.00f, 2);
@@ -527,67 +526,67 @@ public class LongIdTest {
 
 	@Test
 	public void testExistsById() {
-		Mono<Boolean> existsById = longIdDao.insert(insert()).flatMap(po -> {
-			return longIdDao.existsById(po.getId());
+		Mono<Boolean> existsById = stringIdDao.insert(insert()).flatMap(po -> {
+			return stringIdDao.existsById(po.getId());
 		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(existsById.log()).expectNext(true).verifyComplete();
 	}
 
 	@Test
 	public void testDelete() {
-		Mono<Integer> delete = longIdDao.insert(insert()).flatMap(po -> {
-			return longIdDao.delete(po.getId());
+		Mono<Integer> delete = stringIdDao.insert(insert()).flatMap(po -> {
+			return stringIdDao.delete(po.getId());
 		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(delete.log()).expectNext(1).verifyComplete();
 	}
 
 	@Test
 	public void testDeleteByCriteria() {
-		List<LongId> longIdList = batchInsert();
-		Mono<Integer> delete = longIdDao.batchInsert(longIdList).collectList().flatMap(poList -> {
-			Criteria<LongId> criteria = Criteria.from(LongId.class).and(LongId::getProp1).contains("LongId")
-					.and(LongId::getProp2).is(Integer.MAX_VALUE)
-					.and(LongId::getProp3).is(1.00d)
-					.and(LongId::getProp4).is(1.00f)
-					.and(LongId::getProp5).is(Long.MAX_VALUE)
-					.and(LongId::getProp6).is(BigInteger.valueOf(Long.MAX_VALUE))
-					.and(LongId::getProp7).is(BigDecimal.ONE)
-					.and(LongId::getProp8).lessEqual(LocalDate.now())
-					.and(LongId::getProp9).lessEqual(LocalDateTime.now())
-					.and(LongId::getProp10).is(Boolean.TRUE)
-					.and(LongId::getProp11).is((byte) 0);
-			return longIdDao.delete(criteria);
+		List<StringId> longIdList = batchInsert();
+		Mono<Integer> delete = stringIdDao.batchInsert(longIdList).collectList().flatMap(poList -> {
+			Criteria<StringId> criteria = Criteria.from(StringId.class).and(StringId::getProp1).contains("StringId")
+					.and(StringId::getProp2).is(Integer.MAX_VALUE)
+					.and(StringId::getProp3).is(1.00d)
+					.and(StringId::getProp4).is(1.00f)
+					.and(StringId::getProp5).is(Long.MAX_VALUE)
+					.and(StringId::getProp6).is(BigInteger.valueOf(Long.MAX_VALUE))
+					.and(StringId::getProp7).is(BigDecimal.ONE)
+					.and(StringId::getProp8).lessEqual(LocalDate.now())
+					.and(StringId::getProp9).lessEqual(LocalDateTime.now())
+					.and(StringId::getProp10).is(Boolean.TRUE)
+					.and(StringId::getProp11).is((byte) 0);
+			return stringIdDao.delete(criteria);
 		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(delete.log()).expectNext(longIdList.size()).verifyComplete();
 	}
 
 	@Test
 	public void testFind() {
-		List<LongId> longIdList = batchInsert();
-		Mono<List<LongId>> find = longIdDao.batchInsert(longIdList).collectList().flatMapMany(poList -> {
-			Criteria<LongId> criteria = Criteria.from(LongId.class)
-					.and(LongId::getId).in(poList.stream().map(LongId::getId).collect(Collectors.toList()))
-					.and(LongId::getProp1).contains("LongId")
-					.and(LongId::getProp2).is(Integer.MAX_VALUE)
-					.and(LongId::getProp3).is(1.00d)
-					.and(LongId::getProp4).is(1.00f)
-					.and(LongId::getProp5).is(Long.MAX_VALUE)
-					.and(LongId::getProp6).is(BigInteger.valueOf(Long.MAX_VALUE))
-					.and(LongId::getProp7).is(BigDecimal.ONE)
-					.and(LongId::getProp8).lessEqual(LocalDate.now())
-					.and(LongId::getProp9).lessEqual(LocalDateTime.now())
-					.and(LongId::getProp10).is(Boolean.TRUE)
-					.and(LongId::getProp11).is((byte) 0);
-			return longIdDao.find(criteria);
+		List<StringId> longIdList = batchInsert();
+		Mono<List<StringId>> find = stringIdDao.batchInsert(longIdList).collectList().flatMapMany(poList -> {
+			Criteria<StringId> criteria = Criteria.from(StringId.class)
+					.and(StringId::getId).in(poList.stream().map(StringId::getId).collect(Collectors.toList()))
+					.and(StringId::getProp1).contains("StringId")
+					.and(StringId::getProp2).is(Integer.MAX_VALUE)
+					.and(StringId::getProp3).is(1.00d)
+					.and(StringId::getProp4).is(1.00f)
+					.and(StringId::getProp5).is(Long.MAX_VALUE)
+					.and(StringId::getProp6).is(BigInteger.valueOf(Long.MAX_VALUE))
+					.and(StringId::getProp7).is(BigDecimal.ONE)
+					.and(StringId::getProp8).lessEqual(LocalDate.now())
+					.and(StringId::getProp9).lessEqual(LocalDateTime.now())
+					.and(StringId::getProp10).is(Boolean.TRUE)
+					.and(StringId::getProp11).is((byte) 0);
+			return stringIdDao.find(criteria);
 		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(find.log()).expectNextMatches(poList -> {
-			for (LongId p : poList) {
+			for (StringId p : poList) {
 				Assert.assertEquals((long) p.getVersion(), 0);
-				Assert.assertEquals((long) p.getCreateBy(), 1L);
-				Assert.assertEquals(p.getProp1(), "LongId" + p.getId());
+				Assert.assertEquals(p.getCreateBy(), systemContext.getUserId());
+				Assert.assertTrue(StringUtils.startsWith(p.getProp1(), "StringId"));
 				Assert.assertEquals((int) p.getProp2(), Integer.MAX_VALUE);
-				Assert.assertEquals((double) p.getProp3(), 1.00d, 2);
-				Assert.assertEquals((float) p.getProp4(), 1.00f, 2);
+				Assert.assertEquals(p.getProp3(), 1.00d, 2);
+				Assert.assertEquals(p.getProp4(), 1.00f, 2);
 				Assert.assertEquals((long) p.getProp5(), Long.MAX_VALUE);
 				Assert.assertEquals(p.getProp6(), BigInteger.valueOf(Long.MAX_VALUE));
 				Assert.assertEquals(p.getProp7().intValue(), BigDecimal.ONE.intValue());
@@ -600,30 +599,30 @@ public class LongIdTest {
 
 	@Test
 	public void testFindOne() {
-		List<LongId> longIdList = batchInsert();
-		Mono<LongId> find = longIdDao.batchInsert(longIdList).collectList().flatMap(poList -> {
-			Criteria<LongId> criteria = Criteria.from(LongId.class)
-					.and(LongId::getId).is(poList.get(0).getId())
-					.and(LongId::getProp1).contains("LongId")
-					.and(LongId::getProp2).is(Integer.MAX_VALUE)
-					.and(LongId::getProp3).is(1.00d)
-					.and(LongId::getProp4).is(1.00f)
-					.and(LongId::getProp5).is(Long.MAX_VALUE)
-					.and(LongId::getProp6).is(BigInteger.valueOf(Long.MAX_VALUE))
-					.and(LongId::getProp7).is(BigDecimal.ONE)
-					.and(LongId::getProp8).lessEqual(LocalDate.now())
-					.and(LongId::getProp9).lessEqual(LocalDateTime.now())
-					.and(LongId::getProp10).is(Boolean.TRUE)
-					.and(LongId::getProp11).is((byte) 0);
-			return longIdDao.findOne(criteria);
+		List<StringId> longIdList = batchInsert();
+		Mono<StringId> find = stringIdDao.batchInsert(longIdList).collectList().flatMap(poList -> {
+			Criteria<StringId> criteria = Criteria.from(StringId.class)
+					.and(StringId::getId).is(poList.get(0).getId())
+					.and(StringId::getProp1).contains("StringId")
+					.and(StringId::getProp2).is(Integer.MAX_VALUE)
+					.and(StringId::getProp3).is(1.00d)
+					.and(StringId::getProp4).is(1.00f)
+					.and(StringId::getProp5).is(Long.MAX_VALUE)
+					.and(StringId::getProp6).is(BigInteger.valueOf(Long.MAX_VALUE))
+					.and(StringId::getProp7).is(BigDecimal.ONE)
+					.and(StringId::getProp8).lessEqual(LocalDate.now())
+					.and(StringId::getProp9).lessEqual(LocalDateTime.now())
+					.and(StringId::getProp10).is(Boolean.TRUE)
+					.and(StringId::getProp11).is((byte) 0);
+			return stringIdDao.findOne(criteria);
 		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(find.log()).expectNextMatches(p -> {
 			Assert.assertEquals((long) p.getVersion(), 0);
-			Assert.assertEquals((long) p.getCreateBy(), 1L);
-			Assert.assertEquals(p.getProp1(), "LongId" + p.getId());
+			Assert.assertEquals(p.getCreateBy(), systemContext.getUserId());
+			Assert.assertTrue(StringUtils.startsWith(p.getProp1(), "StringId"));
 			Assert.assertEquals((int) p.getProp2(), Integer.MAX_VALUE);
-			Assert.assertEquals((double) p.getProp3(), 1.00d, 2);
-			Assert.assertEquals((float) p.getProp4(), 1.00f, 2);
+			Assert.assertEquals(p.getProp3(), 1.00d, 2);
+			Assert.assertEquals(p.getProp4(), 1.00f, 2);
 			Assert.assertEquals((long) p.getProp5(), Long.MAX_VALUE);
 			Assert.assertEquals(p.getProp6(), BigInteger.valueOf(Long.MAX_VALUE));
 			Assert.assertEquals(p.getProp7().intValue(), BigDecimal.ONE.intValue());
@@ -635,40 +634,39 @@ public class LongIdTest {
 
 	@Test
 	public void testCount() {
-		List<LongId> longIdList = batchInsert();
-		Mono<Long> count = longIdDao.batchInsert(longIdList).collectList().flatMap(poList -> {
-			Criteria<LongId> criteria = Criteria.from(LongId.class)
-					.and(LongId::getProp1).contains("LongId")
-					.and(LongId::getProp2).is(Integer.MAX_VALUE)
-					.and(LongId::getProp3).is(1.00d)
-					.and(LongId::getProp4).is(1.00f)
-					.and(LongId::getProp5).is(Long.MAX_VALUE)
-					.and(LongId::getProp6).is(BigInteger.valueOf(Long.MAX_VALUE))
-					.and(LongId::getProp7).is(BigDecimal.ONE)
-					.and(LongId::getProp8).lessEqual(LocalDate.now())
-					.and(LongId::getProp9).lessEqual(LocalDateTime.now())
-					.and(LongId::getProp10).is(Boolean.TRUE)
-					.and(LongId::getProp11).is((byte) 0);
-			return longIdDao.count(criteria);
+		List<StringId> longIdList = batchInsert();
+		Mono<Long> count = stringIdDao.batchInsert(longIdList).collectList().flatMap(poList -> {
+			Criteria<StringId> criteria = Criteria.from(StringId.class)
+					.and(StringId::getProp1).contains("StringId")
+					.and(StringId::getProp2).is(Integer.MAX_VALUE)
+					.and(StringId::getProp3).is(1.00d)
+					.and(StringId::getProp4).is(1.00f)
+					.and(StringId::getProp5).is(Long.MAX_VALUE)
+					.and(StringId::getProp6).is(BigInteger.valueOf(Long.MAX_VALUE))
+					.and(StringId::getProp7).is(BigDecimal.ONE)
+					.and(StringId::getProp8).lessEqual(LocalDate.now())
+					.and(StringId::getProp9).lessEqual(LocalDateTime.now())
+					.and(StringId::getProp10).is(Boolean.TRUE)
+					.and(StringId::getProp11).is((byte) 0);
+			return stringIdDao.count(criteria);
 		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(count.log()).expectNext((long) longIdList.size()).verifyComplete();
 	}
 
 	@Test
 	public void testFindByProperty() {
-		List<LongId> longIdList = batchInsert();
-		Mono<List<LongId>> find = longIdDao.batchInsert(longIdList).collectList().flatMapMany(poList -> {
-			return longIdDao.findByProperty(LongId::getProp1, "LongId1");
+		List<StringId> longIdList = batchInsert();
+		Mono<List<StringId>> find = stringIdDao.batchInsert(longIdList).collectList().flatMapMany(poList -> {
+			return stringIdDao.findByProperty(StringId::getProp1, "StringId1");
 		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(find.log()).expectNextMatches(poList -> {
-			for (LongId p : poList) {
-				Assert.assertEquals((long) p.getId(), 1L);
+			for (StringId p : poList) {
 				Assert.assertEquals((long) p.getVersion(), 0);
-				Assert.assertEquals((long) p.getCreateBy(), 1L);
-				Assert.assertEquals(p.getProp1(), "LongId1");
+				Assert.assertEquals(p.getCreateBy(), systemContext.getUserId());
+				Assert.assertEquals(p.getProp1(), "StringId1");
 				Assert.assertEquals((int) p.getProp2(), Integer.MAX_VALUE);
-				Assert.assertEquals((double) p.getProp3(), 1.00d, 2);
-				Assert.assertEquals((float) p.getProp4(), 1.00f, 2);
+				Assert.assertEquals(p.getProp3(), 1.00d, 2);
+				Assert.assertEquals(p.getProp4(), 1.00f, 2);
 				Assert.assertEquals((long) p.getProp5(), Long.MAX_VALUE);
 				Assert.assertEquals(p.getProp6(), BigInteger.valueOf(Long.MAX_VALUE));
 				Assert.assertEquals(p.getProp7().intValue(), BigDecimal.ONE.intValue());
@@ -681,10 +679,11 @@ public class LongIdTest {
 
 	@Test
 	public void testIsRepeated() {
-		List<LongId> longIdList = batchInsert();
-		Mono<Tuple2<Boolean, Boolean>> repeat = longIdDao.batchInsert(longIdList).collectList().flatMap(poList -> {
-			return Mono.zip(longIdDao.isRepeated(1L, LongId::getProp1, "LongId1"),
-					longIdDao.isRepeated(null, LongId::getProp1, "LongId1"));
+		List<StringId> longIdList = batchInsert();
+		Mono<Tuple2<Boolean, Boolean>> repeat = stringIdDao.batchInsert(longIdList).collectList().flatMap(poList -> {
+			String id = poList.stream().filter(po -> po.getProp1().equals("StringId1")).findFirst().get().getId();
+			return Mono.zip(stringIdDao.isRepeated(id, StringId::getProp1, "StringId1"),
+					stringIdDao.isRepeated(null, StringId::getProp1, "StringId1"));
 		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(repeat.log()).expectNextMatches(tup -> {
 			return !tup.getT1() && tup.getT2();
@@ -693,35 +692,34 @@ public class LongIdTest {
 
 	@Test
 	public void testFindPage() {
-		List<LongId> longIdList = batchInsert();
-		Mono<Pagination<LongId>> page = longIdDao.batchInsert(longIdList).collectList().flatMap(poList -> {
-			Criteria<LongId> criteria = Criteria.from(LongId.class)
-					.and(LongId::getId).in(poList.stream().map(LongId::getId).collect(Collectors.toList()))
-					.and(LongId::getProp1).contains("LongId")
-					.and(LongId::getProp2).is(Integer.MAX_VALUE)
-					.and(LongId::getProp3).is(1.00d)
-					.and(LongId::getProp4).is(1.00f)
-					.and(LongId::getProp5).is(Long.MAX_VALUE)
-					.and(LongId::getProp6).is(BigInteger.valueOf(Long.MAX_VALUE))
-					.and(LongId::getProp7).is(BigDecimal.ONE)
-					.and(LongId::getProp8).lessEqual(LocalDate.now())
-					.and(LongId::getProp9).lessEqual(LocalDateTime.now())
-					.and(LongId::getProp10).is(Boolean.TRUE)
-					.and(LongId::getProp11).is((byte) 0)
-					.asc(LongId::getId);
-			return longIdDao.findPage(criteria, PageRequest.of(1, 10));
+		List<StringId> longIdList = batchInsert();
+		Mono<Pagination<StringId>> page = stringIdDao.batchInsert(longIdList).collectList().flatMap(poList -> {
+			Criteria<StringId> criteria = Criteria.from(StringId.class)
+					.and(StringId::getId).in(poList.stream().map(StringId::getId).collect(Collectors.toList()))
+					.and(StringId::getProp1).contains("StringId")
+					.and(StringId::getProp2).is(Integer.MAX_VALUE)
+					.and(StringId::getProp3).is(1.00d)
+					.and(StringId::getProp4).is(1.00f)
+					.and(StringId::getProp5).is(Long.MAX_VALUE)
+					.and(StringId::getProp6).is(BigInteger.valueOf(Long.MAX_VALUE))
+					.and(StringId::getProp7).is(BigDecimal.ONE)
+					.and(StringId::getProp8).lessEqual(LocalDate.now())
+					.and(StringId::getProp9).lessEqual(LocalDateTime.now())
+					.and(StringId::getProp10).is(Boolean.TRUE)
+					.and(StringId::getProp11).is((byte) 0)
+					.asc(StringId::getId);
+			return stringIdDao.findPage(criteria, PageRequest.of(1, 10));
 		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(page.log()).expectNextMatches(pg -> {
 			Assert.assertEquals(pg.getTotal(), (long) longIdList.size());
 			int i = 10;
-			for (LongId p : pg.getRows()) {
-				Assert.assertEquals((long) p.getId(), ++i);
+			for (StringId p : pg.getRows()) {
 				Assert.assertEquals((long) p.getVersion(), 0);
-				Assert.assertEquals((long) p.getCreateBy(), 1L);
-				Assert.assertEquals(p.getProp1(), "LongId" + p.getId());
+				Assert.assertEquals(p.getCreateBy(), systemContext.getUserId());
+				Assert.assertTrue(StringUtils.startsWith(p.getProp1(), "StringId"));
 				Assert.assertEquals((int) p.getProp2(), Integer.MAX_VALUE);
-				Assert.assertEquals((double) p.getProp3(), 1.00d, 2);
-				Assert.assertEquals((float) p.getProp4(), 1.00f, 2);
+				Assert.assertEquals(p.getProp3(), 1.00d, 2);
+				Assert.assertEquals(p.getProp4(), 1.00f, 2);
 				Assert.assertEquals((long) p.getProp5(), Long.MAX_VALUE);
 				Assert.assertEquals(p.getProp6(), BigInteger.valueOf(Long.MAX_VALUE));
 				Assert.assertEquals(p.getProp7().intValue(), BigDecimal.ONE.intValue());
@@ -734,21 +732,21 @@ public class LongIdTest {
 
 	@Test
 	public void testSelect() {
-		List<LongId> longIdList = batchInsert();
-		Mono<List<LongId>> select = longIdDao.batchInsert(longIdList).collectList().flatMapMany(poList -> {
-			String sql = "select * from t_long_id where prop1 like :prop1";
+		List<StringId> longIdList = batchInsert();
+		Mono<List<StringId>> select = stringIdDao.batchInsert(longIdList).collectList().flatMapMany(poList -> {
+			String sql = "select * from t_string_id where prop1 like :prop1";
 			Map<String, R2dbcParam> paramMap = new HashMap<>();
-			paramMap.put("prop1", new R2dbcParam(String.class, "%LongId%"));
-			return longIdDao.select(sql, paramMap);
+			paramMap.put("prop1", new R2dbcParam(String.class, "%StringId%"));
+			return stringIdDao.select(sql, paramMap);
 		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
-		StepVerifier.create(select.log()).expectNextMatches(poList ->{
-			for (LongId p : poList) {
+		StepVerifier.create(select.log()).expectNextMatches(poList -> {
+			for (StringId p : poList) {
 				Assert.assertEquals((long) p.getVersion(), 0);
-				Assert.assertEquals((long) p.getCreateBy(), 1L);
-				Assert.assertEquals(p.getProp1(), "LongId" + p.getId());
+				Assert.assertEquals(p.getCreateBy(), systemContext.getUserId());
+				Assert.assertTrue(StringUtils.startsWith(p.getProp1(), "StringId"));
 				Assert.assertEquals((int) p.getProp2(), Integer.MAX_VALUE);
-				Assert.assertEquals((double) p.getProp3(), 1.00d, 2);
-				Assert.assertEquals((float) p.getProp4(), 1.00f, 2);
+				Assert.assertEquals(p.getProp3(), 1.00d, 2);
+				Assert.assertEquals(p.getProp4(), 1.00f, 2);
 				Assert.assertEquals((long) p.getProp5(), Long.MAX_VALUE);
 				Assert.assertEquals(p.getProp6(), BigInteger.valueOf(Long.MAX_VALUE));
 				Assert.assertEquals(p.getProp7().intValue(), BigDecimal.ONE.intValue());
@@ -759,9 +757,9 @@ public class LongIdTest {
 		}).verifyComplete();
 	}
 
-	private LongId insert() {
-		LongId po = new LongId();
-		po.setProp1("LongId");
+	private StringId insert() {
+		StringId po = new StringId();
+		po.setProp1("StringId");
 		po.setProp2(Integer.MAX_VALUE);
 		po.setProp3(1.00d);
 		po.setProp4(1.00f);
@@ -776,12 +774,12 @@ public class LongIdTest {
 		return po;
 	}
 
-	private List<LongId> batchInsert() {
+	private List<StringId> batchInsert() {
 		int count = 1000;
-		List<LongId> longIds = new ArrayList<>(count);
+		List<StringId> longIds = new ArrayList<>(count);
 		for (int i = 0; i < count; i++) {
-			LongId po = new LongId();
-			po.setProp1("LongId" + (i + 1));
+			StringId po = new StringId();
+			po.setProp1("StringId" + (i + 1));
 			po.setProp2(Integer.MAX_VALUE);
 			po.setProp3(1.00d);
 			po.setProp4(1.00f);
@@ -800,6 +798,6 @@ public class LongIdTest {
 
 	@After
 	public void tearDown() throws Exception {
-		longIdDao.execute("truncate table t_long_id", null).block();
+		stringIdDao.execute("truncate table t_string_id", null).block();
 	}
 }

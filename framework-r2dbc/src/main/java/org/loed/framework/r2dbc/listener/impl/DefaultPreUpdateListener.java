@@ -1,4 +1,4 @@
-package org.loed.framework.r2dbc.test.listener.impl;
+package org.loed.framework.r2dbc.listener.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import org.loed.framework.common.context.ReactiveSystemContext;
@@ -7,7 +7,7 @@ import org.loed.framework.common.data.DataType;
 import org.loed.framework.common.po.LastModifyBy;
 import org.loed.framework.common.po.LastModifyTime;
 import org.loed.framework.common.util.ReflectionUtils;
-import org.loed.framework.r2dbc.test.listener.spi.PreUpdateListener;
+import org.loed.framework.r2dbc.listener.spi.PreUpdateListener;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -37,11 +37,11 @@ public class DefaultPreUpdateListener implements PreUpdateListener {
 			filedFlux = Flux.fromIterable(fields).flatMap(field -> {
 				if (field.getAnnotation(LastModifyBy.class) != null) {
 					return ReactiveSystemContext.getSystemContext().defaultIfEmpty(new SystemContext()).map(context -> {
-						if (context.getAccountId() != null) {
+						if (context.getUserId() != null) {
 							//TODO convert type
 							try {
 								int targetType = DataType.getDataType(field.getType());
-								Object convertedValue = DataType.toType(context.getAccountId(), DataType.DT_String, targetType);
+								Object convertedValue = DataType.toType(context.getUserId(), DataType.DT_String, targetType);
 								ReflectionUtils.setFieldValue(object, field, convertedValue);
 							} catch (Exception e) {
 								log.error("error set LastModifyBy for field:" + field.getName() + " caused by: " + e.getMessage(), e);
@@ -79,9 +79,9 @@ public class DefaultPreUpdateListener implements PreUpdateListener {
 				if (method.getAnnotation(LastModifyBy.class) != null) {
 					return ReactiveSystemContext.getSystemContext().defaultIfEmpty(new SystemContext()).map(context -> {
 						try {
-							if (context.getAccountId() != null) {
+							if (context.getUserId() != null) {
 								int targetType = DataType.getDataType(method.getParameterTypes()[0]);
-								Object convertedValue = DataType.toType(context.getAccountId(), DataType.DT_String, targetType);
+								Object convertedValue = DataType.toType(context.getUserId(), DataType.DT_String, targetType);
 								method.invoke(object, convertedValue);
 							}
 						} catch (Exception e) {

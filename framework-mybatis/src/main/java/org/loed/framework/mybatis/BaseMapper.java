@@ -153,9 +153,9 @@ public interface BaseMapper<T, ID extends Serializable> {
 		}
 		List<Condition> conditions = new ArrayList<>();
 		conditions.add(new Condition(id.getJavaName(), Operator.equal, idValue));
-		Predicate<Column> predicate = Filters.ALWAYS_TRUE_FILTER;
+
 		List<String> includes = Arrays.stream(props).map(LambdaUtils::getPropFromLambda).collect(Collectors.toList());
-		predicate = new Filters.IncludeFilter(includes);
+		Predicate<Column>  predicate = new Filters.IncludeFilter(includes);
 		return _update(po, predicate, conditions);
 	}
 
@@ -305,7 +305,7 @@ public interface BaseMapper<T, ID extends Serializable> {
 
 		int rows = 0;
 		for (T t : poList) {
-			rows += _update(t, predicate.and(Filters.UPDATABLE_FILTER).or(Filters.ID_FILTER));
+			rows += _update(t, predicate.and(Filters.UPDATABLE_FILTER));
 		}
 
 		//post insert listener 处理

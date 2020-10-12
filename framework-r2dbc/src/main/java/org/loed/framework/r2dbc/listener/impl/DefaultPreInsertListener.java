@@ -1,4 +1,4 @@
-package org.loed.framework.r2dbc.test.listener.impl;
+package org.loed.framework.r2dbc.listener.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import org.loed.framework.common.context.ReactiveSystemContext;
@@ -8,11 +8,15 @@ import org.loed.framework.common.po.CreateTime;
 import org.loed.framework.common.po.IsDeleted;
 import org.loed.framework.common.po.TenantId;
 import org.loed.framework.common.util.ReflectionUtils;
-import org.loed.framework.r2dbc.test.listener.spi.PreInsertListener;
+import org.loed.framework.common.util.UUIDUtils;
+import org.loed.framework.r2dbc.listener.spi.PreInsertListener;
 import org.springframework.core.Ordered;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
 import javax.persistence.Version;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -43,7 +47,22 @@ public class DefaultPreInsertListener implements PreInsertListener {
 		Flux<Boolean> filedFlux;
 		if (fields.size() > 0) {
 			filedFlux = Flux.fromIterable(fields).flatMap(field -> {
-				if (field.getAnnotation(TenantId.class) != null) {
+				if (field.getAnnotation(Id.class) != null) {
+					GeneratedValue generatedValue = field.getAnnotation(GeneratedValue.class);
+					if (generatedValue != null && generatedValue.strategy() == GenerationType.AUTO) {
+						return Mono.just(true);
+					}
+					Object value = ReflectionUtils.getFieldValue(object, field);
+					if (value == null) {
+						if (field.getType().getName().equals(String.class.getName())) {
+							String uuid = UUIDUtils.getUUID();
+							ReflectionUtils.setFieldValue(object, field, uuid);
+						} else {
+							log.warn("filed:" + field.getName() + " has Id annotation and generator is :" + (generatedValue == null ? GenerationType.IDENTITY : generatedValue.strategy()) + " but type is not String and value is null, will not auto generate id value");
+						}
+					}
+					return Mono.just(true);
+				} else if (field.getAnnotation(TenantId.class) != null) {
 					return ReactiveSystemContext.getSystemContext().map(context -> {
 						String tenantCode = context.getTenantId();
 						try {
@@ -51,19 +70,19 @@ public class DefaultPreInsertListener implements PreInsertListener {
 							Object convertedValue = DataType.toType(tenantCode, DataType.DT_String, targetType);
 							ReflectionUtils.setFieldValue(object, field, convertedValue);
 						} catch (Exception e) {
-							log.error("error set LastModifyBy for field:" + field.getName() + " caused by: " + e.getMessage(), e);
+							log.error("error set TenantId for field:" + field.getName() + " caused by: " + e.getMessage(), e);
 						}
 						return true;
 					});
 				} else if (field.getAnnotation(CreateBy.class) != null) {
 					return ReactiveSystemContext.getSystemContext().map(context -> {
-						String accountId = context.getAccountId();
+						String userId = context.getUserId();
 						try {
 							int targetType = DataType.getDataType(field.getType());
-							Object convertedValue = DataType.toType(accountId, DataType.DT_String, targetType);
+							Object convertedValue = DataType.toType(userId, DataType.DT_String, targetType);
 							ReflectionUtils.setFieldValue(object, field, convertedValue);
 						} catch (Exception e) {
-							log.error("error set LastModifyBy for field:" + field.getName() + " caused by: " + e.getMessage(), e);
+							log.error("error set CreateBy for field:" + field.getName() + " caused by: " + e.getMessage(), e);
 						}
 						return true;
 					});
@@ -127,9 +146,9 @@ public class DefaultPreInsertListener implements PreInsertListener {
 				} else if (method.getAnnotation(CreateBy.class) != null) {
 					return ReactiveSystemContext.getSystemContext().map(context -> {
 						try {
-							String accountId = context.getAccountId();
+							String userId = context.getUserId();
 							int targetType = DataType.getDataType(method.getParameterTypes()[0]);
-							Object convertedValue = DataType.toType(accountId, DataType.DT_String, targetType);
+							Object convertedValue = DataType.toType(userId, DataType.DT_String, targetType);
 							method.invoke(object, convertedValue);
 						} catch (IllegalAccessException | InvocationTargetException e) {
 							log.error("error invoke method:" + method.getName() + " of class : " + object.getClass() + " caused by " + e.getMessage(), e);

@@ -2,11 +2,8 @@ package org.loed.framework.common.orm;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.loed.framework.common.po.CreateBy;
-import org.loed.framework.common.po.CreateTime;
-import org.loed.framework.common.po.IsDeleted;
-import org.loed.framework.common.po.TenantId;
 import org.loed.framework.common.data.DataType;
+import org.loed.framework.common.po.*;
 import org.loed.framework.common.util.ReflectionUtils;
 import org.loed.framework.common.util.StringHelper;
 import org.slf4j.Logger;
@@ -91,6 +88,8 @@ public class ORMapping {
 				column.setCreateBy(field.getAnnotation(CreateBy.class) != null);
 				column.setCreateTime(field.getAnnotation(CreateTime.class) != null);
 				column.setDeleted(field.getAnnotation(IsDeleted.class) != null);
+				column.setLastModifyBy(field.getAnnotation(LastModifyBy.class) != null);
+				column.setLastModifyTime(field.getAnnotation(LastModifyTime.class) != null);
 				//自动设置columnDef
 				JDBCType jdbcType = autoGuessJdbcType(field);
 				column.setSqlType(jdbcType.getVendorTypeNumber());

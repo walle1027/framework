@@ -1,6 +1,6 @@
-package org.loed.framework.r2dbc.test.listener;
+package org.loed.framework.r2dbc.listener;
 
-import org.loed.framework.r2dbc.test.listener.spi.PostUpdateListener;
+import org.loed.framework.r2dbc.listener.spi.PostUpdateListener;
 import reactor.core.publisher.Mono;
 
 /**

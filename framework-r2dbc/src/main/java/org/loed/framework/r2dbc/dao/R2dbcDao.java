@@ -22,6 +22,7 @@ import java.util.function.Predicate;
  * @version 1.0
  * @since 2020/7/6 7:42 下午
  */
+@SuppressWarnings("unchecked")
 public interface R2dbcDao<T, ID> {
 	/**
 	 * 新增一个对象
@@ -88,7 +89,7 @@ public interface R2dbcDao<T, ID> {
 	 * @param <S>     对象的子类
 	 * @return 更新后的对象
 	 */
-	<S extends T> Mono<S> updateWith(@NonNull S entity, @Nullable SFunction<T, ?>... columns);
+	<S extends T> Mono<S>  updateWith(@NonNull S entity, @Nullable SFunction<T, ?>... columns);
 
 	/**
 	 * 更新一个对象，忽略指定的属性

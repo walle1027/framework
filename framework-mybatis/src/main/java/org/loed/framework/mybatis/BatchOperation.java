@@ -141,7 +141,7 @@ public interface BatchOperation {
 				.append(MybatisSqlBuilder.BLANK)
 				.append("set").append(MybatisSqlBuilder.BLANK);
 		Predicate<Column> filter = predicate == null ? Filters.UPDATABLE_FILTER : Filters.UPDATABLE_FILTER.and(predicate);
-		String set = table.getColumns().stream().filter(filter.and(new Filters.NonBlankFilter(po)).or(Filters.VERSION_FILTER).and(Filters.ID_FILTER.negate())).map(column -> {
+		String set = table.getColumns().stream().filter(filter.and(new Filters.NonBlankFilter(po)).or(Filters.ALWAYS_UPDATE_FILTER)).map(column -> {
 			StringBuilder setBuilder = new StringBuilder();
 			if (column.isVersioned()) {
 				setBuilder.append(column.getSqlName()).append(MybatisSqlBuilder.BLANK).append("=").append(MybatisSqlBuilder.BLANK)
@@ -176,7 +176,7 @@ public interface BatchOperation {
 				.append(MybatisSqlBuilder.BLANK)
 				.append("set").append(MybatisSqlBuilder.BLANK);
 		Predicate<Column> filter = predicate == null ? Filters.UPDATABLE_FILTER : predicate.and(Filters.UPDATABLE_FILTER);
-		String set = table.getColumns().stream().filter(filter.or(Filters.VERSION_FILTER).and(Filters.ID_FILTER.negate())).map(column -> {
+		String set = table.getColumns().stream().filter(filter.or(Filters.ALWAYS_UPDATE_FILTER)).map(column -> {
 			StringBuilder setBuilder = new StringBuilder();
 			if (column.isVersioned()) {
 				setBuilder.append(column.getSqlName()).append(MybatisSqlBuilder.BLANK).append("=").append(MybatisSqlBuilder.BLANK)

@@ -2,22 +2,27 @@ package org.loed.framework.r2dbc.dao;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
-import org.loed.framework.common.orm.ORMapping;
 import org.loed.framework.common.context.ReactiveSystemContext;
+import org.loed.framework.common.context.SystemContext;
 import org.loed.framework.common.lambda.LambdaUtils;
 import org.loed.framework.common.lambda.SFunction;
 import org.loed.framework.common.orm.Column;
+import org.loed.framework.common.orm.Filters;
+import org.loed.framework.common.orm.ORMapping;
 import org.loed.framework.common.orm.Table;
 import org.loed.framework.common.po.IsDeleted;
 import org.loed.framework.common.po.TenantId;
-import org.loed.framework.common.query.*;
+import org.loed.framework.common.query.Condition;
+import org.loed.framework.common.query.Criteria;
+import org.loed.framework.common.query.Operator;
+import org.loed.framework.common.query.Pagination;
 import org.loed.framework.common.util.ReflectionUtils;
 import org.loed.framework.r2dbc.R2dbcException;
-import org.loed.framework.r2dbc.test.listener.OrderedListener;
-import org.loed.framework.r2dbc.test.listener.spi.*;
+import org.loed.framework.r2dbc.listener.spi.*;
 import org.loed.framework.r2dbc.query.R2dbcParam;
 import org.loed.framework.r2dbc.query.R2dbcQuery;
 import org.loed.framework.r2dbc.query.R2dbcSqlBuilder;
+import org.loed.framework.r2dbc.listener.OrderedListener;
 import org.reactivestreams.Publisher;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.r2dbc.core.DatabaseClient;
@@ -290,9 +295,10 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 		if (id == null) {
 			return Mono.error(new RuntimeException("id is null "));
 		}
-		return Flux.merge(Flux.just(new Condition(idColumn.getJavaName(), Operator.equal, id)), commonConditions())
+//		return Flux.merge(Flux.just(new Condition(idColumn.getJavaName(), Operator.equal, id)), commonConditions())
+		return Flux.merge(Flux.just(new Condition(idColumn.getJavaName(), Operator.equal, id)))
 				.collectList().map(conditions -> {
-					return r2dbcSqlBuilder.updateByCriteria(entity, table, criteriaWithCondition(conditions), columnFilter.and(Filters.INSERTABLE_FILTER));
+					return r2dbcSqlBuilder.update(entity, conditions, columnFilter.and(Filters.UPDATABLE_FILTER));
 				}).flatMap(r2dbcQuery -> {
 					return execute(r2dbcQuery).thenReturn(entity);
 				});
@@ -325,14 +331,18 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 
 	@Override
 	public Mono<T> get(@NonNull ID id) {
-		return Flux.merge(Flux.just(new Condition(idColumn.getJavaName(), Operator.equal, id)), commonConditions()).collectList().map(this::criteriaWithCondition).flatMap(this::findOne);
+		Criteria<T> criteria = Criteria.from(entityClass);
+		criteria.getConditions().add(new Condition(idColumn.getJavaName(), Operator.equal, id));
+		return this.findOne(criteria);
 	}
 
 	@Override
 	public Mono<T> get(@NonNull Publisher<ID> idPublisher) {
-		return Flux.merge(Flux.from(idPublisher).map(id -> {
-			return new Condition(idColumn.getJavaName(), Operator.equal, id);
-		}), commonConditions()).collectList().map(this::criteriaWithCondition).flatMap(this::findOne);
+		return Mono.from(idPublisher).map(id -> {
+			Criteria<T> criteria = Criteria.from(entityClass);
+			criteria.getConditions().add(new Condition(idColumn.getJavaName(), Operator.equal, id));
+			return criteria;
+		}).flatMap(this::findOne);
 	}
 
 	private Flux<Condition> commonConditions() {
@@ -373,38 +383,40 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 
 	@Override
 	public Mono<Integer> delete(@NonNull ID id) {
-		return Flux.merge(Flux.just(new Condition(idColumn.getJavaName(), Operator.equal, id)), commonConditions()).collectList()
-				.map(this::criteriaWithCondition).flatMap(this::delete);
+		Criteria<T> criteria = Criteria.from(entityClass);
+		criteria.getConditions().add(new Condition(idColumn.getJavaName(), Operator.equal, id));
+		return this.delete(criteria);
 	}
 
 	@Override
 	public Mono<Integer> delete(@NonNull Publisher<ID> idPublisher) {
-		return Flux.merge(Flux.from(idPublisher).map(id -> {
-			return new Condition(idColumn.getJavaName(), Operator.equal, id);
-		}), commonConditions())
-				.collectList()
-				.map(this::criteriaWithCondition)
-				.flatMap(this::delete);
+		return Mono.from(idPublisher).map(id -> {
+			Criteria<T> criteria = Criteria.from(entityClass);
+			criteria.getConditions().add(new Condition(idColumn.getJavaName(), Operator.equal, id));
+			return criteria;
+		}).flatMap(this::delete);
 	}
 
 	@Override
 	public Mono<Integer> delete(@NonNull Criteria<T> criteria) {
-		return Mono.just(criteria).flatMap(crit -> {
+		return Mono.zip(Mono.just(criteria).flatMap(crit -> {
 					return commonConditions().collectList().map(conditions -> {
 						crit.getConditions().addAll(conditions);
 						return crit;
 					}).defaultIfEmpty(crit);
 				}
-		).flatMap(crit -> {
+		), ReactiveSystemContext.getSystemContext()).flatMap(tup -> {
+			Criteria<T> crit = tup.getT1();
+			SystemContext systemContext = tup.getT2();
 			if (CollectionUtils.isEmpty(crit.getConditions())) {
 				return Mono.error(new RuntimeException("empty conditions to delete the entity ,this will ignore"));
 			}
 			if (CollectionUtils.isNotEmpty(preDeleteListeners)) {
 				return this.find(crit).flatMap(preDeleteFunction()).collectList().flatMap(entityList -> {
-					return execute(r2dbcSqlBuilder.deleteByCriteria(table, crit));
+					return execute(r2dbcSqlBuilder.delete(table, crit.getConditions(), systemContext));
 				});
 			} else {
-				return execute(r2dbcSqlBuilder.deleteByCriteria(table, crit));
+				return execute(r2dbcSqlBuilder.delete(table, crit.getConditions(), systemContext));
 			}
 		});
 	}
@@ -437,7 +449,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 			criteriaNew.setConditions(cnd);
 			return criteriaNew;
 		}).defaultIfEmpty(criteria).map(crt -> {
-			return r2dbcSqlBuilder.findByCriteria(table, crt);
+			return r2dbcSqlBuilder.find(table, crt);
 		}).flatMapMany(this::query);
 	}
 
@@ -458,7 +470,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 			return criteriaNew;
 		}).defaultIfEmpty(criteria)
 				.flatMap(crit -> {
-					R2dbcQuery query = r2dbcSqlBuilder.countByCriteria(table, crit);
+					R2dbcQuery query = r2dbcSqlBuilder.count(table, crit);
 					DatabaseClient.GenericExecuteSpec exec = bind(query);
 					return exec.as(Long.class).fetch().one();
 				});
@@ -467,14 +479,13 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	@Override
 	public <R> Flux<T> findByProperty(SFunction<T, R> property, R value) {
 		Criteria<T> criteria = Criteria.from(entityClass);
-		criteria.and(property).is(value);
-		return find(criteria);
+		return find(criteria.and(property).is(value));
 	}
 
 	@Override
 	public <R> Mono<Boolean> isRepeated(ID id, SFunction<T, R> property, R value) {
 		Criteria<T> criteria = Criteria.from(entityClass);
-		criteria.and(property).is(value);
+		criteria = criteria.and(property).is(value);
 		if (id != null) {
 			Condition condition = new Condition();
 			Column idColumn = table.getColumns().stream().filter(Column::isPk).findFirst().orElseThrow(() -> new R2dbcException("table has no id column"));
@@ -492,9 +503,14 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	public Mono<Pagination<T>> findPage(@NonNull Criteria<T> criteria, @NonNull Pageable pageable) {
 		boolean paged = pageable.isPaged();
 		if (paged) {
-			return Mono.zip(count(criteria), Mono.just(r2dbcSqlBuilder.findPageByCriteria(table, criteria, pageable)).flatMap(r2dbcQuery -> {
-				return query(r2dbcQuery).collectList();
-			})).map(tup -> {
+			return commonConditions().collectList().map(conditions -> {
+				Criteria<T> copy = criteria.copy();
+				copy.getConditions().addAll(conditions);
+				return copy;
+			}).defaultIfEmpty(criteria).flatMap(c ->
+					Mono.zip(count(c), Mono.just(r2dbcSqlBuilder.findPage(table, c, pageable)).flatMap(r2dbcQuery -> {
+						return query(r2dbcQuery).collectList();
+					}))).map(tup -> {
 				Pagination<T> pagination = new Pagination<>();
 				pagination.setPageNo(pageable.getPageNumber());
 				pagination.setPageSize(pageable.getPageSize());

@@ -39,16 +39,12 @@ public interface Filters {
 	 * 可更新列的过滤器
 	 */
 	Predicate<Column> UPDATABLE_FILTER = column -> {
-		return column.isUpdatable() && !column.isTenantId() && !column.isCreateTime() && !column.isCreateBy() && !column.isDeleted();
+		return column.isUpdatable() && !column.isPk() && !column.isTenantId() && !column.isCreateTime() && !column.isCreateBy() && !column.isDeleted();
 	};
 	/**
 	 * 版本列的过滤器
 	 */
-	Predicate<Column> VERSION_FILTER = Column::isVersioned;
-	/**
-	 * 主键过滤器
-	 */
-	Predicate<Column> ID_FILTER = Column::isPk;
+	Predicate<Column> ALWAYS_UPDATE_FILTER = column -> column.isVersioned() || column.isLastModifyTime() || column.isLastModifyBy();
 
 	/**
 	 * 指定更新列的过滤器

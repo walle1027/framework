@@ -1,6 +1,6 @@
-package org.loed.framework.r2dbc.test.listener.spi;
+package org.loed.framework.r2dbc.listener.spi;
 
-import org.loed.framework.r2dbc.test.listener.OrderedListener;
+import org.loed.framework.r2dbc.listener.OrderedListener;
 import reactor.core.publisher.Mono;
 
 /**

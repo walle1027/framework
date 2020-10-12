@@ -1,6 +1,7 @@
 package org.loed.framework.r2dbc.query;
 
 import org.apache.commons.lang3.StringUtils;
+import org.loed.framework.common.context.SystemContext;
 import org.loed.framework.common.orm.Column;
 import org.loed.framework.common.orm.Table;
 import org.loed.framework.common.query.Condition;
@@ -8,6 +9,7 @@ import org.loed.framework.common.query.Criteria;
 import org.loed.framework.common.query.Operator;
 import org.springframework.data.domain.Pageable;
 import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -43,23 +45,23 @@ public interface R2dbcSqlBuilder {
 	/**
 	 * 构造一个基于r2dbc的更新语句
 	 *
-	 * @param entity       对象
-	 * @param table        对象元信息
-	 * @param criteria     动态更新条件
-	 * @param columnFilter 列过滤器
+	 * @param entity     对象
+	 * @param conditions 动态更新条件
+	 * @param predicate  列过滤器
 	 * @return 更新语句及参数
 	 */
-	<T> R2dbcQuery updateByCriteria(@NonNull Object entity, @NonNull Table table, @NonNull Criteria<T> criteria, @NonNull Predicate<Column> columnFilter);
+	R2dbcQuery update(@NonNull Object entity, @NonNull List<Condition> conditions, @NonNull Predicate<Column> predicate);
 
 	/**
 	 * 按照动态条件构建一个删除对象的语句
 	 * 如果对象中包含{@link org.loed.framework.common.po.IsDeleted} 列，则做逻辑删除
 	 *
-	 * @param table    表元信息
-	 * @param criteria 动态条件
+	 * @param table         表元信息
+	 * @param conditions    动态条件
+	 * @param systemContext 系统上下文
 	 * @return 删除语句及参数
 	 */
-	<T> R2dbcQuery deleteByCriteria(@NonNull Table table, @NonNull Criteria<T> criteria);
+	R2dbcQuery delete(@NonNull Table table, @NonNull List<Condition> conditions, @Nullable SystemContext systemContext);
 
 	/**
 	 * 按照动态条件构建一个查询语句
@@ -69,7 +71,7 @@ public interface R2dbcSqlBuilder {
 	 * @param <T>      对象类型
 	 * @return 查询语句及参数
 	 */
-	<T> R2dbcQuery findByCriteria(@NonNull Table table, @NonNull Criteria<T> criteria);
+	<T> R2dbcQuery find(@NonNull Table table, @NonNull Criteria<T> criteria);
 
 	/**
 	 * 按照动态条件构建一个分页查询语句
@@ -80,7 +82,7 @@ public interface R2dbcSqlBuilder {
 	 * @param <T>      对象类型
 	 * @return 查询语句及参数
 	 */
-	<T> R2dbcQuery findPageByCriteria(@NonNull Table table, @NonNull Criteria<T> criteria, @NonNull Pageable pageable);
+	<T> R2dbcQuery findPage(@NonNull Table table, @NonNull Criteria<T> criteria, @NonNull Pageable pageable);
 
 	/**
 	 * 按照动态条件构建一个查询语句
@@ -90,7 +92,7 @@ public interface R2dbcSqlBuilder {
 	 * @param <T>      对象类型
 	 * @return 查询语句及参数
 	 */
-	<T> R2dbcQuery countByCriteria(@NonNull Table table, @NonNull Criteria<T> criteria);
+	<T> R2dbcQuery count(@NonNull Table table, @NonNull Criteria<T> criteria);
 
 	/**
 	 * 是否需要引号
@@ -171,6 +173,13 @@ public interface R2dbcSqlBuilder {
 //		}
 	}
 
+	/**
+	 * 获取表名的别名
+	 *
+	 * @param tableName 表名
+	 * @param counter   计数器
+	 * @return 表别名
+	 */
 	default String createTableAlias(String tableName, AtomicInteger counter) {
 		return "t" + counter.getAndIncrement();
 	}

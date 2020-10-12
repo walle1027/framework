@@ -1,7 +1,7 @@
-package org.loed.framework.r2dbc.test.listener;
+package org.loed.framework.r2dbc.listener;
 
 import lombok.extern.slf4j.Slf4j;
-import org.loed.framework.r2dbc.test.listener.spi.PostInsertListener;
+import org.loed.framework.r2dbc.listener.spi.PostInsertListener;
 import reactor.core.publisher.Mono;
 
 /**
@@ -11,10 +11,21 @@ import reactor.core.publisher.Mono;
  */
 @Slf4j
 public class TestPostInsertListener implements PostInsertListener {
+	private final int order;
+
+	public TestPostInsertListener(int order) {
+		this.order = order;
+	}
+
 	@Override
 	public <T> Mono<T> postInsert(T object) {
 		return Mono.just(object).doOnNext(obj -> {
-			log.info("post insert on object:" + obj);
+			log.info("with order " + order + " post insert on object:" + obj);
 		});
+	}
+
+	@Override
+	public int getOrder() {
+		return order;
 	}
 }

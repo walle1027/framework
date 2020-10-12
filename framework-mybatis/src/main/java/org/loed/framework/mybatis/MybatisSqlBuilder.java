@@ -589,7 +589,7 @@ public class MybatisSqlBuilder {
 		Serializable idValue = getIdValue(table, object);
 		builder.append(getTableNameById(table, idValue));
 		builder.append(BLANK).append("set").append(BLANK);
-		String set = table.getColumns().stream().filter(predicate.or(Filters.VERSION_FILTER).and(Filters.ID_FILTER.negate())).map(column -> {
+		String set = table.getColumns().stream().filter(predicate.or(Filters.ALWAYS_UPDATE_FILTER)).map(column -> {
 			StringBuilder columnBuilder = new StringBuilder();
 			if (column.isVersioned()) {
 				columnBuilder.append(column.getSqlName()).append(BLANK).append("=").append(BLANK)

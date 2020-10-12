@@ -3,7 +3,6 @@ package org.loed.framework.r2dbc.query;
 import org.loed.framework.r2dbc.R2dbcDialect;
 import org.loed.framework.r2dbc.autoconfigure.R2dbcProperties;
 import org.loed.framework.r2dbc.query.dialect.MysqlR2dbcSqlBuilder;
-import org.loed.framework.r2dbc.query.dialect.PostgresR2dbcSqlBuilder;
 
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -36,8 +35,8 @@ public class R2dbcSqlBuilderFactory {
 		switch (dialect) {
 			case mysql:
 				return new MysqlR2dbcSqlBuilder(properties.isQuote());
-			case postgres:
-				return new PostgresR2dbcSqlBuilder(properties.isQuote());
+//			case postgres:
+//				return new PostgresR2dbcSqlBuilder(properties.isQuote());
 			default:
 				return null;
 		}

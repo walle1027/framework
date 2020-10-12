@@ -3,11 +3,9 @@ package org.loed.framework.r2dbc.query.dialect;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.loed.framework.common.orm.ORMapping;
+import org.loed.framework.common.context.SystemContext;
 import org.loed.framework.common.data.DataType;
-import org.loed.framework.common.orm.Column;
-import org.loed.framework.common.orm.JoinTable;
-import org.loed.framework.common.orm.Table;
+import org.loed.framework.common.orm.*;
 import org.loed.framework.common.query.*;
 import org.loed.framework.common.util.ReflectionUtils;
 import org.loed.framework.common.util.StringHelper;
@@ -16,8 +14,11 @@ import org.loed.framework.r2dbc.query.R2dbcQuery;
 import org.loed.framework.r2dbc.query.R2dbcSqlBuilder;
 import org.springframework.data.domain.Pageable;
 import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 
 import javax.persistence.GenerationType;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -79,8 +80,8 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 			builder.append("(");
 			int finalI = i;
 			columns.forEach(column -> {
-				builder.append(":").append(column.getJavaName()).append(finalI).append(",");
-				params.put(column.getJavaName() + finalI, new R2dbcParam(column.getJavaType(), ReflectionUtils.getFieldValue(object, column.getJavaName())));
+				builder.append(":").append(column.getJavaName()).append("_").append(finalI).append(",");
+				params.put(column.getJavaName() + "_" + finalI, new R2dbcParam(column.getJavaType(), ReflectionUtils.getFieldValue(object, column.getJavaName())));
 			});
 			builder.deleteCharAt(builder.length() - 1).append(")").append(",");
 		}
@@ -92,7 +93,8 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 	}
 
 	@Override
-	public <T> R2dbcQuery updateByCriteria(@NonNull Object entity, @NonNull Table table, @NonNull Criteria<T> criteria, @NonNull Predicate<Column> columnFilter) {
+	public R2dbcQuery update(@NonNull Object entity, @NonNull List<Condition> conditions, @NonNull Predicate<Column> predicate) {
+		Table table = ORMapping.get(entity.getClass());
 		AtomicInteger counter = new AtomicInteger(1);
 		Map<String, TableWithAlias> tableAliasMap = new ConcurrentHashMap<>();
 		tableAliasMap.put(ROOT_TABLE_ALIAS_KEY, new TableWithAlias(null, table));
@@ -100,7 +102,7 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 		Map<String, R2dbcParam> params = new HashMap<>();
 		QueryBuilder builder = new QueryBuilder();
 		builder.update(wrap(table.getSqlName()));
-		table.getColumns().stream().filter(columnFilter.or(Filters.VERSION_FILTER)).forEach(column -> {
+		table.getColumns().stream().filter(predicate.or(Filters.ALWAYS_UPDATE_FILTER)).forEach(column -> {
 			StringBuilder setBuilder = new StringBuilder();
 			if (column.isVersioned()) {
 				setBuilder.append(wrap(column.getSqlName())).append(BLANK).append("=").append(BLANK).append(wrap(column.getSqlName())).append(" + 1");
@@ -114,8 +116,6 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 		if (CollectionUtils.isEmpty(builder.getUpdateList())) {
 			throw new RuntimeException("empty columns to update");
 		}
-		List<Condition> conditions = criteria.getConditions();
-		PropertySelector selector = criteria.getSelector();
 		if (CollectionUtils.isEmpty(conditions)) {
 			log.warn("conditions is empty, the statement:" + builder.toString() + " will update all rows");
 		} else {
@@ -125,9 +125,8 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 	}
 
 	@Override
-	public <T> R2dbcQuery deleteByCriteria(@NonNull Table table, @NonNull Criteria<T> criteria) {
+	public R2dbcQuery delete(@NonNull Table table, @NonNull List<Condition> conditions, @Nullable SystemContext systemContext) {
 		QueryBuilder builder = new QueryBuilder();
-		AtomicInteger counter = new AtomicInteger(1);
 		Map<String, R2dbcParam> paramMap = new HashMap<>();
 		Map<String, TableWithAlias> tableAliasMap = new ConcurrentHashMap<>();
 		tableAliasMap.put(ROOT_TABLE_ALIAS_KEY, new TableWithAlias(null, table));
@@ -135,11 +134,40 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 		Column isDeletedColumn = table.getColumns().stream().filter(Column::isDeleted).findFirst().orElse(null);
 		if (isDeletedColumn != null) {
 			builder.update(wrap(table.getSqlName()));
+			//判断是否有版本号
+			Optional<Column> versionColumn = table.getColumns().stream().filter(Column::isVersioned).findAny();
+			if (versionColumn.isPresent()) {
+				Column column = versionColumn.get();
+				builder.set(wrap(column.getSqlName()) + BLANK + "=" + BLANK + wrap(column.getSqlName()) + " + 1");
+			}
+			//判断是否有最后更新人
+			Optional<Column> isLastModifyByColumn = table.getColumns().stream().filter(Column::isLastModifyBy).findAny();
+			if (isLastModifyByColumn.isPresent()) {
+				Column column = isLastModifyByColumn.get();
+				builder.set(wrap(column.getSqlName()) + BLANK + "= :lastModifyBy");
+				paramMap.put("lastModifyBy", (systemContext != null && systemContext.getUserId() != null)
+						? new R2dbcParam(column.getJavaType(), DataType.toType(systemContext.getUserId(), DataType.getDataType(column.getJavaType())))
+						: new R2dbcParam(column.getJavaType(), null));
+			}
+			Optional<Column> isLastModifyTimeColumn = table.getColumns().stream().filter(Column::isLastModifyTime).findAny();
+			if (isLastModifyTimeColumn.isPresent()) {
+				Column column = isLastModifyTimeColumn.get();
+				Class<?> type = column.getJavaType();
+				if (type.getName().equals(LocalDate.class.getName())) {
+					builder.set(wrap(column.getSqlName()) + BLANK + "= :isLastModifyTime");
+					paramMap.put("isLastModifyTime", new R2dbcParam(LocalDate.class, LocalDate.now()));
+				} else if (type.getName().equals(LocalDateTime.class.getName())) {
+					builder.set(wrap(column.getSqlName()) + BLANK + "= :isLastModifyTime");
+					paramMap.put("isLastModifyTime", new R2dbcParam(LocalDateTime.class, LocalDateTime.now()));
+				} else {
+					log.error("unsupported type :" + table.getJavaName() + "#" + column.getJavaName() + "(" + column.getJavaType() + ")" + " for isLastModifyTime column ,will not set any value");
+				}
+			}
 			builder.set(wrap(isDeletedColumn.getSqlName()) + BLANK + "=" + BLANK + "1");
+			//判断是否有最后更新人和最后更新时间
 		} else {
 			builder.delete(wrap(table.getSqlName()));
 		}
-		List<Condition> conditions = criteria.getConditions();
 		if (CollectionUtils.isEmpty(conditions)) {
 			log.warn("criteria is empty condition");
 		} else {
@@ -164,7 +192,7 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 	}
 
 	@Override
-	public <T> R2dbcQuery findByCriteria(@NonNull Table table, @NonNull Criteria<T> criteria) {
+	public <T> R2dbcQuery find(@NonNull Table table, @NonNull Criteria<T> criteria) {
 		QueryBuilder builder = new QueryBuilder();
 		AtomicInteger counter = new AtomicInteger(1);
 		Map<String, R2dbcParam> paramMap = new HashMap<>();
@@ -209,15 +237,15 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 	}
 
 	@Override
-	public <T> R2dbcQuery findPageByCriteria(@NonNull Table table, @NonNull Criteria<T> criteria, @NonNull Pageable pageable) {
-		R2dbcQuery query = findByCriteria(table, criteria);
+	public <T> R2dbcQuery findPage(@NonNull Table table, @NonNull Criteria<T> criteria, @NonNull Pageable pageable) {
+		R2dbcQuery query = find(table, criteria);
 		String statement = query.getStatement();
 		Map<String, R2dbcParam> params = query.getParams();
 		if (params == null) {
 			params = new HashMap<>();
 		}
 		String prstmt;
-		if (pageable.getPageNumber() > 1) {
+		if (pageable.getPageNumber() > 0) {
 			prstmt = statement + BLANK + "limit :pr_limit offset :pr_offset";
 			params.put("pr_limit", new R2dbcParam(Integer.class, pageable.getPageSize()));
 			params.put("pr_offset", new R2dbcParam(Long.class, pageable.getOffset()));
@@ -229,7 +257,7 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 	}
 
 	@Override
-	public <T> R2dbcQuery countByCriteria(@NonNull Table table, @NonNull Criteria<T> criteria) {
+	public <T> R2dbcQuery count(@NonNull Table table, @NonNull Criteria<T> criteria) {
 		QueryBuilder builder = new QueryBuilder();
 		AtomicInteger counter = new AtomicInteger(1);
 		Map<String, R2dbcParam> paramMap = new HashMap<>();
