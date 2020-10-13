@@ -26,4 +26,6 @@ public class Role extends CommonPO {
 	private List<RoleMenu> roleMenuList;
 	@OneToMany
 	private List<UserRole> userRoleList;
+	@OneToMany
+	private List<RoleResource> resourceList;
 }

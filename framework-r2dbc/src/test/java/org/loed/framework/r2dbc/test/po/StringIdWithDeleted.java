@@ -1,10 +1,7 @@
 package org.loed.framework.r2dbc.test.po;
 
-import org.loed.framework.common.po.CreateBy;
-import org.loed.framework.common.po.CreateTime;
-import org.loed.framework.common.po.LastModifyBy;
-import org.loed.framework.common.po.LastModifyTime;
 import lombok.Data;
+import org.loed.framework.common.po.*;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
@@ -31,7 +28,7 @@ public class StringIdWithDeleted {
 	 */
 	@Column(nullable = false, updatable = false)
 	@Version
-	protected Long version;
+	protected BigInteger version;
 	/**
 	 * 创建时间
 	 */
@@ -58,6 +55,12 @@ public class StringIdWithDeleted {
 	@Column(length = 32, insertable = false)
 	@LastModifyBy
 	protected String updateBy;
+	/**
+	 * 是否删除
+	 */
+	@Column(length = 2)
+	@IsDeleted
+	protected Byte isDeleted;
 
 	@Column()
 	private String prop1;

@@ -7,11 +7,11 @@ import javax.persistence.*;
 /**
  * @author thomason
  * @version 1.0
- * @since 2019/8/2 6:12 PM
+ * @since 2019/8/2 6:18 PM
  */
-@Table(name = "t_role_menu", indexes = {@Index(name = "udx_role_menu", columnList = "role_id,menu_id",unique = true)})
+@Table(name = "t_role_resource", indexes = {@Index(name = "udx_role_resource", columnList = "role_id,menu_id,resource_id", unique = true)})
 @Data
-public class RoleMenu extends CommonPO {
+public class RoleResource extends BasePO {
 	@Column
 	private String roleId;
 	@ManyToOne
@@ -22,4 +22,9 @@ public class RoleMenu extends CommonPO {
 	@ManyToOne
 	@JoinColumn(name = "menu_id")
 	private Menu menu;
+	@Column
+	private String resourceId;
+	@ManyToOne
+	@JoinColumn(name = "resource_id")
+	private Resource resource;
 }

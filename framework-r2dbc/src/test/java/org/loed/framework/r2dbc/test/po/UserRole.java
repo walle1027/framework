@@ -13,12 +13,12 @@ import javax.persistence.*;
 @Data
 public class UserRole extends CommonPO {
 	@Column
-	private Long userId;
+	private String userId;
 	@ManyToOne
 	@JoinColumn(name = "user_id")
 	private User user;
 	@Column
-	private Long roleId;
+	private String roleId;
 	@ManyToOne
 	@JoinColumn(name = "role_id")
 	private Role role;

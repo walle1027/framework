@@ -49,6 +49,7 @@ public class LongIdTest {
 		systemContext = new SystemContext();
 		systemContext.setAccountId("1");
 		systemContext.setTenantId("1");
+		systemContext.setUserId("1");
 	}
 
 	@Test
