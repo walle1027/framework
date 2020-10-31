@@ -2,6 +2,7 @@ package org.loed.framework.common.context;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.server.RequestPath;
 
 import java.util.Map;
 
@@ -34,6 +35,11 @@ public class SystemContextHolder {
 	}
 
 	public static SystemContext getSystemContext() {
+		SystemContext systemContext = contextMap.get();
+		if (systemContext == null) {
+			systemContext = new SystemContext();
+			contextMap.set(systemContext);
+		}
 		return contextMap.get();
 	}
 
@@ -259,5 +265,21 @@ public class SystemContextHolder {
 	 */
 	public static void remove(String key) {
 		getContextMap().remove(key);
+	}
+
+
+	public RequestPath getRequestPath() {
+		SystemContext systemContext = getSystemContext();
+		if (systemContext != null) {
+			return systemContext.getRequestPath();
+		}
+		return null;
+	}
+
+	public void setRequestPath(RequestPath requestPath) {
+		SystemContext systemContext = getSystemContext();
+		if (systemContext != null) {
+			systemContext.setRequestPath(requestPath);
+		}
 	}
 }

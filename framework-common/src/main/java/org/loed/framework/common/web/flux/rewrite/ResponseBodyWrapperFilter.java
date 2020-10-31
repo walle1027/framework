@@ -2,7 +2,6 @@ package org.loed.framework.common.web.flux.rewrite;
 
 import org.apache.commons.lang3.StringUtils;
 import org.loed.framework.common.SystemConstant;
-import org.loed.framework.common.web.NotAutoWrap;
 import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -82,9 +81,7 @@ public class ResponseBodyWrapperFilter implements WebFilter {
 		} else {
 			elementType = bodyType;
 		}
-		if (handlerMethod.hasMethodAnnotation(NotAutoWrap.class)) {
-			return chain.filter(exchange);
-		}
+		exchange.getRequest().getPath();
 		return chain.filter(exchange.mutate().response(decorate(exchange, elementType)).build());
 	}
 

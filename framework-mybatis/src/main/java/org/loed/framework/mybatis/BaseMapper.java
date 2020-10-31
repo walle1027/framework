@@ -11,24 +11,16 @@ import org.loed.framework.common.orm.Column;
 import org.loed.framework.common.orm.Filters;
 import org.loed.framework.common.orm.ORMapping;
 import org.loed.framework.common.orm.Table;
-import org.loed.framework.common.query.Condition;
-import org.loed.framework.common.query.Criteria;
-import org.loed.framework.common.query.Operator;
-import org.loed.framework.common.query.Pagination;
+import org.loed.framework.common.query.*;
 import org.loed.framework.common.util.ReflectionUtils;
 import org.loed.framework.mybatis.listener.MybatisListenerContainer;
 import org.loed.framework.mybatis.listener.spi.*;
-import org.springframework.data.domain.PageRequest;
 
 import java.io.Serializable;
 import java.lang.reflect.ParameterizedType;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
-//import org.loed.framework.common.po.BasePO;
-//import org.loed.framework.common.po.CommonPO;
-//import org.loed.framework.common.po.Identify;
 
 /**
  * todo remove cache here
@@ -431,7 +423,7 @@ public interface BaseMapper<T, ID extends Serializable> {
 	 * @return 分页查询结果
 	 */
 	default Pagination<T> findPage(PageRequest request, Criteria<T> criteria) {
-		if (request.isPaged()) {
+		if (request.isPaging()) {
 			PageHelper.startPage(request.getPageNumber() + 1, request.getPageSize());
 		}
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];

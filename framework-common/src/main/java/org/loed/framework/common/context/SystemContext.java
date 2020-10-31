@@ -3,6 +3,7 @@ package org.loed.framework.common.context;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.springframework.http.server.RequestPath;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -88,6 +89,10 @@ public final class SystemContext {
 	 */
 	public static final String CONTEXT_DEVICE = CONTEXT_PREFIX + "device";
 	/**
+	 * 请求路径
+	 */
+	public static final String CONTEXT_REQUEST_PATH = CONTEXT_PREFIX + "path";
+	/**
 	 * context map 最大容量
 	 */
 	public static final Integer MAX_CAPACITY = 100;
@@ -97,6 +102,8 @@ public final class SystemContext {
 	public static final Integer MAX_SIZE = 1024;
 
 	private final Map<String, String> contextMap;
+
+	private RequestPath requestPath;
 
 	/**
 	 * 构造函数
@@ -293,16 +300,13 @@ public final class SystemContext {
 		return locale;
 	}
 
-
 	public void setLocale(String locale) {
 		set(CONTEXT_LOCALE, locale);
 	}
 
-
 	public String getClientIp() {
 		return get(CONTEXT_CLIENT_IP);
 	}
-
 
 	public void setClientIp(String clientIp) {
 		set(CONTEXT_CLIENT_IP, clientIp);
@@ -359,5 +363,11 @@ public final class SystemContext {
 		}
 	}
 
+	public RequestPath getRequestPath() {
+		return requestPath;
+	}
 
+	public void setRequestPath(RequestPath requestPath) {
+		this.requestPath = requestPath;
+	}
 }

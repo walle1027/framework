@@ -10,6 +10,8 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.SequenceWriter;
 import com.fasterxml.jackson.databind.exc.InvalidDefinitionException;
 import org.loed.framework.common.Result;
+import org.loed.framework.common.context.ReactiveSystemContext;
+import org.loed.framework.common.web.AutoWrapMather;
 import org.reactivestreams.Publisher;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.CodecException;
@@ -21,6 +23,7 @@ import org.springframework.core.log.LogFormatUtils;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.json.Jackson2CodecSupport;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
+import org.springframework.http.server.RequestPath;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.MimeType;
@@ -55,8 +58,36 @@ public class JsonResultWrapperEncoder extends Jackson2JsonEncoder {
 	}
 
 	@Override
+	public boolean canEncode(ResolvableType elementType, @Nullable MimeType mimeType) {
+		Class<?> clazz = elementType.toClass();
+		if (!supportsMimeType(mimeType)) {
+			return false;
+		}
+		//TODO
+//		if (mimeType != null && mimeType.getCharset() != null) {
+//			Charset charset = mimeType.getCharset();
+//			if (!ENCODINGS.containsKey(charset.name())) {
+//				return false;
+//			}
+//		}
+		return (Object.class == clazz || (getObjectMapper().canSerialize(clazz)));
+	}
+
+	@Override
 	public Flux<DataBuffer> encode(Publisher<?> inputStream, DataBufferFactory bufferFactory,
 	                               ResolvableType elementType, @Nullable MimeType mimeType, @Nullable Map<String, Object> hints) {
+		return ReactiveSystemContext.getSystemContext().flatMapMany(systemContext -> {
+			RequestPath requestPath = systemContext.getRequestPath();
+			if (AutoWrapMather.shouldWrap(requestPath)) {
+				return encodeWithWrap(inputStream, bufferFactory, elementType, mimeType, hints);
+			} else {
+				return super.encode(inputStream, bufferFactory, elementType, mimeType, hints);
+			}
+		});
+	}
+
+	protected Flux<DataBuffer> encodeWithWrap(Publisher<?> inputStream, DataBufferFactory bufferFactory,
+	                                          ResolvableType elementType, @Nullable MimeType mimeType, @Nullable Map<String, Object> hints) {
 
 		Assert.notNull(inputStream, "'inputStream' must not be null");
 		Assert.notNull(bufferFactory, "'bufferFactory' must not be null");
