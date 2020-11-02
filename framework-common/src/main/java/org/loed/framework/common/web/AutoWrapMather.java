@@ -19,15 +19,26 @@ public class AutoWrapMather {
 		PathPatternParser pathPatternParser = new PathPatternParser();
 		pathPatternParser.setCaseSensitive(false);
 		IGNORE_PATH_PATTERN.add(pathPatternParser.parse("/swagger-ui.html"));
-		IGNORE_PATH_PATTERN.add(pathPatternParser.parse("/webjars/*"));
-		IGNORE_PATH_PATTERN.add(pathPatternParser.parse("/swagger-resources/*"));
+		IGNORE_PATH_PATTERN.add(pathPatternParser.parse("/webjars*"));
+		IGNORE_PATH_PATTERN.add(pathPatternParser.parse("/swagger-resources"));
+		IGNORE_PATH_PATTERN.add(pathPatternParser.parse("/swagger-resources/**"));
 		IGNORE_PATH_PATTERN.add(pathPatternParser.parse("/v2/api-docs"));
 		IGNORE_PATH_PATTERN.add(pathPatternParser.parse("/health"));
-		IGNORE_PATH_PATTERN.add(pathPatternParser.parse("/actuator/*"));
 		IGNORE_PATH_PATTERN.add(pathPatternParser.parse("/actuator"));
+		IGNORE_PATH_PATTERN.add(pathPatternParser.parse("/actuator/**"));
 	}
 
+
+	/**
+	 * 判断一个请求路径是否应该自动包装
+	 *
+	 * @param path 请求路径
+	 * @return 是否自动包装
+	 */
 	public static boolean shouldWrap(RequestPath path) {
+		if (path == null) {
+			return false;
+		}
 		for (PathPattern pathPattern : IGNORE_PATH_PATTERN) {
 			if (pathPattern.matches(path.pathWithinApplication())) {
 				return false;
