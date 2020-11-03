@@ -144,7 +144,7 @@ public class DataType {
 			return DT_Unknown;
 		}
 
-		return getDataType(obj.getClass().getName());
+		return getDataType(obj.getClass());
 	}
 
 	@SuppressWarnings("unchecked")
@@ -158,16 +158,11 @@ public class DataType {
 		if (cls.isEnum()) {
 			return DT_Enum;
 		}
-		return getDataType(cls.getName());
-	}
-
-	public static int getDataType(String typeName) {
-		typeName = toSimpleType(typeName);
+		String typeName = toSimpleType(cls.getName());
 
 		if (typeName.charAt(0) == '[') {
 			return DT_Array;
 		}
-
 		Integer iType = dataTypeMap.get(typeName);
 		return iType == null ? DT_UserDefine : iType;
 	}

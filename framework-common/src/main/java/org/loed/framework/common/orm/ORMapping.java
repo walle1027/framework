@@ -282,6 +282,7 @@ public class ORMapping {
 			switch (dataType) {
 				case DataType.DT_Byte:
 				case DataType.DT_short:
+				case DataType.DT_byte:
 					return JDBCType.TINYINT;
 				case DataType.DT_int:
 				case DataType.DT_Integer:
@@ -318,6 +319,7 @@ public class ORMapping {
 					}
 
 				case DataType.DT_Boolean:
+				case DataType.DT_boolean:
 					return JDBCType.TINYINT;
 				case DataType.DT_BigDecimal:
 					return JDBCType.DECIMAL;

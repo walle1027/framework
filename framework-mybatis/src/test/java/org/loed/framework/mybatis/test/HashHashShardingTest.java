@@ -1,18 +1,18 @@
 package org.loed.framework.mybatis.test;
 
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.loed.framework.common.query.Criteria;
+import org.loed.framework.common.query.PageRequest;
 import org.loed.framework.common.query.Pagination;
 import org.loed.framework.common.util.UUIDUtils;
 import org.loed.framework.mybatis.test.mapper.ShardingPOMapper;
 import org.loed.framework.mybatis.test.po.CommonPO;
 import org.loed.framework.mybatis.test.po.ShardingPO;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.math.BigDecimal;
