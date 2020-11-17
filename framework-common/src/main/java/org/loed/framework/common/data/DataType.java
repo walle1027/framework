@@ -143,7 +143,12 @@ public class DataType {
 		if (obj == null) {
 			return DT_Unknown;
 		}
-
+		if (obj.getClass().isEnum()) {
+			return DT_Enum;
+		}
+		if (obj.getClass().isArray()) {
+			return DT_Array;
+		}
 		return getDataType(obj.getClass());
 	}
 
@@ -255,8 +260,7 @@ public class DataType {
 	}
 
 	public static Object toType(Object value, int targetType) {
-		String fromType = value.getClass().getName();
-		int srcType = getDataType(fromType);
+		int srcType = getDataType(value);
 		return toType(value, srcType, targetType);
 	}
 
