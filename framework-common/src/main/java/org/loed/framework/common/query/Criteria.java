@@ -3,7 +3,6 @@ package org.loed.framework.common.query;
 import lombok.Data;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.loed.framework.common.lambda.CFunction;
 import org.loed.framework.common.lambda.LambdaUtils;
@@ -16,7 +15,6 @@ import javax.annotation.concurrent.NotThreadSafe;
 import javax.persistence.criteria.JoinType;
 import java.io.Serializable;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author thomason
@@ -27,7 +25,7 @@ import java.util.stream.Collectors;
 @ToString
 @Slf4j
 @NotThreadSafe
-public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
+public final class Criteria<T> implements Serializable/*,Copyable<Criteria<T>>*/ {
 	private PropertySelector selector;
 
 	private List<Condition> conditions;
@@ -49,15 +47,14 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 		if (functions == null || functions.length == 0) {
 			return this;
 		}
-		Criteria<T> criteria = this.copy();
-		if (criteria.selector == null) {
-			criteria.selector = new PropertySelector();
+		if (this.selector == null) {
+			this.selector = new PropertySelector();
 		}
 		for (SFunction<T, ?> function : functions) {
 			String prop = LambdaUtils.getPropFromLambda(function);
-			criteria.selector.include(prop);
+			this.selector.include(prop);
 		}
-		return criteria;
+		return this;
 	}
 
 	@SafeVarargs
@@ -65,36 +62,34 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 		if (cascadeProperties == null || cascadeProperties.length == 0) {
 			return this;
 		}
-		Criteria<T> criteria = this.copy();
-		if (criteria.selector == null) {
-			criteria.selector = new PropertySelector();
+		if (this.selector == null) {
+			this.selector = new PropertySelector();
 		}
 		for (CascadeProperty<T, ?> function : cascadeProperties) {
 			String joinProperty = function.joinProperty;
 			String cascadeProperty = function.cascadeProperty;
-			if (joinProperty != null && (criteria.joins == null || !criteria.joins.containsKey(joinProperty))) {
+			if (joinProperty != null && (this.joins == null || !this.joins.containsKey(joinProperty))) {
 				throw new RuntimeException("the cascade property :" + cascadeProperty + " has'nt joins,please add joins first");
 			}
-			criteria.selector.include(cascadeProperty);
+			this.selector.include(cascadeProperty);
 		}
-		return criteria;
+		return this;
 	}
-
 
 	@SafeVarargs
 	public final Criteria<T> excludes(SFunction<T, ?>... functions) {
 		if (functions == null || functions.length == 0) {
 			return this;
 		}
-		Criteria<T> criteria = this.copy();
-		if (criteria.selector == null) {
-			criteria.selector = new PropertySelector();
+//		Criteria<T> criteria = this.copy();
+		if (this.selector == null) {
+			this.selector = new PropertySelector();
 		}
 		for (SFunction<T, ?> function : functions) {
 			String prop = LambdaUtils.getPropFromLambda(function);
-			criteria.selector.exclude(prop);
+			this.selector.exclude(prop);
 		}
-		return criteria;
+		return this;
 	}
 
 	@SafeVarargs
@@ -102,19 +97,19 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 		if (cascadeProperties == null || cascadeProperties.length == 0) {
 			return this;
 		}
-		Criteria<T> criteria = this.copy();
-		if (criteria.selector == null) {
-			criteria.selector = new PropertySelector();
+//		Criteria<T> criteria = this.copy();
+		if (this.selector == null) {
+			this.selector = new PropertySelector();
 		}
 		for (CascadeProperty<T, ?> property : cascadeProperties) {
 			String joinProperty = property.joinProperty;
 			String cascadeProperty = property.cascadeProperty;
-			if (joinProperty != null && (criteria.joins == null || !criteria.joins.containsKey(joinProperty))) {
+			if (joinProperty != null && (this.joins == null || !this.joins.containsKey(joinProperty))) {
 				throw new RuntimeException("the cascade property :" + cascadeProperty + " has'nt joins,please add joins first");
 			}
-			criteria.selector.exclude(property.cascadeProperty);
+			this.selector.exclude(property.cascadeProperty);
 		}
-		return criteria;
+		return this;
 	}
 
 
@@ -144,13 +139,13 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 	}
 
 	private <S> JoinBuilder<T, S> joinBuilder(String prop, JoinType left) {
-		Criteria<T> criteria = this.copy();
+//		Criteria<T> criteria = this.copy();
 		Join join = new Join();
 		join.setTarget(prop);
 		join.setUniquePath(prop);
 		join.setJoinType(left);
-		criteria.join(join);
-		return new JoinBuilder<>(criteria, join);
+		this.join(join);
+		return new JoinBuilder<>(this, join);
 	}
 
 	public <R> ConditionSpec<T,R> where(SFunction<T, R> lambda) {
@@ -174,12 +169,12 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 		if (lambda == null || lambda.length == 0) {
 			return this;
 		}
-		Criteria<T> criteria = this.copy();
+//		Criteria<T> criteria = this.copy();
 		for (SFunction<T, ?> function : lambda) {
 			String prop = LambdaUtils.getPropFromLambda(function);
-			criteria.sort(new SortProperty(prop, Sort.ASC));
+			this.sort(new SortProperty(prop, Sort.ASC));
 		}
-		return criteria;
+		return this;
 	}
 
 	@SafeVarargs
@@ -187,16 +182,16 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 		if (cascadeProperties == null || cascadeProperties.length == 0) {
 			return this;
 		}
-		Criteria<T> criteria = this.copy();
+//		Criteria<T> criteria = this.copy();
 		for (CascadeProperty<T, ?> property : cascadeProperties) {
 			String joinProperty = property.joinProperty;
 			String cascadeProperty = property.cascadeProperty;
-			if (joinProperty != null && (criteria.joins == null || !criteria.joins.containsKey(joinProperty))) {
+			if (joinProperty != null && (this.joins == null || !this.joins.containsKey(joinProperty))) {
 				throw new RuntimeException("the cascade property :" + cascadeProperty + " has'nt joins,please add joins first");
 			}
-			criteria.sort(new SortProperty(property.cascadeProperty, Sort.ASC));
+			this.sort(new SortProperty(property.cascadeProperty, Sort.ASC));
 		}
-		return criteria;
+		return this;
 	}
 
 	@SafeVarargs
@@ -204,12 +199,12 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 		if (lambda == null || lambda.length == 0) {
 			return this;
 		}
-		Criteria<T> criteria = this.copy();
+//		Criteria<T> criteria = this.copy();
 		for (SFunction<T, ?> function : lambda) {
 			String prop = LambdaUtils.getPropFromLambda(function);
-			criteria.sort(new SortProperty(prop, Sort.DESC));
+			this.sort(new SortProperty(prop, Sort.DESC));
 		}
-		return criteria;
+		return this;
 	}
 
 	@SafeVarargs
@@ -217,16 +212,16 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 		if (cascadeProperties == null || cascadeProperties.length == 0) {
 			return this;
 		}
-		Criteria<T> criteria = this.copy();
+//		Criteria<T> criteria = this.copy();
 		for (CascadeProperty<T, ?> property : cascadeProperties) {
 			String joinProperty = property.joinProperty;
 			String cascadeProperty = property.cascadeProperty;
-			if (joinProperty != null && (criteria.joins == null || !criteria.joins.containsKey(joinProperty))) {
+			if (joinProperty != null && (this.joins == null || !this.joins.containsKey(joinProperty))) {
 				throw new RuntimeException("the cascade property :" + cascadeProperty + " has'nt joins,please add joins first");
 			}
-			criteria.sort(new SortProperty(cascadeProperty, Sort.DESC));
+			this.sort(new SortProperty(cascadeProperty, Sort.DESC));
 		}
-		return criteria;
+		return this;
 	}
 
 	private void sort(SortProperty sortProperty) {
@@ -263,25 +258,25 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 		}
 	}
 
-	@Override
-	public Criteria<T> copy(){
-		Criteria<T> criteria = new Criteria<>();
-		criteria.conditions = this.conditions.stream().map(Condition::copy).collect(Collectors.toList());
-		if (CollectionUtils.isNotEmpty(this.sortProperties)){
-			criteria.sortProperties = this.sortProperties.stream().map(SortProperty::copy).collect(Collectors.toList());;
-		}
-		if (this.selector != null){
-			criteria.selector = this.selector.copy();
-		}
-		if (this.joins != null && !this.joins.isEmpty()){
-			TreeMap<String,Join> map = new TreeMap<>();
-			for (Map.Entry<String, Join> entry : joins.entrySet()) {
-				map.put(entry.getKey(),entry.getValue().copy());
-			}
-			criteria.joins = map;
-		}
-		return criteria;
-	}
+//	@Override
+//	public Criteria<T> copy(){
+//		Criteria<T> criteria = new Criteria<>();
+//		criteria.conditions = this.conditions.stream().map(Condition::copy).collect(Collectors.toList());
+//		if (CollectionUtils.isNotEmpty(this.sortProperties)){
+//			criteria.sortProperties = this.sortProperties.stream().map(SortProperty::copy).collect(Collectors.toList());;
+//		}
+//		if (this.selector != null){
+//			criteria.selector = this.selector.copy();
+//		}
+//		if (this.joins != null && !this.joins.isEmpty()){
+//			TreeMap<String,Join> map = new TreeMap<>();
+//			for (Map.Entry<String, Join> entry : joins.entrySet()) {
+//				map.put(entry.getKey(),entry.getValue().copy());
+//			}
+//			criteria.joins = map;
+//		}
+//		return criteria;
+//	}
 
 	public static class JoinBuilder<T, R> {
 		private final Join join;
@@ -317,7 +312,7 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 		}
 
 		private <S> JoinBuilder<T, S> joinBuilder(String prop, JoinType inner) {
-			Criteria<T> criteria = this.criteria.copy();
+//			Criteria<T> criteria = this.criteria.copy();
 			Join join = new Join();
 			join.setJoinType(inner);
 			join.setTarget(prop);
@@ -341,7 +336,7 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 			if (lambda == null || lambda.length == 0) {
 				return this.criteria;
 			}
-			Criteria<T> criteria = this.criteria.copy();
+//			Criteria<T> criteria = this.criteria.copy();
 			for (SFunction<T, ?> function : lambda) {
 				String prop = LambdaUtils.getPropFromLambda(function);
 				String sortProp = this.join.getUniquePath() + Condition.PATH_SEPARATOR + prop;
@@ -355,7 +350,7 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 			if (lambda == null || lambda.length == 0) {
 				return this.criteria;
 			}
-			Criteria<T> criteria = this.criteria.copy();
+//			Criteria<T> criteria = this.criteria.copy();
 			for (SFunction<T, ?> function : lambda) {
 				String prop = LambdaUtils.getPropFromLambda(function);
 				String sortProp = this.join.getUniquePath() + Condition.PATH_SEPARATOR + prop;
@@ -392,7 +387,7 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 
 		public Criteria<T> beginWith(@NonNull R value) {
 			validateNonNull(value);
-			Criteria<T> criteria = this.criteria.copy();
+//			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.beginWith, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -401,7 +396,7 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 
 		public Criteria<T> notBeginWith(@NonNull R value) {
 			validateNonNull(value);
-			Criteria<T> criteria = this.criteria.copy();
+//			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.notBeginWith, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -410,7 +405,7 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 
 		public Criteria<T> contains(@NonNull R value) {
 			validateNonNull(value);
-			Criteria<T> criteria = this.criteria.copy();
+//			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.contains, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -419,7 +414,7 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 
 		public Criteria<T> notContains(@NonNull R value) {
 			validateNonNull(value);
-			Criteria<T> criteria = this.criteria.copy();
+//			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.notContains, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -428,7 +423,7 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 
 		public Criteria<T> endWith(@NonNull R value) {
 			validateNonNull(value);
-			Criteria<T> criteria = this.criteria.copy();
+//			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.endWith, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -437,7 +432,7 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 
 		public Criteria<T> notEndWith(@NonNull R value) {
 			validateNonNull(value);
-			Criteria<T> criteria = this.criteria.copy();
+//			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.notEndWith, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -447,7 +442,7 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 		public Criteria<T> between(@NonNull R start, @NonNull R end) {
 			validateNonNull(start);
 			validateNonNull(end);
-			Criteria<T> criteria = this.criteria.copy();
+//			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.between, new Object[]{start, end});
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -457,7 +452,7 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 		public Criteria<T> notBetween(@NonNull R start, @NonNull R end) {
 			validateNonNull(start);
 			validateNonNull(end);
-			Criteria<T> criteria = this.criteria.copy();
+//			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.notBetween, new Object[]{start, end});
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -465,7 +460,7 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 		}
 
 		public Criteria<T> blank() {
-			Criteria<T> criteria = this.criteria.copy();
+//			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.blank, null);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -473,7 +468,7 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 		}
 
 		public Criteria<T> notBlank() {
-			Criteria<T> criteria = this.criteria.copy();
+//			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.notBlank, null);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -482,7 +477,7 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 
 		public Criteria<T> is(@NonNull R value) {
 			validateNonNull(value);
-			Criteria<T> criteria = this.criteria.copy();
+//			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.equal, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -491,7 +486,7 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 
 		public Criteria<T> isNot(@NonNull R value) {
 			validateNonNull(value);
-			Criteria<T> criteria = this.criteria.copy();
+//			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.notEqual, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -500,7 +495,7 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 
 		public Criteria<T> greaterThan(@NonNull R value) {
 			validateNonNull(value);
-			Criteria<T> criteria = this.criteria.copy();
+//			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.greaterThan, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -509,7 +504,7 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 
 		public Criteria<T> greaterEqual(@NonNull R value) {
 			validateNonNull(value);
-			Criteria<T> criteria = this.criteria.copy();
+//			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.greaterEqual, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -518,7 +513,7 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 
 		public Criteria<T> lessEqual(@NonNull R value) {
 			validateNonNull(value);
-			Criteria<T> criteria = this.criteria.copy();
+//			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.lessEqual, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -527,7 +522,7 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 
 		public Criteria<T> lessThan(@NonNull R value) {
 			validateNonNull(value);
-			Criteria<T> criteria = this.criteria.copy();
+//			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.lessThan, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -535,7 +530,7 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 		}
 
 		public Criteria<T> isNull() {
-			Criteria<T> criteria = this.criteria.copy();
+//			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.isNull, null);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -543,7 +538,7 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 		}
 
 		public Criteria<T> isNotNull() {
-			Criteria<T> criteria = this.criteria.copy();
+//			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.isNotNull, null);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -552,7 +547,7 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 
 		public Criteria<T> in(@NonNull Collection<R> values) {
 			validateNonNull(values);
-			Criteria<T> criteria = this.criteria.copy();
+//			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.in, values);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -561,7 +556,7 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 
 		public Criteria<T> in(@NonNull R[] values) {
 			validateNonNull(values);
-			Criteria<T> criteria = this.criteria.copy();
+//			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.in, values);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -570,7 +565,7 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 
 		public Criteria<T> notIn(@NonNull Collection<R> values) {
 			validateNonNull(values);
-			Criteria<T> criteria = this.criteria.copy();
+//			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.notIn, values);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -579,7 +574,7 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 
 		public Criteria<T> notIn(@NonNull R[] values) {
 			validateNonNull(values);
-			Criteria<T> criteria = this.criteria.copy();
+//			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.notIn, values);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -588,7 +583,7 @@ public final class Criteria<T> implements Serializable,Copyable<Criteria<T>> {
 
 		public Criteria<T> custom(@NonNull String value) {
 			validateNonNull(value);
-			Criteria<T> criteria = this.criteria.copy();
+//			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.custom, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);

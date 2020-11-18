@@ -14,6 +14,7 @@ public interface ConfigureConstant {
 
 	//********************SOA namespace**********************//
 	String soa_ns = default_ns + dot + "soa";
+	String MYBATIS_NS = default_ns + dot + "mybatis";
 
 	//********************datasource namespace****************//
 	String datasource_ns = default_ns + dot + "datasource";

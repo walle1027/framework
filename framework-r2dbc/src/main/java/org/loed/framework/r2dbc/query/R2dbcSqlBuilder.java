@@ -45,12 +45,13 @@ public interface R2dbcSqlBuilder {
 	/**
 	 * 构造一个基于r2dbc的更新语句
 	 *
-	 * @param entity     对象
-	 * @param conditions 动态更新条件
-	 * @param predicate  列过滤器
+	 * @param entity       对象
+	 * @param table        对象元信息
+	 * @param conditions   更新条件
+	 * @param columnFilter 列过滤器
 	 * @return 更新语句及参数
 	 */
-	R2dbcQuery update(@NonNull Object entity, @NonNull List<Condition> conditions, @NonNull Predicate<Column> predicate);
+	R2dbcQuery update(@NonNull Object entity, @NonNull Table table, @NonNull List<Condition> conditions, @NonNull Predicate<Column> columnFilter);
 
 	/**
 	 * 按照动态条件构建一个删除对象的语句
@@ -174,9 +175,9 @@ public interface R2dbcSqlBuilder {
 	}
 
 	/**
-	 * 获取表名的别名
+	 * 对目标表做 别名
 	 *
-	 * @param tableName 表名
+	 * @param tableName 表名称
 	 * @param counter   计数器
 	 * @return 表别名
 	 */

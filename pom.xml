@@ -66,6 +66,19 @@
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
+	<distributionManagement>
+		<snapshotRepository>
+			<uniqueVersion>false</uniqueVersion>
+			<id>snapshots</id>
+			<name>Snapshots Repository</name>
+			<url>${snapshot.deployUrl}</url>
+			<layout>default</layout>
+		</snapshotRepository>
+		<repository>
+			<id>releases</id>
+			<url>${release.deployUrl}</url>
+		</repository>
+	</distributionManagement>
 	<build>
 		<plugins>
 			<plugin>

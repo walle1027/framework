@@ -1,13 +1,5 @@
 package org.loed.framework.mybatis.interceptor.impl;
 
-import org.loed.framework.common.ServiceLocator;
-import org.loed.framework.common.orm.Column;
-import org.loed.framework.common.orm.Table;
-import org.loed.framework.common.util.ReflectionUtils;
-import org.loed.framework.mybatis.BatchOperationException;
-import org.loed.framework.mybatis.BatchType;
-import org.loed.framework.mybatis.sharding.ShardingManager;
-import org.loed.framework.mybatis.sharding.table.po.IdMapping;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.ibatis.executor.Executor;
@@ -15,13 +7,24 @@ import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.plugin.Intercepts;
 import org.apache.ibatis.plugin.Invocation;
 import org.apache.ibatis.plugin.Signature;
+import org.loed.framework.common.ServiceLocator;
+import org.loed.framework.common.context.SystemContextHolder;
+import org.loed.framework.common.data.DataType;
+import org.loed.framework.common.orm.Column;
+import org.loed.framework.common.orm.Filters;
+import org.loed.framework.common.orm.Table;
+import org.loed.framework.common.query.QueryBuilder;
+import org.loed.framework.common.util.ReflectionUtils;
+import org.loed.framework.mybatis.BatchOperationException;
+import org.loed.framework.mybatis.BatchType;
+import org.loed.framework.mybatis.sharding.ShardingManager;
+import org.loed.framework.mybatis.sharding.table.po.IdMapping;
 
 import javax.persistence.GenerationType;
 import java.io.Serializable;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -143,7 +146,7 @@ public class SimpleBatchInterceptor extends BaseBatchInterceptor {
 	}
 
 	@Override
-	protected int doBatchUpdateSelective(Executor executor, List<Object> poList, Table table, Predicate<Column> predicate) throws SQLException {
+	protected int doBatchUpdateDynamically(Executor executor, List<Object> poList, Table table, Predicate<Column> predicate) throws SQLException {
 		Column idColumn = table.getColumns().stream().filter(Column::isPk).findFirst().orElse(null);
 		if (idColumn == null) {
 			throw new RuntimeException("entity class : " + table.getJavaName() + " has no id column");
@@ -169,11 +172,11 @@ public class SimpleBatchInterceptor extends BaseBatchInterceptor {
 				String tableName = entry.getKey();
 				List<Serializable> values = entry.getValue();
 				List<Object> oneTableBatchList = values.stream().map(objectMap::get).collect(Collectors.toList());
-				total += doOneTableUpdateSelective(executor, oneTableBatchList, table, tableName, predicate);
+				total += doOneTableBatchUpdateDynamically(executor, oneTableBatchList, table, tableName, predicate);
 			}
 			return total;
 		} else {
-			return doOneTableUpdateSelective(executor, poList, table, table.getSqlName(), predicate);
+			return doOneTableBatchUpdateDynamically(executor, poList, table, table.getSqlName(), predicate);
 		}
 	}
 
@@ -212,7 +215,7 @@ public class SimpleBatchInterceptor extends BaseBatchInterceptor {
 		}
 	}
 
-	private int doOneTableUpdateSelective(Executor executor, List<Object> poList, Table table, String tableName, Predicate<Column> predicate) throws SQLException {
+	private int doOneTableBatchUpdateDynamically(Executor executor, List<Object> poList, Table table, String tableName, Predicate<Column> predicate) throws SQLException {
 		StringBuilder builder = new StringBuilder((table.getColumns().size() * 20 + 3) * batchSize * 3); //random guess, better than nothing
 		List<List<Object>> batches = sliceBatch(poList, batchSize);
 		Connection conn = executor.getTransaction().getConnection();
@@ -226,7 +229,8 @@ public class SimpleBatchInterceptor extends BaseBatchInterceptor {
 							throw new BatchOperationException("pk property:" + column.getJavaName() + " is null when update");
 						}
 					});
-					String sql = buildUpdateSelective(table.getColumns(), builder, tableName, object, table, predicate);
+					Filters.NonBlankFilter nonBlankFilter = new Filters.NonBlankFilter(object);
+					String sql = buildDynamicUpdateSql(builder, tableName, object, table, nonBlankFilter.and(predicate));
 					if (logger.isDebugEnabled()) {
 						logger.debug("simple batch update selective {} ", sql);
 					}
@@ -242,27 +246,91 @@ public class SimpleBatchInterceptor extends BaseBatchInterceptor {
 
 
 	private int doOneTableUpdate(Executor executor, List<Object> poList, Table table, String tableName, Predicate<Column> predicate) throws SQLException {
-		StringBuilder builder = new StringBuilder((table.getColumns().size() * 20 + 3) * batchSize * 3); //random guess, better than nothing
 		List<List<Object>> batches = sliceBatch(poList, batchSize);
 		Connection conn = executor.getTransaction().getConnection();
 		int rows = 0;
+		QueryBuilder queryBuilder = new QueryBuilder();
+		queryBuilder.update(tableName);
+		List<Column> updateColumns = table.getColumns().stream().filter(predicate.or(Filters.ALWAYS_UPDATE_FILTER)).collect(Collectors.toList());
+		updateColumns.forEach(column -> {
+			if (column.isVersioned()) {
+				queryBuilder.set(column.getSqlName() + " = " + column.getSqlName() + " + 1 ");
+			} else {
+				queryBuilder.set(column.getSqlName() + " = ?");
+			}
+		});
+		Column idColumn = table.getColumns().stream().filter(Column::isPk).findFirst().get();
+		queryBuilder.where(idColumn.getSqlName() + " =  ?");
+		Optional<Column> isDeletedColumn = table.getColumns().stream().filter(Column::isDeleted).findAny();
+		isDeletedColumn.ifPresent(column -> {
+			queryBuilder.where("and " + column.getSqlName() + " = ?");
+		});
+		Optional<Column> tenantIdColumn = table.getColumns().stream().filter(Column::isTenantId).findAny();
+		tenantIdColumn.ifPresent(column -> {
+			queryBuilder.where("and " + column.getSqlName() + " = ?");
+		});
+		AtomicInteger i = new AtomicInteger(0);
 		for (List<?> batch : batches) {
-			try (Statement statement = conn.createStatement()) {
+			try (PreparedStatement ps = conn.prepareStatement(queryBuilder.toString())) {
 				for (Object po : batch) {
-					table.getColumns().stream().filter(Column::isPk).forEach(column -> {
-						Object fieldValue = ReflectionUtils.getFieldValue(po, column.getJavaName());
-						if (fieldValue == null) {
-							throw new BatchOperationException("pk property:" + column.getJavaName() + " of class:" + table.getJavaName() + " is null when update");
+					i.set(1);
+					updateColumns.forEach(column -> {
+						//version column needn't set parameter
+						if (column.isVersioned()) {
+							return;
+						}
+						int dataType = DataType.getDataType(column.getJavaType());
+						Object value = ReflectionUtils.getFieldValue(po, column.getJavaName());
+						try {
+							if ((DataType.DT_Boolean == dataType || DataType.DT_boolean == dataType)
+									&& JDBCType.INTEGER.getVendorTypeNumber() == column.getSqlType()) {
+								Boolean booleanValue = (Boolean) DataType.toType(value, DataType.DT_Boolean);
+								if (booleanValue != null) {
+									ps.setObject(i.getAndIncrement(), booleanValue ? 1 : 0, column.getSqlType());
+								} else {
+									ps.setObject(i.getAndIncrement(), null, column.getSqlType());
+								}
+							} else {
+								ps.setObject(i.getAndIncrement(), value, column.getSqlType());
+							}
+						} catch (SQLException sqlException) {
+							logger.error("error set parameter(name=" + column.getJavaName() + ",value=" + value + ",caused by:" + sqlException.getSQLState(), sqlException);
 						}
 					});
-					String sql = buildUpdate(table.getColumns(), builder, tableName, po, table, predicate);
-					if (logger.isDebugEnabled()) {
-						logger.debug("simple batch update selective {} ", sql);
+					Object value = ReflectionUtils.getFieldValue(po, idColumn.getJavaName());
+					if (value == null) {
+						throw new BatchOperationException("pk property:" + idColumn.getJavaName() + " of class:" + table.getJavaName() + " is null when update");
 					}
-					builder.setLength(0);
-					statement.addBatch(sql);
+					try {
+						ps.setObject(i.getAndIncrement(), value, idColumn.getSqlType());
+					} catch (SQLException sqlException) {
+						logger.error("error set parameter(name=" + idColumn.getJavaName() + ",value=" + value + ",caused by:" + sqlException.getSQLState(), sqlException);
+					}
+					isDeletedColumn.ifPresent(column -> {
+						try {
+							Class<?> javaType = column.getJavaType();
+							if (javaType.getName().equals(Integer.class.getName()) || javaType.getName().equals(int.class.getName())) {
+								ps.setInt(i.getAndIncrement(), 0);
+							} else if (javaType.getName().equals(Byte.class.getName()) || javaType.getName().equals(byte.class.getName())) {
+								ps.setByte(i.getAndIncrement(), (byte) 0);
+							} else if (javaType.getName().equals(Short.class.getName()) || javaType.getName().equals(short.class.getName())) {
+								ps.setShort(i.getAndIncrement(), (short) 0);
+							}
+						} catch (SQLException sqlException) {
+							logger.error("error set parameter(name=" + column.getJavaName() + ",value=" + 0 + ",caused by:" + sqlException.getSQLState(), sqlException);
+						}
+					});
+					tenantIdColumn.ifPresent(column -> {
+						String tenantId = SystemContextHolder.getTenantId();
+						try {
+							ps.setString(i.getAndIncrement(), tenantId);
+						} catch (SQLException sqlException) {
+							logger.error("error set parameter(name=" + column.getJavaName() + ",value=" + tenantId + ",caused by:" + sqlException.getSQLState(), sqlException);
+						}
+					});
+					ps.addBatch();
 				}
-				int[] ints = statement.executeBatch();
+				int[] ints = ps.executeBatch();
 				rows = rows + Arrays.stream(ints).sum();
 			}
 		}
@@ -276,9 +344,9 @@ public class SimpleBatchInterceptor extends BaseBatchInterceptor {
 		switch (batchType) {
 			case BatchInsert:
 				return true;
-			case BatchUpdateSelective:
+			case BatchUpdateDynamically:
 				return true;
-			case BatchUpdate:
+			case BatchUpdateFixed:
 				return true;
 			case None:
 			default:

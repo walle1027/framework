@@ -817,13 +817,13 @@ public class MybatisSqlBuilder {
 //		builder.deleteCharAt(builder.length() - 1);
 //	}
 
-	public String shardingGetList(@Param("idList") List<Serializable> idList, @Param("clazz") Class<?> clazz) {
-		return BatchType.BatchGetList.name();
-	}
+//	public String shardingGetList(@Param("idList") List<Serializable> idList, @Param("clazz") Class<?> clazz) {
+//		return BatchType.BatchGetList.name();
+//	}
 
-	public String shardingGetByIdList(@Param("idList") List<Serializable> idList, @Param("clazz") Class<?> clazz) {
-		return BatchType.BatchGetByIdList.name();
-	}
+//	public String shardingGetByIdList(@Param("idList") List<Serializable> idList, @Param("clazz") Class<?> clazz) {
+//		return BatchType.BatchGetByIdList.name();
+//	}
 
 	private String getTableNameById(Table table, Serializable idValue) {
 		if (!table.isSharding()) {

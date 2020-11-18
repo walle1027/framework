@@ -3,7 +3,7 @@ package org.loed.framework.mybatis;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.ibatis.annotations.*;
+import org.apache.ibatis.annotations.Param;
 import org.loed.framework.common.context.SystemContextHolder;
 import org.loed.framework.common.lambda.LambdaUtils;
 import org.loed.framework.common.lambda.SFunction;
@@ -15,6 +15,8 @@ import org.loed.framework.common.query.*;
 import org.loed.framework.common.util.ReflectionUtils;
 import org.loed.framework.mybatis.listener.MybatisListenerContainer;
 import org.loed.framework.mybatis.listener.spi.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.lang.reflect.ParameterizedType;
@@ -30,9 +32,8 @@ import java.util.stream.Collectors;
  * @since 2017/8/2 下午3:45
  */
 @SuppressWarnings({"unchecked", "Duplicates"})
-public interface BaseMapper<T, ID extends Serializable> {
-	String INSERT = "org.loed.framework.mybatis.insert";
-	String BATCH_INSERT = "org.loed.framework.mybatis.batchInsert";
+public interface BaseMapper<T, ID extends Serializable> extends MybatisOperations<T> {
+	Logger logger = LoggerFactory.getLogger(BaseMapper.class);
 
 	/*******************************插入方法********************************/
 	default int insert(T po) {
@@ -54,13 +55,6 @@ public interface BaseMapper<T, ID extends Serializable> {
 		}
 		return rows;
 	}
-
-	@Insert(INSERT)
-	int _insert(T po);
-
-	/*******************************批量插入方法********************************/
-	@Insert(BATCH_INSERT)
-	int _batchInsert(@Param("list") List<T> poList, @Param("map") Map<String, Object> map);
 
 	default int batchInsert(@Param("list") List<T> poList) {
 		if (poList == null || poList.size() == 0) {
@@ -85,31 +79,17 @@ public interface BaseMapper<T, ID extends Serializable> {
 		return rows;
 	}
 
-	/*******************************全部更新方法********************************/
-	@UpdateProvider(type = MybatisSqlBuilder.class, method = "update")
-	int _update(@Param("po") T po, @Param("columnFilter") Predicate<Column> predicate);
-
 	default int _update(T po, Predicate<Column> predicate, List<Condition> conditions) {
-		List<PreUpdateListener> preUpdateListeners = MybatisListenerContainer.getPreUpdateListeners();
-		//pre update listener 处理
-		if (CollectionUtils.isNotEmpty(preUpdateListeners)) {
-			for (PreUpdateListener preInsertListener : preUpdateListeners) {
-				boolean execute = preInsertListener.preUpdate(po);
-				if (!execute) {
-					return 0;
-				}
-			}
+		boolean b = _preUpdate(Collections.singletonList(po));
+		if (!b) {
+			logger.warn("preupdate false ,will not update");
+			return 0;
 		}
-		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
-		//add common conditions
 
 		int rows = _update(po, predicate.and(Filters.UPDATABLE_FILTER));
 
 		//post update listener 处理
-		List<PostUpdateListener> postUpdateListeners = MybatisListenerContainer.getPostUpdateListeners();
-		if (CollectionUtils.isNotEmpty(postUpdateListeners)) {
-			postUpdateListeners.forEach(postUpdateListener -> postUpdateListener.postUpdate(po));
-		}
+		_postUpdate(Collections.singletonList(po));
 		return rows;
 	}
 
@@ -145,9 +125,8 @@ public interface BaseMapper<T, ID extends Serializable> {
 		}
 		List<Condition> conditions = new ArrayList<>();
 		conditions.add(new Condition(id.getJavaName(), Operator.equal, idValue));
-
 		List<String> includes = Arrays.stream(props).map(LambdaUtils::getPropFromLambda).collect(Collectors.toList());
-		Predicate<Column>  predicate = new Filters.IncludeFilter(includes);
+		Predicate<Column> predicate = new Filters.IncludeFilter(includes);
 		return _update(po, predicate, conditions);
 	}
 
@@ -213,8 +192,14 @@ public interface BaseMapper<T, ID extends Serializable> {
 		if (poList == null || poList.size() == 0) {
 			return 0;
 		}
-
-		return _batchUpdate(poList, Filters.ALWAYS_TRUE_FILTER);
+		boolean b = _preUpdate(poList);
+		if (!b) {
+			logger.warn("empty rows to update");
+			return 0;
+		}
+		int i = _batchUpdate(poList, Filters.ALWAYS_TRUE_FILTER.and(Filters.UPDATABLE_FILTER));
+		_postUpdate(poList);
+		return i;
 	}
 
 	default int batchUpdateWith(List<T> poList, SFunction<T, ?>... props) {
@@ -225,61 +210,62 @@ public interface BaseMapper<T, ID extends Serializable> {
 			return 0;
 		}
 		List<String> includes = Arrays.stream(props).map(LambdaUtils::getPropFromLambda).collect(Collectors.toList());
-		return _batchUpdate(poList, new Filters.IncludeFilter(includes));
+		boolean b = _preUpdate(poList);
+		if (!b) {
+			logger.warn("empty rows to update");
+			return 0;
+		}
+		int i = _batchUpdate(poList, new Filters.IncludeFilter(includes).and(Filters.UPDATABLE_FILTER));
+		_postUpdate(poList);
+		return i;
 	}
 
 	default int batchUpdateWithOut(List<T> poList, SFunction<T, ?>... props) {
 		if (poList == null || poList.size() == 0) {
 			return 0;
 		}
+		Predicate<Column> predicate = null;
 		if (props != null && props.length > 0) {
 			List<String> includes = Arrays.stream(props).map(LambdaUtils::getPropFromLambda).collect(Collectors.toList());
-			return _batchUpdate(poList, new Filters.ExcludeFilter(includes));
+			predicate = new Filters.ExcludeFilter(includes);
 		} else {
-			return _batchUpdate(poList, Filters.ALWAYS_TRUE_FILTER);
+			predicate = Filters.ALWAYS_TRUE_FILTER;
 		}
+		boolean b = _preUpdate(poList);
+		if (!b) {
+			logger.warn("empty rows to update");
+			return 0;
+		}
+		int i = _batchUpdate(poList, predicate.and(Filters.UPDATABLE_FILTER));
+		_postUpdate(poList);
+		return i;
 	}
 
 	default int batchUpdateNonBlank(List<T> poList) {
 		if (poList == null || poList.size() == 0) {
 			return 0;
 		}
-		List<PreUpdateListener> preUpdateListeners = MybatisListenerContainer.getPreUpdateListeners();
-		//pre update listener 处理
-		if (CollectionUtils.isNotEmpty(preUpdateListeners)) {
-			for (PreUpdateListener preInsertListener : preUpdateListeners) {
-				boolean result = true;
-				for (T t : poList) {
-					boolean execute = preInsertListener.preUpdate(t);
-					result = result && execute;
-				}
-				if (!result) {
-					return 0;
-				}
-			}
+		boolean b = _preUpdate(poList);
+		if (!b) {
+			logger.warn("empty rows to update");
+			return 0;
 		}
 
-		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
-
-		int rows = 0;
-		for (T t : poList) {
-			rows += _update(t, new Filters.NonBlankFilter(t).and(Filters.UPDATABLE_FILTER));
-		}
+		int rows = _batchUpdateNonBlank(poList, Filters.UPDATABLE_FILTER);
 
 		//post insert listener 处理
-		List<PostUpdateListener> postUpdateListeners = MybatisListenerContainer.getPostUpdateListeners();
-		if (CollectionUtils.isNotEmpty(postUpdateListeners)) {
-			postUpdateListeners.forEach(postUpdateListener -> poList.forEach(postUpdateListener::postUpdate));
-		}
+		_postUpdate(poList);
 		return rows;
 	}
 
-	default int _batchUpdate(List<T> poList, Predicate<Column> predicate) {
-		if (poList == null || poList.size() == 0) {
-			return 0;
-		}
+//	@Update(BATCH_UPDATE_FIXED)
+//	int _batchUpdate(@Param("list") List<T> poList, @Param("predicate") Predicate<Column> predicate);
+//
+//	@Update(BATCH_UPDATE_DYNAMICALLY)
+//	int _batchUpdateNonBlank(@Param("list") List<T> poList, @Param("predicate") Predicate<Column> predicate);
+
+	default boolean _preUpdate(List<T> poList) {
 		List<PreUpdateListener> preUpdateListeners = MybatisListenerContainer.getPreUpdateListeners();
-		//pre update listener 处理
 		if (CollectionUtils.isNotEmpty(preUpdateListeners)) {
 			for (PreUpdateListener preInsertListener : preUpdateListeners) {
 				boolean result = true;
@@ -288,24 +274,26 @@ public interface BaseMapper<T, ID extends Serializable> {
 					result = result && execute;
 				}
 				if (!result) {
-					return 0;
+					return false;
 				}
 			}
 		}
+		return true;
+	}
 
-		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
+	;
 
-		int rows = 0;
-		for (T t : poList) {
-			rows += _update(t, predicate.and(Filters.UPDATABLE_FILTER));
-		}
-
-		//post insert listener 处理
+	default void _postUpdate(List<T> poList) {
 		List<PostUpdateListener> postUpdateListeners = MybatisListenerContainer.getPostUpdateListeners();
 		if (CollectionUtils.isNotEmpty(postUpdateListeners)) {
-			postUpdateListeners.forEach(postUpdateListener -> poList.forEach(postUpdateListener::postUpdate));
+			for (PostUpdateListener preInsertListener : postUpdateListeners) {
+				boolean result = true;
+				for (T t : poList) {
+					preInsertListener.postUpdate(t);
+				}
+
+			}
 		}
-		return rows;
 	}
 
 	/**
@@ -370,20 +358,26 @@ public interface BaseMapper<T, ID extends Serializable> {
 //		return _findByCriteria(entityClass, criteria, new HashMap<>());
 //	}
 
-	/*******************************按照查询条件删除********************************/
-	@DeleteProvider(type = MybatisSqlBuilder.class, method = "deleteByCriteria")
-	int _deleteByCriteria(@Param("clazz") Class<T> clazz, @Param("criteria") Criteria<T> criteria, @Param("map") Map<String, Object> map);
-
 	default int delete(Criteria<T> criteria) {
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
-		Criteria<T> copy = criteria.copy();
-		List<Condition> conditions = _mergeWithCommonConditions(copy.getConditions());
-		copy.setConditions(conditions);
-		return _deleteByCriteria(entityClass, copy, new HashMap<>());
+		List<Condition> conditions = _mergeWithCommonConditions(criteria.getConditions());
+		criteria.setConditions(conditions);
+		return _deleteByCriteria(entityClass, criteria, new HashMap<>());
 	}
 
 	default T get(ID id) {
 		return findOne(_fromId(id));
+	}
+
+	default T getById(ID id) {
+		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
+		List<T> list = _findByCriteria(entityClass, _fromId(id), new HashMap<>());
+		return list.size() == 0 ? null : list.get(0);
+	}
+
+	default int deleteById(ID id) {
+		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
+		return _deleteByCriteria(entityClass, _fromId(id), new HashMap<>());
 	}
 
 	default <R> List<T> find(SFunction<T, R> propName, R propValue) {
@@ -398,16 +392,12 @@ public interface BaseMapper<T, ID extends Serializable> {
 		return findOne(criteria.and(propName).is(propValue));
 	}
 
-	/********************************对象查询方法****************************/
-	@SelectProvider(type = MybatisSqlBuilder.class, method = "findByCriteria")
-	List<T> _findByCriteria(@Param("clazz") Class<T> clazz, @Param("criteria") Criteria<T> criteria, @Param("map") Map<String, Object> map);
 
 	default List<T> find(Criteria<T> criteria) {
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
-		Criteria<T> copy = criteria.copy();
-		List<Condition> conditions = _mergeWithCommonConditions(copy.getConditions());
-		copy.setConditions(conditions);
-		return _findByCriteria(entityClass, copy, new HashMap<>());
+		List<Condition> conditions = _mergeWithCommonConditions(criteria.getConditions());
+		criteria.setConditions(conditions);
+		return _findByCriteria(entityClass, criteria, new HashMap<>());
 	}
 
 	default T findOne(Criteria<T> criteria) {
@@ -424,7 +414,11 @@ public interface BaseMapper<T, ID extends Serializable> {
 	 */
 	default Pagination<T> findPage(PageRequest request, Criteria<T> criteria) {
 		if (request.isPaging()) {
-			PageHelper.startPage(request.getPageNumber() + 1, request.getPageSize());
+			if (request.isCounting()) {
+				PageHelper.startPage(request.getPageNumber(), request.getPageSize(), true);
+			} else {
+				PageHelper.startPage(request.getPageNumber(), request.getPageSize(), false);
+			}
 		}
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
 		List<T> list = this.find(criteria == null ? Criteria.from(entityClass) : criteria);
@@ -437,15 +431,11 @@ public interface BaseMapper<T, ID extends Serializable> {
 		return response;
 	}
 
-	@SelectProvider(type = MybatisSqlBuilder.class, method = "countByCriteria")
-	Long _countByCriteria(@Param("clazz") Class<T> clazz, @Param("criteria") Criteria<T> criteria, @Param("map") Map<String, Object> map);
-
 	default Long count(Criteria<T> criteria) {
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
-		Criteria<T> copy = criteria.copy();
-		List<Condition> conditions = _mergeWithCommonConditions(copy.getConditions());
-		copy.setConditions(conditions);
-		return _countByCriteria(entityClass, copy, new HashMap<>());
+		List<Condition> conditions = _mergeWithCommonConditions(criteria.getConditions());
+		criteria.setConditions(conditions);
+		return _countByCriteria(entityClass, criteria, new HashMap<>());
 	}
 
 	default <R> boolean checkRepeat(ID id, SFunction<T, R> lambda, R propValue) {
@@ -468,15 +458,10 @@ public interface BaseMapper<T, ID extends Serializable> {
 		return count > 0;
 	}
 
-	@UpdateProvider(type = MybatisSqlBuilder.class, method = "sql")
-	int _execute(@Param("sql") String sql, @Param("params") Map<String, Object> params);
-
 	default int execute(String sql, Map<String, Object> params) {
 		return _execute(sql, params);
 	}
 
-	@SelectProvider(type = MybatisSqlBuilder.class, method = "sql")
-	List<Map<String, Object>> _query(@Param("sql") String sql, @Param("params") Map<String, Object> params);
 
 	default List<Map<String, Object>> query(String sql, Map<String, Object> params) {
 		return _query(sql, params);
