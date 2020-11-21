@@ -38,6 +38,10 @@ public final class Criteria<T> implements Serializable, Copyable<Criteria<T>> {
 
 	private final boolean lenient;
 
+	public static <S> Criteria<S> empty() {
+		return new Criteria<>(false);
+	}
+
 	public static <S> Criteria<S> from(Class<S> clazz) {
 		return new Criteria<>(false);
 	}
@@ -365,6 +369,10 @@ public final class Criteria<T> implements Serializable, Copyable<Criteria<T>> {
 				String sortProp = this.join.getUniquePath() + Condition.PATH_SEPARATOR + prop;
 				criteria.sort(new SortProperty(sortProp, Sort.DESC));
 			}
+			return criteria;
+		}
+
+		public final Criteria<T> then() {
 			return criteria;
 		}
 	}
