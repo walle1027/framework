@@ -1,15 +1,15 @@
 package org.loed.framework.mybatis;
 
+import org.apache.ibatis.mapping.BoundSql;
+import org.apache.ibatis.mapping.MappedStatement;
+import org.apache.ibatis.mapping.SqlSource;
+import org.apache.ibatis.plugin.Invocation;
 import org.loed.framework.common.data.DataType;
 import org.loed.framework.common.orm.Column;
 import org.loed.framework.common.orm.Filters;
 import org.loed.framework.common.orm.Table;
 import org.loed.framework.common.util.ReflectionUtils;
 import org.loed.framework.common.util.StringHelper;
-import org.apache.ibatis.mapping.BoundSql;
-import org.apache.ibatis.mapping.MappedStatement;
-import org.apache.ibatis.mapping.SqlSource;
-import org.apache.ibatis.plugin.Invocation;
 
 import javax.persistence.GenerationType;
 import java.io.StringReader;
@@ -23,7 +23,6 @@ import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
 
 /**
  * @author thomason
@@ -59,6 +58,10 @@ public interface BatchOperation {
 		try {
 			if (BaseMapper.BATCH_INSERT.equals(sql)) {
 				return BatchType.BatchInsert;
+			} else if (BaseMapper.BATCH_UPDATE_FIXED.equals(sql)) {
+				return BatchType.BatchUpdateFixed;
+			} else if (BaseMapper.BATCH_UPDATE_DYNAMICALLY.equals(sql)) {
+				return BatchType.BatchUpdateDynamically;
 			}
 			return BatchType.valueOf(sql);
 		} catch (IllegalArgumentException ex) {
@@ -133,8 +136,8 @@ public interface BatchOperation {
 		ps.addBatch();
 	}
 
-	default String buildUpdateSelective(List<Column> columns, StringBuilder builder, String tableSqlName,
-	                                    Object po, Table table, Predicate<Column> predicate) {
+	default String buildDynamicUpdateSql(StringBuilder builder, String tableSqlName,
+	                                     Object po, Table table, Predicate<Column> predicate) {
 		builder.append("update")
 				.append(MybatisSqlBuilder.BLANK)
 				.append(tableSqlName)
@@ -156,39 +159,6 @@ public interface BatchOperation {
 		builder.append(set);
 		builder.append(MybatisSqlBuilder.BLANK).append("where").append(MybatisSqlBuilder.BLANK);
 
-		AtomicInteger pkIndex = new AtomicInteger(0);
-		table.getColumns().stream().filter(Column::isPk).forEach(column -> {
-			if (pkIndex.get() > 0) {
-				builder.append(MybatisSqlBuilder.BLANK).append("and").append(MybatisSqlBuilder.BLANK);
-			}
-			Object fieldValue = ReflectionUtils.getFieldValue(po, column.getJavaName());
-			builder.append(column.getSqlName()).append("='").append(fieldValue).append("'").append(MybatisSqlBuilder.BLANK);
-			pkIndex.getAndIncrement();
-		});
-		return builder.toString();
-	}
-
-	default String buildUpdate(List<Column> columns, StringBuilder builder, String tableSqlName,
-	                           Object po, Table table, Predicate<Column> predicate) {
-		builder.append("update")
-				.append(MybatisSqlBuilder.BLANK)
-				.append(tableSqlName)
-				.append(MybatisSqlBuilder.BLANK)
-				.append("set").append(MybatisSqlBuilder.BLANK);
-		Predicate<Column> filter = predicate == null ? Filters.UPDATABLE_FILTER : predicate.and(Filters.UPDATABLE_FILTER);
-		String set = table.getColumns().stream().filter(filter.or(Filters.ALWAYS_UPDATE_FILTER)).map(column -> {
-			StringBuilder setBuilder = new StringBuilder();
-			if (column.isVersioned()) {
-				setBuilder.append(column.getSqlName()).append(MybatisSqlBuilder.BLANK).append("=").append(MybatisSqlBuilder.BLANK)
-						.append(column.getSqlName()).append(" + 1").append(MybatisSqlBuilder.BLANK);
-			} else {
-				Object fieldValue = ReflectionUtils.getFieldValue(po, column.getJavaName());
-				setBuilder.append(MybatisSqlBuilder.BLANK);
-				setBuilder.append(column.getSqlName()).append("=").append(getSqlForVal(fieldValue, column)).append(MybatisSqlBuilder.BLANK);
-			}
-			return setBuilder.toString();
-		}).collect(Collectors.joining(","));
-		builder.append(set).append(MybatisSqlBuilder.BLANK).append("where").append(MybatisSqlBuilder.BLANK);
 		AtomicInteger pkIndex = new AtomicInteger(0);
 		table.getColumns().stream().filter(Column::isPk).forEach(column -> {
 			if (pkIndex.get() > 0) {

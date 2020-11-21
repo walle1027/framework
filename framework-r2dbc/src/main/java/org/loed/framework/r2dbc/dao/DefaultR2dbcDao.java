@@ -104,7 +104,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 		GenerationType idGenerationType = table.getIdGenerationType();
 		if (idGenerationType.equals(GenerationType.AUTO)) {
 			return execute.map((r, m) -> {
-				return r.get(0, idClass);
+				return (ID) r.get(0, idClass);
 			}).all().doOnError(err -> {
 				log.info(err.getMessage(), err);
 			}).last().map(id -> {
@@ -146,7 +146,6 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 		};
 	}
 
-	@SuppressWarnings("ConstantConditions")
 	protected <S extends T> Flux<S> doBatchInsert(List<S> entityList) {
 		R2dbcQuery query = r2dbcSqlBuilder.batchInsert(entityList, table);
 		DatabaseClient.GenericExecuteSpec execute = bind(query);
@@ -295,10 +294,9 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 		if (id == null) {
 			return Mono.error(new RuntimeException("id is null "));
 		}
-//		return Flux.merge(Flux.just(new Condition(idColumn.getJavaName(), Operator.equal, id)), commonConditions())
-		return Flux.merge(Flux.just(new Condition(idColumn.getJavaName(), Operator.equal, id)))
+		return Flux.merge(Flux.just(new Condition(idColumn.getJavaName(), Operator.equal, id)), commonConditions())
 				.collectList().map(conditions -> {
-					return r2dbcSqlBuilder.update(entity, conditions, columnFilter.and(Filters.UPDATABLE_FILTER));
+					return r2dbcSqlBuilder.update(entity, table, criteriaWithCondition(conditions).getConditions(), columnFilter.and(Filters.UPDATABLE_FILTER));
 				}).flatMap(r2dbcQuery -> {
 					return execute(r2dbcQuery).thenReturn(entity);
 				});
@@ -422,9 +420,22 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	}
 
 	private Criteria<T> criteriaWithCondition(List<Condition> conditions) {
-		Criteria<T> criteria = Criteria.from(entityClass);
-		criteria.setConditions(conditions);
-		return criteria;
+		return mergeConditions(null, conditions);
+	}
+
+	private Criteria<T> mergeConditions(Criteria<T> criteria, List<Condition> conditions) {
+		Criteria<T> merge = Criteria.from(entityClass);
+		if (criteria != null) {
+			merge.setSortProperties(criteria.getSortProperties());
+			merge.setJoins(criteria.getJoins());
+			merge.setSelector(criteria.getSelector());
+			List<Condition> mergedConditions = criteria.getConditions().stream().map(Condition::copy).collect(Collectors.toList());
+			mergedConditions.addAll(conditions);
+			merge.setConditions(mergedConditions);
+		} else {
+			merge.setConditions(conditions);
+		}
+		return merge;
 	}
 
 	private <S extends T> Function<S, Mono<? extends S>> preDeleteFunction() {
@@ -443,11 +454,9 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 
 	@Override
 	public Flux<T> find(@NonNull Criteria<T> criteria) {
-		List<Condition> conditions = criteria.getConditions() == null ? Collections.emptyList() : criteria.getConditions();
-		return Flux.merge(Flux.fromIterable(conditions), commonConditions()).collectList().map(cnd -> {
-			Criteria<T> criteriaNew = criteria.copy();
-			criteriaNew.setConditions(cnd);
-			return criteriaNew;
+		return Flux.merge(Flux.fromIterable(criteria.getConditions()), commonConditions()).collectList().map(cnd -> {
+			criteria.setConditions(cnd);
+			return criteria;
 		}).defaultIfEmpty(criteria).map(crt -> {
 			return r2dbcSqlBuilder.find(table, crt);
 		}).flatMapMany(this::query);
@@ -465,12 +474,10 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	public Mono<Long> count(@NonNull Criteria<T> criteria) {
 		List<Condition> conditions = criteria.getConditions() == null ? Collections.emptyList() : criteria.getConditions();
 		return Flux.merge(Flux.fromIterable(conditions), commonConditions()).collectList().map(cnds -> {
-			Criteria<T> criteriaNew = criteria.copy();
-			criteriaNew.setConditions(cnds);
-			return criteriaNew;
+			return mergeConditions(criteria, cnds);
 		}).defaultIfEmpty(criteria)
-				.flatMap(crit -> {
-					R2dbcQuery query = r2dbcSqlBuilder.count(table, crit);
+				.flatMap(mergedCriteria -> {
+					R2dbcQuery query = r2dbcSqlBuilder.count(table, mergedCriteria);
 					DatabaseClient.GenericExecuteSpec exec = bind(query);
 					return exec.as(Long.class).fetch().one();
 				});
@@ -478,14 +485,12 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 
 	@Override
 	public <R> Flux<T> findByProperty(SFunction<T, R> property, R value) {
-		Criteria<T> criteria = Criteria.from(entityClass);
-		return find(criteria.and(property).is(value));
+		return find(Criteria.from(entityClass).and(property).is(value));
 	}
 
 	@Override
 	public <R> Mono<Boolean> isRepeated(ID id, SFunction<T, R> property, R value) {
 		Criteria<T> criteria = Criteria.from(entityClass);
-		criteria = criteria.and(property).is(value);
 		if (id != null) {
 			Condition condition = new Condition();
 			Column idColumn = table.getColumns().stream().filter(Column::isPk).findFirst().orElseThrow(() -> new R2dbcException("table has no id column"));
@@ -494,7 +499,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 			condition.setValue(id);
 			criteria.getConditions().add(condition);
 		}
-		return count(criteria).map(count -> {
+		return count(criteria.and(property).is(value)).map(count -> {
 			return count > 0;
 		});
 	}
@@ -503,14 +508,9 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	public Mono<Pagination<T>> findPage(@NonNull Criteria<T> criteria, @NonNull Pageable pageable) {
 		boolean paged = pageable.isPaged();
 		if (paged) {
-			return commonConditions().collectList().map(conditions -> {
-				Criteria<T> copy = criteria.copy();
-				copy.getConditions().addAll(conditions);
-				return copy;
-			}).defaultIfEmpty(criteria).flatMap(c ->
-					Mono.zip(count(c), Mono.just(r2dbcSqlBuilder.findPage(table, c, pageable)).flatMap(r2dbcQuery -> {
-						return query(r2dbcQuery).collectList();
-					}))).map(tup -> {
+			return Mono.zip(count(criteria), Mono.just(r2dbcSqlBuilder.findPage(table, criteria, pageable)).flatMap(r2dbcQuery -> {
+				return query(r2dbcQuery).collectList();
+			})).map(tup -> {
 				Pagination<T> pagination = new Pagination<>();
 				pagination.setPageNo(pageable.getPageNumber());
 				pagination.setPageSize(pageable.getPageSize());

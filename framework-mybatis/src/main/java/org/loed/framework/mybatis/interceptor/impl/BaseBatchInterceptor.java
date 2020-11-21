@@ -1,14 +1,14 @@
 package org.loed.framework.mybatis.interceptor.impl;
 
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.tuple.Triple;
+import org.apache.ibatis.executor.Executor;
+import org.apache.ibatis.plugin.Invocation;
 import org.loed.framework.common.orm.Column;
 import org.loed.framework.common.orm.ORMapping;
 import org.loed.framework.common.orm.Table;
 import org.loed.framework.mybatis.BatchOperation;
 import org.loed.framework.mybatis.BatchType;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.tuple.Triple;
-import org.apache.ibatis.executor.Executor;
-import org.apache.ibatis.plugin.Invocation;
 
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -84,11 +84,11 @@ public abstract class BaseBatchInterceptor extends BasePreProcessInterceptor<Tri
 				case BatchInsert:
 					rows = doBatchInsert(executor, poList, table);
 					break;
-				case BatchUpdateSelective:
-					rows = doBatchUpdateSelective(executor, poList, table, (Predicate<Column>) parameterMap.get("columnFilter"));
+				case BatchUpdateDynamically:
+					rows = doBatchUpdateDynamically(executor, poList, table, (Predicate<Column>) parameterMap.get("predicate"));
 					break;
-				case BatchUpdate:
-					rows = doBatchUpdate(executor, poList, table, (Predicate<Column>) parameterMap.get("columnFilter"));
+				case BatchUpdateFixed:
+					rows = doBatchUpdate(executor, poList, table, (Predicate<Column>) parameterMap.get("predicate"));
 					break;
 				default:
 					break;
@@ -120,7 +120,7 @@ public abstract class BaseBatchInterceptor extends BasePreProcessInterceptor<Tri
 	 * @return
 	 * @throws SQLException
 	 */
-	protected abstract int doBatchUpdateSelective(Executor executor, List<Object> poList, Table table, Predicate<Column> predicate) throws SQLException;
+	protected abstract int doBatchUpdateDynamically(Executor executor, List<Object> poList, Table table, Predicate<Column> predicate) throws SQLException;
 
 
 	/**
@@ -134,5 +134,4 @@ public abstract class BaseBatchInterceptor extends BasePreProcessInterceptor<Tri
 	 * @throws SQLException
 	 */
 	protected abstract int doBatchUpdate(Executor executor, List<Object> poList, Table table, Predicate<Column> predicate) throws SQLException;
-
 }

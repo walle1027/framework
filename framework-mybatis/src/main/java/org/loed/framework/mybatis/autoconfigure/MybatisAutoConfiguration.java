@@ -1,5 +1,6 @@
 package org.loed.framework.mybatis.autoconfigure;
 
+import org.apache.ibatis.session.SqlSessionFactory;
 import org.loed.framework.mybatis.interceptor.ChainedInterceptor;
 import org.loed.framework.mybatis.interceptor.DefaultChainedInterceptor;
 import org.loed.framework.mybatis.interceptor.impl.InsertInterceptor;
@@ -8,9 +9,6 @@ import org.loed.framework.mybatis.listener.MybatisListenerContainer;
 import org.loed.framework.mybatis.listener.impl.DefaultPreInsertListener;
 import org.loed.framework.mybatis.listener.impl.DefaultPreUpdateListener;
 import org.loed.framework.mybatis.listener.spi.*;
-import org.loed.framework.mybatis.listener.spi.*;
-import org.loed.framework.mybatis.sharding.ShardingListByIdsInterceptor;
-import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
@@ -59,7 +57,7 @@ public class MybatisAutoConfiguration {
 	public ChainedInterceptor chainedInterceptor() {
 		DefaultChainedInterceptor defaultChainedInterceptor = new DefaultChainedInterceptor();
 		defaultChainedInterceptor.addInterceptor(ChainedInterceptor.SIMPLE_BATCH_ORDER, new SimpleBatchInterceptor());
-		defaultChainedInterceptor.addInterceptor(ChainedInterceptor.SHARDING_LIST_BY_IDS, new ShardingListByIdsInterceptor());
+//		defaultChainedInterceptor.addInterceptor(ChainedInterceptor.SHARDING_LIST_BY_IDS, new ShardingListByIdsInterceptor());
 		defaultChainedInterceptor.addInterceptor(ChainedInterceptor.INSERT_ORDER, new InsertInterceptor());
 		return defaultChainedInterceptor;
 	}

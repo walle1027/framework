@@ -93,8 +93,7 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 	}
 
 	@Override
-	public R2dbcQuery update(@NonNull Object entity, @NonNull List<Condition> conditions, @NonNull Predicate<Column> predicate) {
-		Table table = ORMapping.get(entity.getClass());
+	public R2dbcQuery update(@NonNull Object entity, @NonNull Table table, @NonNull List<Condition> conditions, @NonNull Predicate<Column> columnFilter) {
 		AtomicInteger counter = new AtomicInteger(1);
 		Map<String, TableWithAlias> tableAliasMap = new ConcurrentHashMap<>();
 		tableAliasMap.put(ROOT_TABLE_ALIAS_KEY, new TableWithAlias(null, table));
@@ -102,7 +101,7 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 		Map<String, R2dbcParam> params = new HashMap<>();
 		QueryBuilder builder = new QueryBuilder();
 		builder.update(wrap(table.getSqlName()));
-		table.getColumns().stream().filter(predicate.or(Filters.ALWAYS_UPDATE_FILTER)).forEach(column -> {
+		table.getColumns().stream().filter(columnFilter.or(Filters.ALWAYS_UPDATE_FILTER)).forEach(column -> {
 			StringBuilder setBuilder = new StringBuilder();
 			if (column.isVersioned()) {
 				setBuilder.append(wrap(column.getSqlName())).append(BLANK).append("=").append(BLANK).append(wrap(column.getSqlName())).append(" + 1");
@@ -315,7 +314,9 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 		if (parentTable == null || parentAlias == null) {
 			throw new RuntimeException("error property path for join " + join.toString());
 		}
-		JoinTable joinTable = parentTable.getJoinTables().stream().filter(jt -> jt.getFieldName().equals(target)).findFirst().orElse(null);
+		JoinTable joinTable = parentTable.getJoinTables().stream().filter(jt -> {
+			return jt.getFieldName().equals(target);
+		}).findFirst().orElse(null);
 		if (joinTable == null) {
 			throw new RuntimeException("error join property -> " + uniquePath);
 		}
@@ -820,7 +821,7 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 	private ColumnWithAlias resolvePropertyCascade(Map<String, TableWithAlias> tableAliasMap, String propertyName) {
 		String parentPath;
 		String propName;
-		if (!propertyName.contains(".")) {
+		if (!propertyName.contains(Condition.PATH_SEPARATOR)) {
 			parentPath = ROOT_TABLE_ALIAS_KEY;
 			propName = propertyName;
 		} else {

@@ -4,15 +4,10 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.loed.framework.common.context.SystemContext;
 import org.loed.framework.common.context.SystemContextHolder;
-import org.loed.framework.common.rabbit.SystemContextAwareMessageConverter;
 import org.loed.framework.common.web.mvc.DefaultExceptionHandler;
 import org.loed.framework.common.web.mvc.ResponseBodyWrapFactoryBean;
 import org.loed.framework.common.web.mvc.filter.SystemContextFilter;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.amqp.support.converter.MessageConverter;
-import org.springframework.amqp.support.converter.SimpleMessageConverter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.web.servlet.DispatcherServletAutoConfiguration;
 import org.springframework.boot.web.client.RestTemplateCustomizer;
@@ -67,12 +62,5 @@ public class WebMvcAutoConfiguration {
 		registration.addUrlPatterns("*");
 		registration.setOrder(contextFilter.getOrder());
 		return registration;
-	}
-
-	@Bean
-	@ConditionalOnClass(RabbitTemplate.class)
-	public MessageConverter systemContextAwareMessageConverter() {
-		SimpleMessageConverter simpleMessageConverter = new SimpleMessageConverter();
-		return new SystemContextAwareMessageConverter(simpleMessageConverter);
 	}
 }
