@@ -29,4 +29,6 @@ public class User extends BasePO {
 	private Date expireAt;
 	@Column(columnDefinition = "tinyint default 0")
 	private Integer isLocked;
+	@Column
+	private EnumType enumProp;
 }

@@ -3,6 +3,7 @@ package org.loed.framework.mybatis.test;
 import org.loed.framework.common.context.SystemContextHolder;
 import org.loed.framework.common.query.*;
 import org.loed.framework.mybatis.test.mapper.UserMapper;
+import org.loed.framework.mybatis.test.po.EnumType;
 import org.loed.framework.mybatis.test.po.User;
 import org.apache.commons.lang3.time.DateUtils;
 import org.junit.After;
@@ -57,6 +58,7 @@ public class BasicTest {
 			user.setMobile("testMobile" + i);
 			user.setPassword("testPassword" + i);
 			user.setUsername("testUsername" + i);
+			user.setEnumProp(EnumType.enum1);
 			userList.add(user);
 		}
 
@@ -77,6 +79,7 @@ public class BasicTest {
 		user.setIsLocked(1);
 		user.setAccount("testUpdate");
 		user.setId(userId);
+		user.setEnumProp(EnumType.enum2);
 		userMapper.update(user);
 		User userPO = userMapper.get(userId);
 		Assert.assertEquals(userPO.getUsername(), "testUpdate");
@@ -84,6 +87,7 @@ public class BasicTest {
 		Assert.assertEquals(userPO.getMobile(), "testUpdate");
 		Assert.assertEquals(userPO.getAccount(), "testUpdate");
 		Assert.assertSame(userPO.getIsLocked(), 1);
+		Assert.assertEquals(userPO.getEnumProp(),EnumType.enum2);
 		Assert.assertEquals(0, (byte) userPO.getIsDeleted());
 		Assert.assertEquals(userPO.getCreateBy(), SystemContextHolder.getUserId());
 	}
@@ -377,6 +381,7 @@ public class BasicTest {
 		user.setMobile("testMobile");
 		user.setPassword("testPassword");
 		user.setUsername("testUsername");
+		user.setEnumProp(EnumType.enum1);
 		int i = userMapper.insert(user);
 		Assert.assertEquals(i, 1);
 		return user;
