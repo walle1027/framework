@@ -3,6 +3,7 @@ package org.loed.framework.common.query;
 import lombok.Data;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.loed.framework.common.lambda.CFunction;
 import org.loed.framework.common.lambda.LambdaUtils;
@@ -15,6 +16,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import javax.persistence.criteria.JoinType;
 import java.io.Serializable;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author thomason
@@ -25,7 +27,7 @@ import java.util.*;
 @ToString
 @Slf4j
 @NotThreadSafe
-public final class Criteria<T> implements Serializable/*,Copyable<Criteria<T>>*/ {
+public final class Criteria<T> implements Serializable, Copyable<Criteria<T>> {
 	private PropertySelector selector;
 
 	private List<Condition> conditions;
@@ -34,12 +36,19 @@ public final class Criteria<T> implements Serializable/*,Copyable<Criteria<T>>*/
 
 	private TreeMap<String, Join> joins;
 
+	private final boolean lenient;
+
 	public static <S> Criteria<S> from(Class<S> clazz) {
-		return new Criteria<>();
+		return new Criteria<>(false);
 	}
 
-	private Criteria() {
+	public static <S> Criteria<S> from(Class<S> clazz, boolean lenient) {
+		return new Criteria<>(lenient);
+	}
+
+	private Criteria(boolean lenient) {
 		this.conditions = new ArrayList<>();
+		this.lenient = lenient;
 	}
 
 	@SafeVarargs
@@ -113,7 +122,6 @@ public final class Criteria<T> implements Serializable/*,Copyable<Criteria<T>>*/
 	}
 
 
-
 	public <S> JoinBuilder<T, S> leftJoin(SFunction<T, S> lambda) {
 		return joinBuilder(LambdaUtils.getPropFromLambda(lambda), JoinType.LEFT);
 	}
@@ -148,17 +156,17 @@ public final class Criteria<T> implements Serializable/*,Copyable<Criteria<T>>*/
 		return new JoinBuilder<>(this, join);
 	}
 
-	public <R> ConditionSpec<T,R> where(SFunction<T, R> lambda) {
+	public <R> ConditionSpec<T, R> where(SFunction<T, R> lambda) {
 		return and(lambda);
 	}
 
-	public <R> ConditionSpec<T,R> and(SFunction<T, R> lambda) {
+	public <R> ConditionSpec<T, R> and(SFunction<T, R> lambda) {
 		SerializedLambda resolve = LambdaUtils.resolve(lambda);
 		String prop = ReflectionUtils.methodToProperty(resolve.getImplMethodName());
 		return new ConditionSpec<>(this, Joint.and, prop);
 	}
 
-	public <R> ConditionSpec<T,R> or(SFunction<T, R> lambda) {
+	public <R> ConditionSpec<T, R> or(SFunction<T, R> lambda) {
 		SerializedLambda resolve = LambdaUtils.resolve(lambda);
 		String prop = ReflectionUtils.methodToProperty(resolve.getImplMethodName());
 		return new ConditionSpec<>(this, Joint.or, prop);
@@ -258,25 +266,26 @@ public final class Criteria<T> implements Serializable/*,Copyable<Criteria<T>>*/
 		}
 	}
 
-//	@Override
-//	public Criteria<T> copy(){
-//		Criteria<T> criteria = new Criteria<>();
-//		criteria.conditions = this.conditions.stream().map(Condition::copy).collect(Collectors.toList());
-//		if (CollectionUtils.isNotEmpty(this.sortProperties)){
-//			criteria.sortProperties = this.sortProperties.stream().map(SortProperty::copy).collect(Collectors.toList());;
-//		}
-//		if (this.selector != null){
-//			criteria.selector = this.selector.copy();
-//		}
-//		if (this.joins != null && !this.joins.isEmpty()){
-//			TreeMap<String,Join> map = new TreeMap<>();
-//			for (Map.Entry<String, Join> entry : joins.entrySet()) {
-//				map.put(entry.getKey(),entry.getValue().copy());
-//			}
-//			criteria.joins = map;
-//		}
-//		return criteria;
-//	}
+	@Override
+	public Criteria<T> copy() {
+		Criteria<T> criteria = new Criteria<>(this.lenient);
+		criteria.conditions = this.conditions.stream().map(Condition::copy).collect(Collectors.toList());
+		if (CollectionUtils.isNotEmpty(this.sortProperties)) {
+			criteria.sortProperties = this.sortProperties.stream().map(SortProperty::copy).collect(Collectors.toList());
+			;
+		}
+		if (this.selector != null) {
+			criteria.selector = this.selector.copy();
+		}
+		if (this.joins != null && !this.joins.isEmpty()) {
+			TreeMap<String, Join> map = new TreeMap<>();
+			for (Map.Entry<String, Join> entry : joins.entrySet()) {
+				map.put(entry.getKey(), entry.getValue().copy());
+			}
+			criteria.joins = map;
+		}
+		return criteria;
+	}
 
 	public static class JoinBuilder<T, R> {
 		private final Join join;
@@ -321,12 +330,12 @@ public final class Criteria<T> implements Serializable/*,Copyable<Criteria<T>>*/
 			return new JoinBuilder<>(criteria, join);
 		}
 
-		public <S> ConditionSpec<T,S> and(SFunction<R, S> lambda) {
+		public <S> ConditionSpec<T, S> and(SFunction<R, S> lambda) {
 			String prop = LambdaUtils.getPropFromLambda(lambda);
 			return new ConditionSpec<>(criteria, Joint.and, this.join.getUniquePath() + Condition.PATH_SEPARATOR + prop);
 		}
 
-		public <S> ConditionSpec<T,S> or(SFunction<R, S> lambda) {
+		public <S> ConditionSpec<T, S> or(SFunction<R, S> lambda) {
 			String prop = LambdaUtils.getPropFromLambda(lambda);
 			return new ConditionSpec<>(criteria, Joint.and, this.join.getUniquePath() + Condition.PATH_SEPARATOR + prop);
 		}
@@ -365,7 +374,7 @@ public final class Criteria<T> implements Serializable/*,Copyable<Criteria<T>>*/
 	 *
 	 * @param <T> 对象类型
 	 */
-	public static class ConditionSpec<T,R> {
+	public static class ConditionSpec<T, R> {
 		/**
 		 * 对象属性名，"." 代表级联属性
 		 */
@@ -386,8 +395,13 @@ public final class Criteria<T> implements Serializable/*,Copyable<Criteria<T>>*/
 		}
 
 		public Criteria<T> beginWith(@NonNull R value) {
-			validateNonNull(value);
-//			Criteria<T> criteria = this.criteria.copy();
+			if (isNullValue(value)) {
+				if (criteria.lenient) {
+					return criteria;
+				} else {
+					throw new IllegalArgumentException("value[" + value + "] for property[" + this.property + "] is empty");
+				}
+			}
 			Condition condition = new Condition(property, Operator.beginWith, value);
 			condition.setJoint(joint);
 			criteria.criterion(condition);
@@ -395,7 +409,13 @@ public final class Criteria<T> implements Serializable/*,Copyable<Criteria<T>>*/
 		}
 
 		public Criteria<T> notBeginWith(@NonNull R value) {
-			validateNonNull(value);
+			if (isNullValue(value)) {
+				if (criteria.lenient) {
+					return criteria;
+				} else {
+					throw new IllegalArgumentException("value[" + value + "] for property[" + this.property + "] is empty");
+				}
+			}
 //			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.notBeginWith, value);
 			condition.setJoint(joint);
@@ -404,7 +424,13 @@ public final class Criteria<T> implements Serializable/*,Copyable<Criteria<T>>*/
 		}
 
 		public Criteria<T> contains(@NonNull R value) {
-			validateNonNull(value);
+			if (isNullValue(value)) {
+				if (criteria.lenient) {
+					return criteria;
+				} else {
+					throw new IllegalArgumentException("value[" + value + "] for property[" + this.property + "] is empty");
+				}
+			}
 //			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.contains, value);
 			condition.setJoint(joint);
@@ -413,7 +439,13 @@ public final class Criteria<T> implements Serializable/*,Copyable<Criteria<T>>*/
 		}
 
 		public Criteria<T> notContains(@NonNull R value) {
-			validateNonNull(value);
+			if (isNullValue(value)) {
+				if (criteria.lenient) {
+					return criteria;
+				} else {
+					throw new IllegalArgumentException("value[" + value + "] for property[" + this.property + "] is empty");
+				}
+			}
 //			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.notContains, value);
 			condition.setJoint(joint);
@@ -422,7 +454,13 @@ public final class Criteria<T> implements Serializable/*,Copyable<Criteria<T>>*/
 		}
 
 		public Criteria<T> endWith(@NonNull R value) {
-			validateNonNull(value);
+			if (isNullValue(value)) {
+				if (criteria.lenient) {
+					return criteria;
+				} else {
+					throw new IllegalArgumentException("value[" + value + "] for property[" + this.property + "] is empty");
+				}
+			}
 //			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.endWith, value);
 			condition.setJoint(joint);
@@ -431,7 +469,13 @@ public final class Criteria<T> implements Serializable/*,Copyable<Criteria<T>>*/
 		}
 
 		public Criteria<T> notEndWith(@NonNull R value) {
-			validateNonNull(value);
+			if (isNullValue(value)) {
+				if (criteria.lenient) {
+					return criteria;
+				} else {
+					throw new IllegalArgumentException("value[" + value + "] for property[" + this.property + "] is empty");
+				}
+			}
 //			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.notEndWith, value);
 			condition.setJoint(joint);
@@ -440,23 +484,73 @@ public final class Criteria<T> implements Serializable/*,Copyable<Criteria<T>>*/
 		}
 
 		public Criteria<T> between(@NonNull R start, @NonNull R end) {
-			validateNonNull(start);
-			validateNonNull(end);
-//			Criteria<T> criteria = this.criteria.copy();
-			Condition condition = new Condition(property, Operator.between, new Object[]{start, end});
-			condition.setJoint(joint);
-			criteria.criterion(condition);
-			return criteria;
+			boolean startIsNull = isNullValue(start);
+			boolean endIsNull = isNullValue(end);
+			if (startIsNull && endIsNull) {
+				if (criteria.lenient) {
+					return criteria;
+				} else {
+					throw new IllegalArgumentException("start value[" + start + "] and end value[" + end + "] for property[" + this.property + "] is empty");
+				}
+			} else if (startIsNull) {
+				if (criteria.lenient) {
+					Condition condition = new Condition(property, Operator.lessEqual, end);
+					condition.setJoint(joint);
+					criteria.criterion(condition);
+					return criteria;
+				} else {
+					throw new IllegalArgumentException("start value[" + start + "] for property[" + this.property + "] is empty");
+				}
+			} else if (endIsNull) {
+				if (criteria.lenient) {
+					Condition condition = new Condition(property, Operator.greaterEqual, start);
+					condition.setJoint(joint);
+					criteria.criterion(condition);
+					return criteria;
+				} else {
+					throw new IllegalArgumentException("end value[" + start + "] for property[" + this.property + "] is empty");
+				}
+			} else {
+				Condition condition = new Condition(property, Operator.between, new Object[]{start, end});
+				condition.setJoint(joint);
+				criteria.criterion(condition);
+				return criteria;
+			}
 		}
 
 		public Criteria<T> notBetween(@NonNull R start, @NonNull R end) {
-			validateNonNull(start);
-			validateNonNull(end);
-//			Criteria<T> criteria = this.criteria.copy();
-			Condition condition = new Condition(property, Operator.notBetween, new Object[]{start, end});
-			condition.setJoint(joint);
-			criteria.criterion(condition);
-			return criteria;
+			boolean startIsNull = isNullValue(start);
+			boolean endIsNull = isNullValue(end);
+			if (startIsNull && endIsNull) {
+				if (criteria.lenient) {
+					return criteria;
+				} else {
+					throw new IllegalArgumentException("start value[" + start + "] and end value[" + end + "] for property[" + this.property + "] is empty");
+				}
+			} else if (startIsNull) {
+				if (criteria.lenient) {
+					Condition condition = new Condition(property, Operator.greaterThan, end);
+					condition.setJoint(joint);
+					criteria.criterion(condition);
+					return criteria;
+				} else {
+					throw new IllegalArgumentException("start value[" + start + "] for property[" + this.property + "] is empty");
+				}
+			} else if (endIsNull) {
+				if (criteria.lenient) {
+					Condition condition = new Condition(property, Operator.lessThan, start);
+					condition.setJoint(joint);
+					criteria.criterion(condition);
+					return criteria;
+				} else {
+					throw new IllegalArgumentException("end value[" + start + "] for property[" + this.property + "] is empty");
+				}
+			} else {
+				Condition condition = new Condition(property, Operator.notBetween, new Object[]{start, end});
+				condition.setJoint(joint);
+				criteria.criterion(condition);
+				return criteria;
+			}
 		}
 
 		public Criteria<T> blank() {
@@ -476,7 +570,13 @@ public final class Criteria<T> implements Serializable/*,Copyable<Criteria<T>>*/
 		}
 
 		public Criteria<T> is(@NonNull R value) {
-			validateNonNull(value);
+			if (isNullValue(value)) {
+				if (criteria.lenient) {
+					return criteria;
+				} else {
+					throw new IllegalArgumentException("value[" + value + "] for property[" + this.property + "] is empty");
+				}
+			}
 //			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.equal, value);
 			condition.setJoint(joint);
@@ -485,7 +585,13 @@ public final class Criteria<T> implements Serializable/*,Copyable<Criteria<T>>*/
 		}
 
 		public Criteria<T> isNot(@NonNull R value) {
-			validateNonNull(value);
+			if (isNullValue(value)) {
+				if (criteria.lenient) {
+					return criteria;
+				} else {
+					throw new IllegalArgumentException("value[" + value + "] for property[" + this.property + "] is empty");
+				}
+			}
 //			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.notEqual, value);
 			condition.setJoint(joint);
@@ -494,7 +600,13 @@ public final class Criteria<T> implements Serializable/*,Copyable<Criteria<T>>*/
 		}
 
 		public Criteria<T> greaterThan(@NonNull R value) {
-			validateNonNull(value);
+			if (isNullValue(value)) {
+				if (criteria.lenient) {
+					return criteria;
+				} else {
+					throw new IllegalArgumentException("value[" + value + "] for property[" + this.property + "] is empty");
+				}
+			}
 //			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.greaterThan, value);
 			condition.setJoint(joint);
@@ -503,7 +615,13 @@ public final class Criteria<T> implements Serializable/*,Copyable<Criteria<T>>*/
 		}
 
 		public Criteria<T> greaterEqual(@NonNull R value) {
-			validateNonNull(value);
+			if (isNullValue(value)) {
+				if (criteria.lenient) {
+					return criteria;
+				} else {
+					throw new IllegalArgumentException("value[" + value + "] for property[" + this.property + "] is empty");
+				}
+			}
 //			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.greaterEqual, value);
 			condition.setJoint(joint);
@@ -512,7 +630,13 @@ public final class Criteria<T> implements Serializable/*,Copyable<Criteria<T>>*/
 		}
 
 		public Criteria<T> lessEqual(@NonNull R value) {
-			validateNonNull(value);
+			if (isNullValue(value)) {
+				if (criteria.lenient) {
+					return criteria;
+				} else {
+					throw new IllegalArgumentException("value[" + value + "] for property[" + this.property + "] is empty");
+				}
+			}
 //			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.lessEqual, value);
 			condition.setJoint(joint);
@@ -521,7 +645,13 @@ public final class Criteria<T> implements Serializable/*,Copyable<Criteria<T>>*/
 		}
 
 		public Criteria<T> lessThan(@NonNull R value) {
-			validateNonNull(value);
+			if (isNullValue(value)) {
+				if (criteria.lenient) {
+					return criteria;
+				} else {
+					throw new IllegalArgumentException("value[" + value + "] for property[" + this.property + "] is empty");
+				}
+			}
 //			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.lessThan, value);
 			condition.setJoint(joint);
@@ -546,7 +676,13 @@ public final class Criteria<T> implements Serializable/*,Copyable<Criteria<T>>*/
 		}
 
 		public Criteria<T> in(@NonNull Collection<R> values) {
-			validateNonNull(values);
+			if (isNullValue(values)) {
+				if (criteria.lenient) {
+					return criteria;
+				} else {
+					throw new IllegalArgumentException("value[" + values + "] for property[" + this.property + "] is empty");
+				}
+			}
 //			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.in, values);
 			condition.setJoint(joint);
@@ -555,7 +691,13 @@ public final class Criteria<T> implements Serializable/*,Copyable<Criteria<T>>*/
 		}
 
 		public Criteria<T> in(@NonNull R[] values) {
-			validateNonNull(values);
+			if (isNullValue(values)) {
+				if (criteria.lenient) {
+					return criteria;
+				} else {
+					throw new IllegalArgumentException("value[" + values + "] for property[" + this.property + "] is empty");
+				}
+			}
 //			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.in, values);
 			condition.setJoint(joint);
@@ -564,7 +706,13 @@ public final class Criteria<T> implements Serializable/*,Copyable<Criteria<T>>*/
 		}
 
 		public Criteria<T> notIn(@NonNull Collection<R> values) {
-			validateNonNull(values);
+			if (isNullValue(values)) {
+				if (criteria.lenient) {
+					return criteria;
+				} else {
+					throw new IllegalArgumentException("value[" + values + "] for property[" + this.property + "] is empty");
+				}
+			}
 //			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.notIn, values);
 			condition.setJoint(joint);
@@ -573,7 +721,13 @@ public final class Criteria<T> implements Serializable/*,Copyable<Criteria<T>>*/
 		}
 
 		public Criteria<T> notIn(@NonNull R[] values) {
-			validateNonNull(values);
+			if (isNullValue(values)) {
+				if (criteria.lenient) {
+					return criteria;
+				} else {
+					throw new IllegalArgumentException("value[" + values + "] for property[" + this.property + "] is empty");
+				}
+			}
 //			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.notIn, values);
 			condition.setJoint(joint);
@@ -582,7 +736,13 @@ public final class Criteria<T> implements Serializable/*,Copyable<Criteria<T>>*/
 		}
 
 		public Criteria<T> custom(@NonNull String value) {
-			validateNonNull(value);
+			if (isNullValue(value)) {
+				if (criteria.lenient) {
+					return criteria;
+				} else {
+					throw new IllegalArgumentException("value[" + value + "] for property[" + this.property + "] is empty");
+				}
+			}
 //			Criteria<T> criteria = this.criteria.copy();
 			Condition condition = new Condition(property, Operator.custom, value);
 			condition.setJoint(joint);
@@ -616,20 +776,23 @@ public final class Criteria<T> implements Serializable/*,Copyable<Criteria<T>>*/
 		}
 	}
 
-	private static void validateNonNull(Object value) {
+	private static boolean isNullValue(Object value) {
 		if (value == null) {
-			throw new IllegalStateException("value is null");
+//			throw new IllegalStateException("value is null");
+			return true;
 		}
 		if (value instanceof String) {
 			if (StringUtils.isBlank((CharSequence) value)) {
-				throw new IllegalStateException("value" + value + " is null");
+//				throw new IllegalStateException("value" + value + " is null");
+				return true;
 			}
 		}
 		if (value instanceof Collection<?>) {
 			if (((Collection<?>) value).isEmpty()) {
-				throw new IllegalStateException("value" + value + " is empty collection");
+//				throw new IllegalStateException("value" + value + " is empty collection");
+				return true;
 			}
-			((Collection<?>) value).forEach(Criteria::validateNonNull);
+			return ((Collection<?>) value).stream().anyMatch(Criteria::isNullValue);
 		}
 		if (value.getClass().isArray()) {
 			//check arrays
@@ -638,67 +801,77 @@ public final class Criteria<T> implements Serializable/*,Copyable<Criteria<T>>*/
 				case "int[]": {
 					int[] values = (int[]) value;
 					if (values.length == 0) {
-						throw new IllegalStateException("value" + value + " is empty array");
+//						throw new IllegalStateException("value" + value + " is empty array");
+						return true;
 					}
 					break;
 				}
 				case "long[]": {
 					long[] values = (long[]) value;
 					if (values.length == 0) {
-						throw new IllegalStateException("value" + value + " is empty array");
+//						throw new IllegalStateException("value" + value + " is empty array");
+						return true;
 					}
 					break;
 				}
 				case "char[]": {
 					char[] values = (char[]) value;
 					if (values.length == 0) {
-						throw new IllegalStateException("value" + value + " is empty array");
+//						throw new IllegalStateException("value" + value + " is empty array");
+						return true;
 					}
 					break;
 				}
 				case "double[]": {
 					double[] values = (double[]) value;
 					if (values.length == 0) {
-						throw new IllegalStateException("value" + value + " is empty array");
+//						throw new IllegalStateException("value" + value + " is empty array");
+						return true;
 					}
 					break;
 				}
 				case "byte[]": {
 					byte[] values = (byte[]) value;
 					if (values.length == 0) {
-						throw new IllegalStateException("value" + value + " is empty array");
+//						throw new IllegalStateException("value" + value + " is empty array");
+						return true;
 					}
 					break;
 				}
 				case "short[]": {
 					short[] values = (short[]) value;
 					if (values.length == 0) {
-						throw new IllegalStateException("value" + value + " is empty array");
+//						throw new IllegalStateException("value" + value + " is empty array");
+						return true;
 					}
 					break;
 				}
 				case "boolean[]": {
 					boolean[] values = (boolean[]) value;
 					if (values.length == 0) {
-						throw new IllegalStateException("value" + value + " is empty array");
+//						throw new IllegalStateException("value" + value + " is empty array");
+						return true;
 					}
 					break;
 				}
 				case "float[]": {
 					float[] values = (float[]) value;
 					if (values.length == 0) {
-						throw new IllegalStateException("value" + value + " is empty array");
+//						throw new IllegalStateException("value" + value + " is empty array");
+						return true;
 					}
 					break;
 				}
 				default: {
 					Object[] values = (Object[]) value;
 					if (values.length == 0) {
-						throw new IllegalStateException("value" + value + " is empty array");
+//						throw new IllegalStateException("value" + value + " is empty array");
+						return true;
 					}
 					break;
 				}
 			}
 		}
+		return false;
 	}
 }
