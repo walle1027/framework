@@ -12,19 +12,15 @@ import org.loed.framework.common.orm.ORMapping;
 import org.loed.framework.common.orm.Table;
 import org.loed.framework.common.po.IsDeleted;
 import org.loed.framework.common.po.TenantId;
-import org.loed.framework.common.query.Condition;
-import org.loed.framework.common.query.Criteria;
-import org.loed.framework.common.query.Operator;
-import org.loed.framework.common.query.Pagination;
+import org.loed.framework.common.query.*;
 import org.loed.framework.common.util.ReflectionUtils;
 import org.loed.framework.r2dbc.R2dbcException;
+import org.loed.framework.r2dbc.listener.OrderedListener;
 import org.loed.framework.r2dbc.listener.spi.*;
 import org.loed.framework.r2dbc.query.R2dbcParam;
 import org.loed.framework.r2dbc.query.R2dbcQuery;
 import org.loed.framework.r2dbc.query.R2dbcSqlBuilder;
-import org.loed.framework.r2dbc.listener.OrderedListener;
 import org.reactivestreams.Publisher;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.r2dbc.core.DatabaseClient;
 import org.springframework.lang.NonNull;
 import reactor.core.publisher.Flux;
@@ -464,8 +460,10 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 
 	@Override
 	public Mono<T> findOne(@NonNull Criteria<T> criteria) {
-		Pageable pageable = Pageable.unpaged();
-		return findPage(criteria, pageable).flatMap(pagination -> {
+		PageRequest pageRequest = PageRequest.of(1, 1);
+		pageRequest.setPaging(false);
+		pageRequest.setCounting(false);
+		return findPage(criteria, pageRequest).flatMap(pagination -> {
 			return CollectionUtils.isEmpty(pagination.getRows()) ? Mono.empty() : Mono.just(pagination.getRows().get(0));
 		});
 	}
@@ -505,15 +503,15 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	}
 
 	@Override
-	public Mono<Pagination<T>> findPage(@NonNull Criteria<T> criteria, @NonNull Pageable pageable) {
-		boolean paged = pageable.isPaged();
+	public Mono<Pagination<T>> findPage(@NonNull Criteria<T> criteria, @NonNull PageRequest pageRequest) {
+		boolean paged = pageRequest.isPaging();
 		if (paged) {
-			return Mono.zip(count(criteria), Mono.just(r2dbcSqlBuilder.findPage(table, criteria, pageable)).flatMap(r2dbcQuery -> {
+			return Mono.zip(count(criteria), Mono.just(r2dbcSqlBuilder.findPage(table, criteria, pageRequest)).flatMap(r2dbcQuery -> {
 				return query(r2dbcQuery).collectList();
 			})).map(tup -> {
 				Pagination<T> pagination = new Pagination<>();
-				pagination.setPageNo(pageable.getPageNumber());
-				pagination.setPageSize(pageable.getPageSize());
+				pagination.setPageNo(pageRequest.getPageNumber());
+				pagination.setPageSize(pageRequest.getPageSize());
 				pagination.setTotal(tup.getT1());
 				pagination.setRows(tup.getT2());
 				return pagination;

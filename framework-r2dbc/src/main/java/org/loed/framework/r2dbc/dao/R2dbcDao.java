@@ -5,10 +5,10 @@ import org.loed.framework.common.orm.Column;
 import org.loed.framework.common.po.IsDeleted;
 import org.loed.framework.common.po.TenantId;
 import org.loed.framework.common.query.Criteria;
+import org.loed.framework.common.query.PageRequest;
 import org.loed.framework.common.query.Pagination;
 import org.loed.framework.r2dbc.query.R2dbcParam;
 import org.reactivestreams.Publisher;
-import org.springframework.data.domain.Pageable;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import reactor.core.publisher.Flux;
@@ -334,10 +334,10 @@ public interface R2dbcDao<T, ID> {
 	 * 如果对象中有  {@link IsDeleted} 会自动增加过滤条件
 	 *
 	 * @param criteria 动态条件
-	 * @param pageable 分页参数
+	 * @param pageRequest 分页参数
 	 * @return 分页查询结果
 	 */
-	Mono<Pagination<T>> findPage(@NonNull Criteria<T> criteria, @NonNull Pageable pageable);
+	Mono<Pagination<T>> findPage(@NonNull Criteria<T> criteria, @NonNull PageRequest pageRequest);
 
 	/**
 	 * 执行一个自定义的查询语句

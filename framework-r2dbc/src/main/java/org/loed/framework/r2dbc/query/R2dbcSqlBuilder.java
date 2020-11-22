@@ -7,7 +7,7 @@ import org.loed.framework.common.orm.Table;
 import org.loed.framework.common.query.Condition;
 import org.loed.framework.common.query.Criteria;
 import org.loed.framework.common.query.Operator;
-import org.springframework.data.domain.Pageable;
+import org.loed.framework.common.query.PageRequest;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 
@@ -79,11 +79,11 @@ public interface R2dbcSqlBuilder {
 	 *
 	 * @param table    查询对象
 	 * @param criteria 动态条件
-	 * @param pageable 分页参数
+	 * @param pageRequest 分页参数
 	 * @param <T>      对象类型
 	 * @return 查询语句及参数
 	 */
-	<T> R2dbcQuery findPage(@NonNull Table table, @NonNull Criteria<T> criteria, @NonNull Pageable pageable);
+	<T> R2dbcQuery findPage(@NonNull Table table, @NonNull Criteria<T> criteria, @NonNull PageRequest pageRequest);
 
 	/**
 	 * 按照动态条件构建一个查询语句

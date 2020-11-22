@@ -12,7 +12,6 @@ import org.loed.framework.common.util.StringHelper;
 import org.loed.framework.r2dbc.query.R2dbcParam;
 import org.loed.framework.r2dbc.query.R2dbcQuery;
 import org.loed.framework.r2dbc.query.R2dbcSqlBuilder;
-import org.springframework.data.domain.Pageable;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 
@@ -236,7 +235,7 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 	}
 
 	@Override
-	public <T> R2dbcQuery findPage(@NonNull Table table, @NonNull Criteria<T> criteria, @NonNull Pageable pageable) {
+	public <T> R2dbcQuery findPage(@NonNull Table table, @NonNull Criteria<T> criteria, @NonNull PageRequest pageRequest) {
 		R2dbcQuery query = find(table, criteria);
 		String statement = query.getStatement();
 		Map<String, R2dbcParam> params = query.getParams();
@@ -244,13 +243,13 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 			params = new HashMap<>();
 		}
 		String prstmt;
-		if (pageable.getPageNumber() > 0) {
+		if (pageRequest.getPageNumber() > 0) {
 			prstmt = statement + BLANK + "limit :pr_limit offset :pr_offset";
-			params.put("pr_limit", new R2dbcParam(Integer.class, pageable.getPageSize()));
-			params.put("pr_offset", new R2dbcParam(Long.class, pageable.getOffset()));
+			params.put("pr_limit", new R2dbcParam(Integer.class, pageRequest.getPageSize()));
+			params.put("pr_offset", new R2dbcParam(Long.class, pageRequest.getOffset()));
 		} else {
 			prstmt = statement + BLANK + "limit :pr_limit";
-			params.put("pr_limit", new R2dbcParam(Integer.class, pageable.getPageSize()));
+			params.put("pr_limit", new R2dbcParam(Integer.class, pageRequest.getPageSize()));
 		}
 		return new R2dbcQuery(prstmt, params);
 	}

@@ -26,4 +26,8 @@ public class PageRequest {
 		pageRequest.setPageNumber(pageNumber);
 		return pageRequest;
 	}
+
+	public long getOffset() {
+		return (this.pageNumber - 1) * pageSize;
+	}
 }
