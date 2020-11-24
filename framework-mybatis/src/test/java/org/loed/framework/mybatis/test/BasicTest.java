@@ -107,6 +107,23 @@ public class BasicTest {
 	}
 
 	@Test
+	public void testUpdateNonNull() {
+		User insert = insert();
+		String userId = insert.getId();
+		User user = new User();
+		user.setUsername("testUpdate");
+		user.setAccount(" ");
+		user.setEmail(null);
+		user.setId(userId);
+		userMapper.updateNonNull(user);
+		User userPO = userMapper.get(userId);
+		Assert.assertEquals(userPO.getAccount(), " ");
+		Assert.assertEquals(userPO.getUsername(), "testUpdate");
+		Assert.assertEquals(userPO.getEmail(), "test@test.com");
+		Assert.assertSame(userPO.getVersion(), 1L);
+	}
+
+	@Test
 	public void testUpdateNonBlankAnd() {
 		User insert = insert();
 		String userId = insert.getId();

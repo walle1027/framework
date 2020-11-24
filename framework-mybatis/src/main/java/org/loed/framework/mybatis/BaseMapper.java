@@ -167,6 +167,22 @@ public interface BaseMapper<T, ID extends Serializable> extends MybatisOperation
 		return _update(po, new Filters.NonBlankFilter(po), conditions);
 	}
 
+	default int updateNonNull(T po) {
+		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
+		Table table = ORMapping.get(entityClass);
+		Column id = table.getColumns().stream().filter(Column::isPk).findFirst().orElse(null);
+		if (id == null) {
+			throw new RuntimeException("not find @Id column in object:" + entityClass.getName());
+		}
+		Object idValue = ReflectionUtils.getFieldValue(po, id.getJavaName());
+		if (idValue == null) {
+			throw new RuntimeException("@Id is null from object:" + po);
+		}
+		List<Condition> conditions = new ArrayList<>();
+		conditions.add(new Condition(id.getJavaName(), Operator.equal, idValue));
+		return _update(po, new Filters.NonNullFilter(po), conditions);
+	}
+
 	default int updateNonBlankAnd(T po, SFunction<T, ?>... props) {
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
 		Table table = ORMapping.get(entityClass);
