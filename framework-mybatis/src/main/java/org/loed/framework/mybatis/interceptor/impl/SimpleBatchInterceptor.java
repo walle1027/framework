@@ -146,7 +146,7 @@ public class SimpleBatchInterceptor extends BaseBatchInterceptor {
 	}
 
 	@Override
-	protected int doBatchUpdateDynamically(Executor executor, List<Object> poList, Table table, Predicate<Column> predicate) throws SQLException {
+	protected int doBatchUpdateNonBlank(Executor executor, List<Object> poList, Table table, Predicate<Column> predicate) throws SQLException {
 		Column idColumn = table.getColumns().stream().filter(Column::isPk).findFirst().orElse(null);
 		if (idColumn == null) {
 			throw new RuntimeException("entity class : " + table.getJavaName() + " has no id column");
@@ -172,11 +172,46 @@ public class SimpleBatchInterceptor extends BaseBatchInterceptor {
 				String tableName = entry.getKey();
 				List<Serializable> values = entry.getValue();
 				List<Object> oneTableBatchList = values.stream().map(objectMap::get).collect(Collectors.toList());
-				total += doOneTableBatchUpdateDynamically(executor, oneTableBatchList, table, tableName, predicate);
+				total += doOneTableBatchUpdateNonBlank(executor, oneTableBatchList, table, tableName, predicate);
 			}
 			return total;
 		} else {
-			return doOneTableBatchUpdateDynamically(executor, poList, table, table.getSqlName(), predicate);
+			return doOneTableBatchUpdateNonBlank(executor, poList, table, table.getSqlName(), predicate);
+		}
+	}
+
+	@Override
+	protected int doBatchUpdateNonNull(Executor executor, List<Object> poList, Table table, Predicate<Column> predicate) throws SQLException {
+		Column idColumn = table.getColumns().stream().filter(Column::isPk).findFirst().orElse(null);
+		if (idColumn == null) {
+			throw new RuntimeException("entity class : " + table.getJavaName() + " has no id column");
+		}
+		if (table.isSharding()) {
+			Map<Serializable, Object> objectMap = new HashMap<>();
+			Set<Serializable> idSet = new HashSet<>();
+			for (Object po : poList) {
+				Serializable id = (Serializable) ReflectionUtils.getFieldValue(po, idColumn.getJavaName());
+				idSet.add(id);
+				objectMap.put(id, po);
+			}
+			Map<Serializable, String> tableNameMap = getShardingManager().getShardingTableNameByIds(table, idSet);
+			if (tableNameMap == null || tableNameMap.isEmpty()) {
+				throw new RuntimeException("invalid update list,because it's id hasn't sharding");
+			}
+			Map<String, List<Serializable>> reversedMap = new HashMap<>();
+			tableNameMap.forEach((k, v) -> {
+				reversedMap.computeIfAbsent(v, t -> new ArrayList<>()).add(k);
+			});
+			int total = 0;
+			for (Map.Entry<String, List<Serializable>> entry : reversedMap.entrySet()) {
+				String tableName = entry.getKey();
+				List<Serializable> values = entry.getValue();
+				List<Object> oneTableBatchList = values.stream().map(objectMap::get).collect(Collectors.toList());
+				total += doOneTableBatchUpdateNonNull(executor, oneTableBatchList, table, tableName, predicate);
+			}
+			return total;
+		} else {
+			return doOneTableBatchUpdateNonNull(executor, poList, table, table.getSqlName(), predicate);
 		}
 	}
 
@@ -215,7 +250,7 @@ public class SimpleBatchInterceptor extends BaseBatchInterceptor {
 		}
 	}
 
-	private int doOneTableBatchUpdateDynamically(Executor executor, List<Object> poList, Table table, String tableName, Predicate<Column> predicate) throws SQLException {
+	private int doOneTableBatchUpdateNonBlank(Executor executor, List<Object> poList, Table table, String tableName, Predicate<Column> predicate) throws SQLException {
 		StringBuilder builder = new StringBuilder((table.getColumns().size() * 20 + 3) * batchSize * 3); //random guess, better than nothing
 		List<List<Object>> batches = sliceBatch(poList, batchSize);
 		Connection conn = executor.getTransaction().getConnection();
@@ -231,6 +266,35 @@ public class SimpleBatchInterceptor extends BaseBatchInterceptor {
 					});
 					Filters.NonBlankFilter nonBlankFilter = new Filters.NonBlankFilter(object);
 					String sql = buildDynamicUpdateSql(builder, tableName, object, table, nonBlankFilter.and(predicate));
+					if (logger.isDebugEnabled()) {
+						logger.debug("simple batch update selective {} ", sql);
+					}
+					builder.setLength(0);
+					statement.addBatch(sql);
+				}
+				int[] ints = statement.executeBatch();
+				rows = rows + Arrays.stream(ints).sum();
+			}
+		}
+		return rows;
+	}
+
+	private int doOneTableBatchUpdateNonNull(Executor executor, List<Object> poList, Table table, String tableName, Predicate<Column> predicate) throws SQLException {
+		StringBuilder builder = new StringBuilder((table.getColumns().size() * 20 + 3) * batchSize * 3); //random guess, better than nothing
+		List<List<Object>> batches = sliceBatch(poList, batchSize);
+		Connection conn = executor.getTransaction().getConnection();
+		int rows = 0;
+		for (List<Object> batch : batches) {
+			try (Statement statement = conn.createStatement()) {
+				for (Object object : batch) {
+					table.getColumns().stream().filter(Column::isPk).sorted(Comparator.comparing(Column::getJavaName)).forEach(column -> {
+						Object fieldValue = ReflectionUtils.getFieldValue(object, column.getJavaName());
+						if (fieldValue == null) {
+							throw new BatchOperationException("pk property:" + column.getJavaName() + " is null when update");
+						}
+					});
+					Filters.NonNullFilter nonNullFilter = new Filters.NonNullFilter(object);
+					String sql = buildDynamicUpdateSql(builder, tableName, object, table, nonNullFilter.and(predicate));
 					if (logger.isDebugEnabled()) {
 						logger.debug("simple batch update selective {} ", sql);
 					}
@@ -343,9 +407,8 @@ public class SimpleBatchInterceptor extends BaseBatchInterceptor {
 		Table right = context.getRight();
 		switch (batchType) {
 			case BatchInsert:
-				return true;
-			case BatchUpdateDynamically:
-				return true;
+			case BatchUpdateNonBlank:
+			case BatchUpdateNonNull:
 			case BatchUpdateFixed:
 				return true;
 			case None:

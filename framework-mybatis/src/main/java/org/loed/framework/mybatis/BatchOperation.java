@@ -60,8 +60,10 @@ public interface BatchOperation {
 				return BatchType.BatchInsert;
 			} else if (BaseMapper.BATCH_UPDATE_FIXED.equals(sql)) {
 				return BatchType.BatchUpdateFixed;
-			} else if (BaseMapper.BATCH_UPDATE_DYNAMICALLY.equals(sql)) {
-				return BatchType.BatchUpdateDynamically;
+			} else if (BaseMapper.BATCH_UPDATE_NON_BLANK.equals(sql)) {
+				return BatchType.BatchUpdateNonBlank;
+			} else if (BaseMapper.BATCH_UPDATE_NON_NULL.equals(sql)) {
+				return BatchType.BatchUpdateNonNull;
 			}
 			return BatchType.valueOf(sql);
 		} catch (IllegalArgumentException ex) {
@@ -144,7 +146,7 @@ public interface BatchOperation {
 				.append(MybatisSqlBuilder.BLANK)
 				.append("set").append(MybatisSqlBuilder.BLANK);
 		Predicate<Column> filter = predicate == null ? Filters.UPDATABLE_FILTER : Filters.UPDATABLE_FILTER.and(predicate);
-		String set = table.getColumns().stream().filter(filter.and(new Filters.NonBlankFilter(po)).or(Filters.ALWAYS_UPDATE_FILTER)).map(column -> {
+		String set = table.getColumns().stream().filter(filter.or(Filters.ALWAYS_UPDATE_FILTER)).map(column -> {
 			StringBuilder setBuilder = new StringBuilder();
 			if (column.isVersioned()) {
 				setBuilder.append(column.getSqlName()).append(MybatisSqlBuilder.BLANK).append("=").append(MybatisSqlBuilder.BLANK)

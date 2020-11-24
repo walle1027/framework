@@ -258,11 +258,22 @@ public interface BaseMapper<T, ID extends Serializable> extends MybatisOperation
 		return rows;
 	}
 
-//	@Update(BATCH_UPDATE_FIXED)
-//	int _batchUpdate(@Param("list") List<T> poList, @Param("predicate") Predicate<Column> predicate);
-//
-//	@Update(BATCH_UPDATE_DYNAMICALLY)
-//	int _batchUpdateNonBlank(@Param("list") List<T> poList, @Param("predicate") Predicate<Column> predicate);
+	default int batchUpdateNonNull(List<T> poList) {
+		if (poList == null || poList.size() == 0) {
+			return 0;
+		}
+		boolean b = _preUpdate(poList);
+		if (!b) {
+			logger.warn("empty rows to update");
+			return 0;
+		}
+
+		int rows = _batchUpdateNonNull(poList, Filters.UPDATABLE_FILTER);
+
+		//post insert listener 处理
+		_postUpdate(poList);
+		return rows;
+	}
 
 	default boolean _preUpdate(List<T> poList) {
 		List<PreUpdateListener> preUpdateListeners = MybatisListenerContainer.getPreUpdateListeners();

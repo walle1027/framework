@@ -241,6 +241,30 @@ public class BasicTest {
 	}
 
 	@Test
+	public void testBatchUpdateNonNull() {
+		List<User> userList = batchInsert();
+		for (int i = 0; i < userList.size(); i++) {
+			User user = userList.get(i);
+			user.setUsername(null);
+			user.setAccount(" ");
+			user.setEmail("");
+		}
+		long batchUpdateStart = System.currentTimeMillis();
+		userMapper.batchUpdateNonNull(userList);
+		long batchUpdateEnd = System.currentTimeMillis();
+		System.out.println("batch update {" + userList.size() + "} rows cost:[" + (batchUpdateEnd - batchUpdateStart) + "] millseconds");
+		List<User> userPOList = userMapper.find(Criteria.from(User.class).and(User::getId).in(userList.stream().map(User::getId).collect(Collectors.toList())));
+		for (User user : userPOList) {
+			int idx = Integer.parseInt(user.getMobile().substring("testMobile".length()));
+			Assert.assertEquals("testUsername" + idx, user.getUsername());
+			Assert.assertEquals(" ", user.getAccount());
+			Assert.assertEquals("", user.getEmail());
+			Assert.assertEquals((byte) 0, (byte) user.getIsDeleted());
+			Assert.assertEquals(1L, (long) user.getVersion());
+		}
+	}
+
+	@Test
 	public void testDelete() {
 		User insert = insert();
 		userMapper.delete(insert.getId());

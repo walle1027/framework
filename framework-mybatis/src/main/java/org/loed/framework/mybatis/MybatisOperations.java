@@ -18,13 +18,17 @@ public interface MybatisOperations<T> {
 	String INSERT = ConfigureConstant.MYBATIS_NS + ".insert";
 	String BATCH_INSERT = ConfigureConstant.MYBATIS_NS + ".batchInsert";
 	String BATCH_UPDATE_FIXED = ConfigureConstant.MYBATIS_NS + ".batchUpdateFixed";
-	String BATCH_UPDATE_DYNAMICALLY = ConfigureConstant.MYBATIS_NS + ".batchUpdateDynamically";
+	String BATCH_UPDATE_NON_BLANK = ConfigureConstant.MYBATIS_NS + ".batchUpdateNonBlank";
+	String BATCH_UPDATE_NON_NULL = ConfigureConstant.MYBATIS_NS + ".batchUpdateNonNull";
 
 	@Update(BATCH_UPDATE_FIXED)
 	int _batchUpdate(@Param("list") List<T> poList, @Param("predicate") Predicate<Column> predicate);
 
-	@Update(BATCH_UPDATE_DYNAMICALLY)
+	@Update(BATCH_UPDATE_NON_BLANK)
 	int _batchUpdateNonBlank(@Param("list") List<T> poList, @Param("predicate") Predicate<Column> predicate);
+
+	@Update(BATCH_UPDATE_NON_NULL)
+	int _batchUpdateNonNull(@Param("list") List<T> poList, @Param("predicate") Predicate<Column> predicate);
 
 	@Insert(INSERT)
 	int _insert(T po);

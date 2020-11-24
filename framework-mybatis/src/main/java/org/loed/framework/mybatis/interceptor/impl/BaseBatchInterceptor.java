@@ -84,8 +84,11 @@ public abstract class BaseBatchInterceptor extends BasePreProcessInterceptor<Tri
 				case BatchInsert:
 					rows = doBatchInsert(executor, poList, table);
 					break;
-				case BatchUpdateDynamically:
-					rows = doBatchUpdateDynamically(executor, poList, table, (Predicate<Column>) parameterMap.get("predicate"));
+				case BatchUpdateNonBlank:
+					rows = doBatchUpdateNonBlank(executor, poList, table, (Predicate<Column>) parameterMap.get("predicate"));
+					break;
+				case BatchUpdateNonNull:
+					rows = doBatchUpdateNonNull(executor, poList, table, (Predicate<Column>) parameterMap.get("predicate"));
 					break;
 				case BatchUpdateFixed:
 					rows = doBatchUpdate(executor, poList, table, (Predicate<Column>) parameterMap.get("predicate"));
@@ -120,8 +123,19 @@ public abstract class BaseBatchInterceptor extends BasePreProcessInterceptor<Tri
 	 * @return
 	 * @throws SQLException
 	 */
-	protected abstract int doBatchUpdateDynamically(Executor executor, List<Object> poList, Table table, Predicate<Column> predicate) throws SQLException;
+	protected abstract int doBatchUpdateNonBlank(Executor executor, List<Object> poList, Table table, Predicate<Column> predicate) throws SQLException;
 
+	/**
+	 * 批量更新
+	 *
+	 * @param executor
+	 * @param poList
+	 * @param table
+	 * @param predicate
+	 * @return
+	 * @throws SQLException
+	 */
+	protected abstract int doBatchUpdateNonNull(Executor executor, List<Object> poList, Table table, Predicate<Column> predicate) throws SQLException;
 
 	/**
 	 * 批量更新

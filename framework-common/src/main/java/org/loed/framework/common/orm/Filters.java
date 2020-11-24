@@ -81,6 +81,32 @@ public interface Filters {
 	/**
 	 * 动态判断属性为空的过滤器
 	 */
+	class NonNullFilter implements Predicate<Column> {
+		private final Object object;
+
+		public NonNullFilter(@NonNull Object object) {
+			this.object = object;
+		}
+
+		@Override
+		public boolean test(Column column) {
+			if (column.isPk()) {
+				return false;
+			}
+			if (column.isVersioned()) {
+				return false;
+			}
+			Object value = ReflectionUtils.getFieldValue(object, column.getJavaName());
+			if (value == null) {
+				return false;
+			}
+			return true;
+		}
+	}
+
+	/**
+	 * 动态判断属性为空的过滤器
+	 */
 	class NonBlankFilter implements Predicate<Column> {
 		private final Object object;
 
