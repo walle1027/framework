@@ -163,7 +163,7 @@ public interface R2dbcDao<T, ID> {
 	 * @param <S>    对象的子类
 	 * @return 更新后的对象
 	 */
-	<S extends T> Mono<S> updateNonBlank(@NonNull S entity);
+	<S extends T> Mono<S> updateNonNull(@NonNull S entity);
 
 	/**
 	 * 更新一个对象，只更新非空属性，如果指定了其他属性，同时更新其他属性(无论是否为空)
@@ -176,7 +176,7 @@ public interface R2dbcDao<T, ID> {
 	 * @param <S>     对象的子类
 	 * @return 更新后的对象
 	 */
-	<S extends T> Mono<S> updateNonBlankAnd(@NonNull S entity, @Nullable SFunction<T, ?>... columns);
+	<S extends T> Mono<S> updateNonNullAnd(@NonNull S entity, @Nullable SFunction<T, ?>... columns);
 
 	/**
 	 * 按照主键批量更新对象,只更新非空属性
@@ -188,7 +188,7 @@ public interface R2dbcDao<T, ID> {
 	 * @param <S>      对象的类型
 	 * @return 更新后的对象
 	 */
-	<S extends T> Flux<S> batchUpdateNonBlank(@NonNull Iterable<S> entities);
+	<S extends T> Flux<S> batchUpdateNonNull(@NonNull Iterable<S> entities);
 
 	/**
 	 * 按照主键批量更新对象,忽略指定的属性
@@ -200,7 +200,7 @@ public interface R2dbcDao<T, ID> {
 	 * @param <S>      对象的类型
 	 * @return 更新后的对象
 	 */
-	<S extends T> Flux<S> batchUpdateNonBlankAnd(@NonNull Iterable<S> entities, @Nullable SFunction<T, ?>... columns);
+	<S extends T> Flux<S> batchUpdateNonNullAnd(@NonNull Iterable<S> entities, @Nullable SFunction<T, ?>... columns);
 
 	/**
 	 * 根据主键查询对象

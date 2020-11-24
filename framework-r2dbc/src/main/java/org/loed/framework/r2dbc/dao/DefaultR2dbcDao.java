@@ -232,28 +232,28 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	}
 
 	@Override
-	public <S extends T> Mono<S> updateNonBlank(@NonNull S entity) {
-		return Mono.just(entity).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, new Filters.NonBlankFilter(po))).flatMap(postUpdateFunction());
+	public <S extends T> Mono<S> updateNonNull(@NonNull S entity) {
+		return Mono.just(entity).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, new Filters.NonNullFilter(po))).flatMap(postUpdateFunction());
 	}
 
 	@Override
-	public <S extends T> Mono<S> updateNonBlankAnd(S entity, SFunction<T, ?>... columns) {
+	public <S extends T> Mono<S> updateNonNullAnd(S entity, SFunction<T, ?>... columns) {
 		List<String> includes = (columns == null || columns.length == 0) ? null : Arrays.stream(columns).map(LambdaUtils::getPropFromLambda).collect(Collectors.toList());
 		return Mono.just(entity).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po,
-				includes == null ? new Filters.NonBlankFilter(po) : new Filters.NonBlankFilter(po).or(new Filters.IncludeFilter(includes)))
+				includes == null ? new Filters.NonNullFilter(po) : new Filters.NonNullFilter(po).or(new Filters.IncludeFilter(includes)))
 		).flatMap(postUpdateFunction());
 	}
 
 	@Override
-	public <S extends T> Flux<S> batchUpdateNonBlank(Iterable<S> entities) {
-		return Flux.fromIterable(entities).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, new Filters.NonBlankFilter(po))).flatMap(postUpdateFunction());
+	public <S extends T> Flux<S> batchUpdateNonNull(Iterable<S> entities) {
+		return Flux.fromIterable(entities).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, new Filters.NonNullFilter(po))).flatMap(postUpdateFunction());
 	}
 
 	@Override
-	public <S extends T> Flux<S> batchUpdateNonBlankAnd(Iterable<S> entities, SFunction<T, ?>... columns) {
+	public <S extends T> Flux<S> batchUpdateNonNullAnd(Iterable<S> entities, SFunction<T, ?>... columns) {
 		List<String> includes = (columns == null || columns.length == 0) ? null : Arrays.stream(columns).map(LambdaUtils::getPropFromLambda).collect(Collectors.toList());
 		return Flux.fromIterable(entities).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po,
-				includes == null ? new Filters.NonBlankFilter(po) : new Filters.NonBlankFilter(po).or(new Filters.IncludeFilter(includes)))
+				includes == null ? new Filters.NonNullFilter(po) : new Filters.NonNullFilter(po).or(new Filters.IncludeFilter(includes)))
 		).flatMap(postUpdateFunction());
 	}
 

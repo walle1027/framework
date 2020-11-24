@@ -235,7 +235,7 @@ public class StringIdTest {
 			po.setProp12(EnumProp.enum2);
 			return po;
 		}).flatMap(po -> {
-			return stringIdDao.updateNonBlank(po);
+			return stringIdDao.updateNonNull(po);
 		}).flatMap(po -> {
 			return stringIdDao.get(po.getId());
 		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
@@ -274,7 +274,7 @@ public class StringIdTest {
 			po.setProp12(EnumProp.enum2);
 			return po;
 		}).flatMap(po -> {
-			return stringIdDao.updateNonBlankAnd(po, StringId::getProp3);
+			return stringIdDao.updateNonNullAnd(po, StringId::getProp3);
 		}).flatMap(po -> {
 			return stringIdDao.get(po.getId());
 		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
@@ -437,7 +437,7 @@ public class StringIdTest {
 				po.setProp11((byte) 1);
 				po.setProp12(EnumProp.enum2);
 			}
-			return stringIdDao.batchUpdateNonBlank(poList);
+			return stringIdDao.batchUpdateNonNull(poList);
 		}).collectList().flatMapMany(updateList -> {
 			return stringIdDao.find(Criteria.from(StringId.class).and(StringId::getId).in(updateList.stream().map(StringId::getId).collect(Collectors.toList())));
 		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
@@ -479,7 +479,7 @@ public class StringIdTest {
 				po.setProp11((byte) 1);
 				po.setProp12(EnumProp.enum2);
 			}
-			return stringIdDao.batchUpdateNonBlankAnd(poList, StringId::getProp3);
+			return stringIdDao.batchUpdateNonNullAnd(poList, StringId::getProp3);
 		}).collectList().flatMapMany(updateList -> {
 			return stringIdDao.find(Criteria.from(StringId.class).and(StringId::getId).in(updateList.stream().map(StringId::getId).collect(Collectors.toList())));
 		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
