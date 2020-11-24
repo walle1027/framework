@@ -1,7 +1,9 @@
 package org.loed.framework.mybatis.inspector.autoconfigure;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.loed.framework.common.RoutingDataSource;
 import org.loed.framework.common.ThreadPoolExecutor;
+import org.loed.framework.common.autoconfigure.DbInspectorRegister;
 import org.loed.framework.common.lock.ZKDistributeLock;
 import org.loed.framework.common.orm.ORMapping;
 import org.loed.framework.common.orm.schema.Column;
@@ -9,10 +11,11 @@ import org.loed.framework.common.orm.schema.Index;
 import org.loed.framework.common.orm.schema.Table;
 import org.loed.framework.mybatis.inspector.DatabaseResolver;
 import org.loed.framework.mybatis.inspector.dialect.Dialect;
-import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.io.support.ResourcePatternResolver;
@@ -23,7 +26,6 @@ import org.springframework.core.type.classreading.MetadataReaderFactory;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
 
-import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
 import java.io.IOException;
 import java.sql.Connection;
@@ -42,7 +44,6 @@ import java.util.stream.Collectors;
 public class DbInspector {
 	private static final String RESOURCE_PATTERN = "/**/*.class";
 	private static final String PACKAGE_INFO_SUFFIX = ".package-info";
-	private static List<String> extPackages;
 	private Dialect dialect;
 	private Logger logger = LoggerFactory.getLogger(getClass());
 	@Autowired
@@ -59,38 +60,21 @@ public class DbInspector {
 		this.dialect = dialect;
 	}
 
-	public static void addExtPackages(String extPackages) {
-		if (DbInspector.extPackages == null) {
-			DbInspector.extPackages = new ArrayList<>();
-		}
-		DbInspector.extPackages.add(extPackages);
-	}
-
-	@PostConstruct
+	@EventListener(ApplicationReadyEvent.class)
 	public void inspect() {
 		if (!enabled) {
 			return;
 		}
-		if (CollectionUtils.isEmpty(packagesToScan) && CollectionUtils.isEmpty(extPackages)) {
-			return;
-		}
-		List<String> packages = new ArrayList<>();
-		if (CollectionUtils.isNotEmpty(packagesToScan)) {
-			packages.addAll(packagesToScan);
-		}
-		if (CollectionUtils.isNotEmpty(extPackages)) {
-			packages.addAll(extPackages);
-		}
 		if (zkDistributeLock != null) {
 			String lockPath = StringUtils.replace(org.apache.commons.lang3.StringUtils.join(packagesToScan, ","), ".", "_");
-			zkDistributeLock.accept(lockPath, p -> doInspect(packages));
+			zkDistributeLock.accept(lockPath, p -> doInspect());
 		} else {
-			doInspect(packages);
+			doInspect();
 		}
 	}
 
-	private void doInspect(List<String> packages) {
-		List<org.loed.framework.common.orm.Table> tables = scanJPATables(packages);
+	private void doInspect() {
+		List<org.loed.framework.common.orm.Table> tables = scanJPATables();
 		//没有要同步的表，直接返回
 		if (CollectionUtils.isEmpty(tables)) {
 			return;
@@ -123,8 +107,17 @@ public class DbInspector {
 		}
 	}
 
-	private List<org.loed.framework.common.orm.Table> scanJPATables(List<String> packages) {
-		Set<String> classNames = scanPackages(packages);
+	private List<org.loed.framework.common.orm.Table> scanJPATables() {
+		Set<String> classNames = new TreeSet<>();
+		if (CollectionUtils.isNotEmpty(packagesToScan)) {
+			classNames.addAll(scanPackages(packagesToScan));
+		}
+		if (CollectionUtils.isNotEmpty(DbInspectorRegister.getPackages())) {
+			classNames.addAll(scanPackages(DbInspectorRegister.getPackages()));
+		}
+		if (CollectionUtils.isNotEmpty(DbInspectorRegister.getClasses())) {
+			classNames.addAll(DbInspectorRegister.getClasses());
+		}
 		List<org.loed.framework.common.orm.Table> jpaTables = new ArrayList<>();
 		for (String className : classNames) {
 			try {

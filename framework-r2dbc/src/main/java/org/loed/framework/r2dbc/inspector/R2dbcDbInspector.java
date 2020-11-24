@@ -4,23 +4,25 @@ import io.r2dbc.spi.ConnectionFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.loed.framework.common.autoconfigure.DbInspectorRegister;
+import org.loed.framework.common.lock.ZKDistributeLock;
 import org.loed.framework.common.orm.ORMapping;
+import org.loed.framework.common.orm.Table;
 import org.loed.framework.common.orm.schema.Column;
 import org.loed.framework.common.orm.schema.Index;
-import org.loed.framework.common.lock.ZKDistributeLock;
-import org.loed.framework.common.orm.Table;
 import org.loed.framework.common.util.SerializeUtils;
 import org.loed.framework.r2dbc.R2dbcDialect;
 import org.loed.framework.r2dbc.routing.R2dbcPropertiesProvider;
 import org.loed.framework.r2dbc.routing.RoutingConnectionFactory;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.r2dbc.R2dbcProperties;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.context.properties.bind.BindResult;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.context.EnvironmentAware;
+import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
@@ -44,7 +46,7 @@ import java.util.stream.Collectors;
  * @since 2020/8/8 12:43 下午
  */
 @Slf4j
-public class R2dbcDbInspector implements ApplicationEventPublisherAware, EnvironmentAware, InitializingBean {
+public class R2dbcDbInspector implements ApplicationEventPublisherAware, EnvironmentAware{
 	private static final String RESOURCE_PATTERN = "/**/*.class";
 	private static final String PACKAGE_INFO_SUFFIX = ".package-info";
 	private final ResourcePatternResolver resourcePatternResolver = new PathMatchingResourcePatternResolver();
@@ -67,8 +69,8 @@ public class R2dbcDbInspector implements ApplicationEventPublisherAware, Environ
 		this.connectionFactory = connectionFactory;
 	}
 
-	@Override
-	public void afterPropertiesSet() {
+	@EventListener(ApplicationReadyEvent.class)
+	public void inspect() {
 		if (!enabled) {
 			log.info("db inspector is not enabled");
 			return;
@@ -89,7 +91,7 @@ public class R2dbcDbInspector implements ApplicationEventPublisherAware, Environ
 	}
 
 	private void doInspect(List<String> packages) {
-		List<Table> tables = scanJpaTables(packages);
+		List<Table> tables = scanJpaTables();
 		//没有要同步的表，直接返回
 		if (CollectionUtils.isEmpty(tables)) {
 			return;
@@ -179,8 +181,17 @@ public class R2dbcDbInspector implements ApplicationEventPublisherAware, Environ
 		});
 	}
 
-	private List<Table> scanJpaTables(List<String> packages) {
-		Set<String> classNames = scanPackages(packages);
+	private List<Table> scanJpaTables() {
+		Set<String> classNames = new TreeSet<>();
+		if (CollectionUtils.isNotEmpty(packagesToScan)) {
+			classNames.addAll(scanPackages(packagesToScan));
+		}
+		if (CollectionUtils.isNotEmpty(DbInspectorRegister.getPackages())) {
+			classNames.addAll(scanPackages(DbInspectorRegister.getPackages()));
+		}
+		if (CollectionUtils.isNotEmpty(DbInspectorRegister.getClasses())) {
+			classNames.addAll(DbInspectorRegister.getClasses());
+		}
 		List<Table> jpaTables = new ArrayList<>();
 		for (String className : classNames) {
 			try {

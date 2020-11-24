@@ -16,7 +16,7 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 @Documented
-@Import(DbInspectorRegister.class)
+@Import(DbInspectorBeanRegister.class)
 @AutoConfigureAfter(DataSource.class)
 public @interface DbInspect {
 	Class<? extends Dialect> dialect() default MysqlDialect.class;

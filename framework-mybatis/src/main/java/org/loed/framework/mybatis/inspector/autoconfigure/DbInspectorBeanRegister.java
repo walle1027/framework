@@ -20,7 +20,7 @@ import java.util.List;
  * @version 1.0
  * @since 2018/5/26 下午11:38
  */
-public class DbInspectorRegister implements ImportBeanDefinitionRegistrar, ResourceLoaderAware {
+public class DbInspectorBeanRegister implements ImportBeanDefinitionRegistrar, ResourceLoaderAware {
 	@Override
 	public void setResourceLoader(ResourceLoader resourceLoader) {
 
