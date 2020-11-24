@@ -1,5 +1,9 @@
 package org.loed.framework.r2dbc.dao;
 
+import io.r2dbc.spi.Batch;
+import io.r2dbc.spi.Connection;
+import io.r2dbc.spi.ConnectionFactory;
+import io.r2dbc.spi.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.loed.framework.common.context.ReactiveSystemContext;
@@ -21,6 +25,7 @@ import org.loed.framework.r2dbc.query.R2dbcParam;
 import org.loed.framework.r2dbc.query.R2dbcQuery;
 import org.loed.framework.r2dbc.query.R2dbcSqlBuilder;
 import org.reactivestreams.Publisher;
+import org.springframework.data.r2dbc.connectionfactory.ConnectionFactoryUtils;
 import org.springframework.data.r2dbc.core.DatabaseClient;
 import org.springframework.lang.NonNull;
 import reactor.core.publisher.Flux;
@@ -58,6 +63,8 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 
 	private final Class<ID> idClass;
 
+	private final ConnectionFactory connectionFactory;
+
 	private final JPAClassRowMapper<T> mapper;
 
 	private int batchSize = 200;
@@ -74,11 +81,12 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 
 	private List<PreDeleteListener> preDeleteListeners;
 
-	public DefaultR2dbcDao(Class<? extends R2dbcDao<T, ID>> daoInterface, DatabaseClient databaseClient) {
+	public DefaultR2dbcDao(Class<? extends R2dbcDao<T, ID>> daoInterface, DatabaseClient databaseClient, ConnectionFactory connectionFactory) {
 		this.databaseClient = databaseClient;
 		this.daoInterface = daoInterface;
 		this.entityClass = (Class<T>) ((ParameterizedType) daoInterface.getGenericInterfaces()[0]).getActualTypeArguments()[0];
 		this.idClass = (Class<ID>) ((ParameterizedType) daoInterface.getGenericInterfaces()[0]).getActualTypeArguments()[1];
+		this.connectionFactory = connectionFactory;
 		this.mapper = new JPAClassRowMapper<>(entityClass);
 		this.table = ORMapping.get(entityClass);
 		if (this.table == null) {
@@ -246,15 +254,46 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 
 	@Override
 	public <S extends T> Flux<S> batchUpdateNonNull(Iterable<S> entities) {
-		return Flux.fromIterable(entities).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, new Filters.NonNullFilter(po))).flatMap(postUpdateFunction());
+		return Flux.fromIterable(entities).flatMap(preUpdateFunction()).collectList().flatMapMany(entityList -> {
+			return doBatchUpdateNonNull(entityList, null).thenMany(Flux.fromIterable(entityList));
+		}).flatMap(postUpdateFunction());
+	}
+
+	private <S> Mono<Integer> doBatchUpdateNonNull(List<S> entityList, Predicate<Column> includes) {
+		return Mono.zip(commonConditions().collectList(), ConnectionFactoryUtils.getConnection(connectionFactory)).flatMap(tup -> {
+			List<Condition> conditions = tup.getT1();
+			Connection connection = tup.getT2();
+			return Flux.fromIterable(sliceBatch(entityList)).flatMap(batchList -> {
+				Batch batch = connection.createBatch();
+				for (S s : batchList) {
+					Object id = ReflectionUtils.getFieldValue(s, idColumn.getJavaName());
+					List<Condition> updateConditions = new ArrayList<>();
+					updateConditions.add(new Condition(idColumn.getJavaName(), Operator.equal, id));
+					updateConditions.addAll(conditions);
+					Predicate<Column> predicate = includes == null ? new Filters.NonNullFilter(s) : new Filters.NonNullFilter(s).or(includes);
+					String rawUpdate = r2dbcSqlBuilder.rawUpdate(s, table, updateConditions, predicate.and(Filters.UPDATABLE_FILTER));
+					batch.add(rawUpdate);
+				}
+				return batch.execute();
+			}).flatMap(Result::getRowsUpdated).collectList().map(rowsUpdatedList -> {
+				int totalRowsUpdated = 0;
+				for (Integer rowsUpdated : rowsUpdatedList) {
+					totalRowsUpdated += rowsUpdated;
+				}
+				if (totalRowsUpdated != entityList.size()) {
+					throw new R2dbcException("error batch update");
+				}
+				return totalRowsUpdated;
+			});
+		});
 	}
 
 	@Override
 	public <S extends T> Flux<S> batchUpdateNonNullAnd(Iterable<S> entities, SFunction<T, ?>... columns) {
 		List<String> includes = (columns == null || columns.length == 0) ? null : Arrays.stream(columns).map(LambdaUtils::getPropFromLambda).collect(Collectors.toList());
-		return Flux.fromIterable(entities).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po,
-				includes == null ? new Filters.NonNullFilter(po) : new Filters.NonNullFilter(po).or(new Filters.IncludeFilter(includes)))
-		).flatMap(postUpdateFunction());
+		return Flux.fromIterable(entities).flatMap(preUpdateFunction()).collectList().flatMapMany(entityList -> {
+			return doBatchUpdateNonNull(entityList, includes == null ? null : new Filters.IncludeFilter(includes)).thenMany(Flux.fromIterable(entityList));
+		}).flatMap(postUpdateFunction());
 	}
 
 	private <S extends T> Function<S, Mono<? extends S>> preUpdateFunction() {
@@ -300,7 +339,37 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 
 	@Override
 	public <S extends T> Flux<S> batchUpdate(@NonNull Iterable<S> entities) {
-		return Flux.fromIterable(entities).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, Filters.ALWAYS_TRUE_FILTER)).flatMap(postUpdateFunction());
+		return Flux.fromIterable(entities).flatMap(preUpdateFunction()).collectList().flatMapMany(entityList -> {
+			return doBatchUpdate(entityList, Filters.ALWAYS_TRUE_FILTER).thenMany(Flux.fromIterable(entityList));
+		}).flatMap(postUpdateFunction());
+	}
+
+	private <S> Mono<Integer> doBatchUpdate(List<S> entityList, Predicate<Column> predicate) {
+		return Mono.zip(commonConditions().collectList(), ConnectionFactoryUtils.getConnection(connectionFactory)).flatMap(tup -> {
+			List<Condition> conditions = tup.getT1();
+			Connection connection = tup.getT2();
+			return Flux.fromIterable(sliceBatch(entityList)).flatMap(batchList -> {
+				Batch batch = connection.createBatch();
+				for (S s : batchList) {
+					Object id = ReflectionUtils.getFieldValue(s, idColumn.getJavaName());
+					List<Condition> updateConditions = new ArrayList<>();
+					updateConditions.add(new Condition(idColumn.getJavaName(), Operator.equal, id));
+					updateConditions.addAll(conditions);
+					String rawUpdate = r2dbcSqlBuilder.rawUpdate(s, table, updateConditions, predicate.and(Filters.UPDATABLE_FILTER));
+					batch.add(rawUpdate);
+				}
+				return batch.execute();
+			}).flatMap(Result::getRowsUpdated).collectList().map(rowsUpdatedList -> {
+				int totalRowsUpdated = 0;
+				for (Integer rowsUpdated : rowsUpdatedList) {
+					totalRowsUpdated += rowsUpdated;
+				}
+				if (totalRowsUpdated != entityList.size()) {
+					throw new R2dbcException("error batch update");
+				}
+				return totalRowsUpdated;
+			});
+		});
 	}
 
 	@Override
@@ -309,18 +378,25 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 			return Flux.error(new R2dbcException("non columns to update"));
 		}
 		List<String> includes = Arrays.stream(columns).map(LambdaUtils::getPropFromLambda).collect(Collectors.toList());
-		return Flux.fromIterable(entities).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, new Filters.IncludeFilter(includes))).flatMap(postUpdateFunction());
+		return Flux.fromIterable(entities).flatMap(preUpdateFunction()).collectList().flatMapMany(entityList -> {
+			return doBatchUpdate(entityList, new Filters.IncludeFilter(includes)).thenMany(Flux.fromIterable(entities));
+		}).flatMap(postUpdateFunction());
 	}
 
 	@Override
 	public <S extends T> Flux<S> batchUpdateWithout(Iterable<S> entities, SFunction<T, ?>... columns) {
 		List<String> excludes = columns == null ? null : Arrays.stream(columns).map(LambdaUtils::getPropFromLambda).collect(Collectors.toList());
-		return Flux.fromIterable(entities).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, excludes == null ? Filters.ALWAYS_TRUE_FILTER : new Filters.ExcludeFilter(excludes))).flatMap(postUpdateFunction());
+		return Flux.fromIterable(entities).flatMap(preUpdateFunction()).collectList().flatMapMany(entityList -> {
+			return doBatchUpdate(entityList, excludes == null ? Filters.ALWAYS_TRUE_FILTER : new Filters.ExcludeFilter(excludes))
+					.thenMany(Flux.fromIterable(entityList));
+		}).flatMap(postUpdateFunction());
 	}
 
 	@Override
 	public <S extends T> Flux<S> batchUpdate(@NonNull Publisher<S> entityStream) {
-		return Flux.from(entityStream).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, Filters.ALWAYS_TRUE_FILTER)).flatMap(postUpdateFunction());
+		return Flux.from(entityStream).flatMap(preUpdateFunction()).collectList()
+				.flatMapMany(entityList -> doBatchUpdate(entityList, Filters.ALWAYS_TRUE_FILTER).thenMany(Flux.fromIterable(entityList)))
+				.flatMap(postUpdateFunction());
 	}
 
 	@Override
@@ -563,6 +639,25 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	private Flux<T> query(R2dbcQuery query) {
 		DatabaseClient.GenericExecuteSpec bind = bind(query);
 		return bind.map(mapper).all();
+	}
+
+	private <R> List<List<R>> sliceBatch(List<R> list) {
+		if (list == null) {
+			return null;
+		}
+		int size = list.size();
+		if (size < batchSize) {
+			return Collections.singletonList(list);
+		}
+		int batchListSize = size % batchSize == 0 ? size / batchSize : (size / batchSize) + 1;
+		List<List<R>> batchList = new ArrayList<>(batchListSize);
+		for (int i = 0; i < batchListSize; i++) {
+			int startIndex = i * batchSize;
+			int endIndex = (i + 1) * batchSize;
+			endIndex = Math.min(endIndex, size);
+			batchList.add(list.subList(startIndex, endIndex));
+		}
+		return batchList;
 	}
 
 	public void setPreInsertListeners(List<PreInsertListener> preInsertListeners) {

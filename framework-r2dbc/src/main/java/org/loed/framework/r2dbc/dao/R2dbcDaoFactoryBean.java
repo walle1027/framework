@@ -51,12 +51,15 @@ public class R2dbcDaoFactoryBean<R extends R2dbcDao<T, ID>, T, ID> implements In
 
 	private Environment environment;
 
+	private final ConnectionFactory connectionFactory;
+
 	@Autowired
 	private R2dbcProperties properties;
 
-	public R2dbcDaoFactoryBean(Class<? extends R> daoInterface, DatabaseClient databaseClient) {
+	public R2dbcDaoFactoryBean(Class<? extends R> daoInterface, DatabaseClient databaseClient, ConnectionFactory connectionFactory) {
 		this.daoInterface = daoInterface;
 		this.databaseClient = databaseClient;
+		this.connectionFactory = connectionFactory;
 	}
 
 	@Override
@@ -77,7 +80,7 @@ public class R2dbcDaoFactoryBean<R extends R2dbcDao<T, ID>, T, ID> implements In
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		this.dao = Lazy.of(() -> {
-			DefaultR2dbcDao<T, ID> defaultR2DbcDao = new DefaultR2dbcDao<T, ID>(daoInterface, databaseClient);
+			DefaultR2dbcDao<T, ID> defaultR2DbcDao = new DefaultR2dbcDao<T, ID>(daoInterface, databaseClient, connectionFactory);
 
 			defaultR2DbcDao.setR2dbcSqlBuilder(createR2dbcSqlBuilder());
 			//initial listeners

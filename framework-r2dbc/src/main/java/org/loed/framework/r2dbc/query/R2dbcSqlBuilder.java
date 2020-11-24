@@ -54,6 +54,17 @@ public interface R2dbcSqlBuilder {
 	R2dbcQuery update(@NonNull Object entity, @NonNull Table table, @NonNull List<Condition> conditions, @NonNull Predicate<Column> columnFilter);
 
 	/**
+	 * 构造一个原始的更新语句
+	 *
+	 * @param entity       对象
+	 * @param table        表
+	 * @param conditions   更新条件
+	 * @param columnFilter 列过滤器
+	 * @return 原始的更新语句
+	 */
+	String rawUpdate(@NonNull Object entity, @NonNull Table table, @NonNull List<Condition> conditions, @NonNull Predicate<Column> columnFilter);
+
+	/**
 	 * 按照动态条件构建一个删除对象的语句
 	 * 如果对象中包含{@link org.loed.framework.common.po.IsDeleted} 列，则做逻辑删除
 	 *

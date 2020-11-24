@@ -714,7 +714,7 @@ public class LongIdTest {
 		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(page.log()).expectNextMatches(pg -> {
 			Assert.assertEquals(pg.getTotal(), (long) longIdList.size());
-			int i = 10;
+			int i = 0;
 			for (LongId p : pg.getRows()) {
 				Assert.assertEquals((long) p.getId(), ++i);
 				Assert.assertEquals((long) p.getVersion(), 0);

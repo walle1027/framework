@@ -311,7 +311,7 @@ public class LongIdWithDeletedTest {
 		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(page.log()).expectNextMatches(pg -> {
 			Assert.assertEquals(pg.getTotal(), (long) longIdList.size());
-			int i = 10;
+			int i = 0;
 			for (LongIdWithDeleted p : pg.getRows()) {
 				Assert.assertEquals(p.getId().intValue(), ++i);
 				Assert.assertEquals(p.getVersion(), BigInteger.ZERO);

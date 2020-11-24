@@ -1,5 +1,6 @@
 package org.loed.framework.r2dbc.autoconfigure;
 
+import io.r2dbc.spi.ConnectionFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.loed.framework.r2dbc.dao.R2dbcDao;
 import org.loed.framework.r2dbc.dao.R2dbcDaoFactoryBean;
@@ -104,6 +105,7 @@ public class R2dbcDaoClassPathScanner extends ClassPathBeanDefinitionScanner {
 			definition.setLazyInit(true);
 			definition.getConstructorArgumentValues().addIndexedArgumentValue(0, beanClassName);
 			definition.getConstructorArgumentValues().addIndexedArgumentValue(1, new RuntimeBeanReference(DatabaseClient.class));
+			definition.getConstructorArgumentValues().addIndexedArgumentValue(2, new RuntimeBeanReference(ConnectionFactory.class));
 			definition.setBeanClass(R2dbcDaoFactoryBean.class);
 		}
 	}

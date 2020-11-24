@@ -7,6 +7,7 @@ import org.loed.framework.common.context.SystemContext;
 import org.loed.framework.common.data.DataType;
 import org.loed.framework.common.orm.*;
 import org.loed.framework.common.query.*;
+import org.loed.framework.common.util.MysqlUtils;
 import org.loed.framework.common.util.ReflectionUtils;
 import org.loed.framework.common.util.StringHelper;
 import org.loed.framework.r2dbc.query.R2dbcParam;
@@ -120,6 +121,56 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 			buildConditions(builder, params, conditions, tableAliasMap);
 		}
 		return new R2dbcQuery(builder.toString(), params);
+	}
+
+	@Override
+	public String rawUpdate(Object entity, Table table, List<Condition> conditions, Predicate<Column> columnFilter) {
+		QueryBuilder builder = new QueryBuilder();
+		builder.update(wrap(table.getSqlName()));
+		table.getColumns().stream().filter(columnFilter.or(Filters.ALWAYS_UPDATE_FILTER)).forEach(column -> {
+			StringBuilder setBuilder = new StringBuilder();
+			setBuilder.append(wrap(column.getSqlName())).append(BLANK).append("=").append(BLANK);
+			if (column.isVersioned()) {
+				setBuilder.append(wrap(column.getSqlName())).append(" + 1");
+			} else {
+				//TODO bind sql
+				Object fieldValue = ReflectionUtils.getFieldValue(entity, column.getJavaName());
+				Class<?> javaType = column.getJavaType();
+				if (fieldValue == null) {
+					setBuilder.append(" null ");
+				} else {
+					setBuilder.append(MysqlUtils.getEscapedSqlVal(fieldValue, column));
+				}
+			}
+			builder.set(setBuilder.toString());
+		});
+		if (CollectionUtils.isEmpty(builder.getUpdateList())) {
+			throw new RuntimeException("empty columns to update");
+		}
+		if (CollectionUtils.isEmpty(conditions)) {
+			log.warn("conditions is empty, the statement:" + builder.toString() + " will update all rows");
+		} else {
+			//no join or no sub query is simple so,don't use public method
+			for (Condition condition : conditions) {
+				String propertyName = condition.getPropertyName();
+				Column column = table.getColumns().stream().filter(c -> {
+					return c.getJavaName().equals(propertyName);
+				}).findAny().get();
+				Object value = condition.getValue();
+				StringBuilder where = new StringBuilder();
+				where.append(propertyName).append(BLANK).append(condition.getOperator().value()).append(BLANK);
+				if (value == null) {
+					where.append("null");
+				} else {
+					where.append(MysqlUtils.getEscapedSqlVal(value, column));
+				}
+				builder.where(where.toString());
+			}
+		}
+		if (log.isDebugEnabled()) {
+			log.debug(builder.toString());
+		}
+		return builder.toString();
 	}
 
 	@Override

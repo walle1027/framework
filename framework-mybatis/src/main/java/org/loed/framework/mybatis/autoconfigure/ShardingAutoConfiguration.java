@@ -1,13 +1,14 @@
 package org.loed.framework.mybatis.autoconfigure;
 
+import org.apache.ibatis.session.SqlSessionFactory;
 import org.loed.framework.common.ThreadPoolExecutor;
+import org.loed.framework.common.autoconfigure.DbInspectorRegister;
 import org.loed.framework.mybatis.inspector.autoconfigure.DbInspector;
 import org.loed.framework.mybatis.sharding.ShardingManager;
 import org.loed.framework.mybatis.sharding.table.impl.DoubleWriteManager;
 import org.loed.framework.mybatis.sharding.table.impl.JdbcShardingManager;
 import org.loed.framework.mybatis.sharding.table.impl.RedisShardingManager;
 import org.loed.framework.mybatis.sharding.table.po.ShardingMapping;
-import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -38,7 +39,7 @@ public class ShardingAutoConfiguration {
 	public ShardingManager shardingManager(ThreadPoolExecutor threadPoolExecutor,
 	                                       @Qualifier("jdbcShardingManager") ShardingManager jdbcShardingManager
 			, @Qualifier("redisShardingManager") ShardingManager redisShardingManager) {
-		DbInspector.addExtPackages(ShardingMapping.class.getPackage().getName());
+		DbInspectorRegister.addPackages(ShardingMapping.class);
 		DoubleWriteManager manager = new DoubleWriteManager();
 		manager.setJdbcShardingManager(jdbcShardingManager);
 		manager.setRedisShardingManager(redisShardingManager);

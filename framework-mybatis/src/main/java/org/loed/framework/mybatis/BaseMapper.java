@@ -151,6 +151,7 @@ public interface BaseMapper<T, ID extends Serializable> extends MybatisOperation
 		return _update(po, predicate, conditions);
 	}
 
+	@Deprecated
 	default int updateNonBlank(T po) {
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
 		Table table = ORMapping.get(entityClass);
@@ -183,6 +184,7 @@ public interface BaseMapper<T, ID extends Serializable> extends MybatisOperation
 		return _update(po, new Filters.NonNullFilter(po), conditions);
 	}
 
+	@Deprecated
 	default int updateNonBlankAnd(T po, SFunction<T, ?>... props) {
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
 		Table table = ORMapping.get(entityClass);
@@ -197,6 +199,28 @@ public interface BaseMapper<T, ID extends Serializable> extends MybatisOperation
 		List<Condition> conditions = new ArrayList<>();
 		conditions.add(new Condition(id.getJavaName(), Operator.equal, idValue));
 		Predicate<Column> predicate = new Filters.NonBlankFilter(po);
+		if (props != null && props.length > 0) {
+			List<String> includes = Arrays.stream(props).map(LambdaUtils::getPropFromLambda).collect(Collectors.toList());
+			predicate = predicate.or(new Filters.IncludeFilter(includes));
+		}
+		return _update(po, predicate, conditions);
+	}
+
+	@Deprecated
+	default int updateNonNullAnd(T po, SFunction<T, ?>... props) {
+		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
+		Table table = ORMapping.get(entityClass);
+		Column id = table.getColumns().stream().filter(Column::isPk).findFirst().orElse(null);
+		if (id == null) {
+			throw new RuntimeException("not find @Id column in object:" + entityClass.getName());
+		}
+		Object idValue = ReflectionUtils.getFieldValue(po, id.getJavaName());
+		if (idValue == null) {
+			throw new RuntimeException("@Id is null from object:" + po);
+		}
+		List<Condition> conditions = new ArrayList<>();
+		conditions.add(new Condition(id.getJavaName(), Operator.equal, idValue));
+		Predicate<Column> predicate = new Filters.NonNullFilter(po);
 		if (props != null && props.length > 0) {
 			List<String> includes = Arrays.stream(props).map(LambdaUtils::getPropFromLambda).collect(Collectors.toList());
 			predicate = predicate.or(new Filters.IncludeFilter(includes));
@@ -257,6 +281,7 @@ public interface BaseMapper<T, ID extends Serializable> extends MybatisOperation
 		return i;
 	}
 
+	@Deprecated
 	default int batchUpdateNonBlank(List<T> poList) {
 		if (poList == null || poList.size() == 0) {
 			return 0;
