@@ -5,7 +5,6 @@ import org.loed.framework.mybatis.interceptor.ChainedInterceptor;
 import org.loed.framework.mybatis.interceptor.DefaultChainedInterceptor;
 import org.loed.framework.mybatis.interceptor.impl.InsertInterceptor;
 import org.loed.framework.mybatis.interceptor.impl.SimpleBatchInterceptor;
-import org.loed.framework.mybatis.listener.MybatisListenerContainer;
 import org.loed.framework.mybatis.listener.impl.DefaultPreInsertListener;
 import org.loed.framework.mybatis.listener.impl.DefaultPreUpdateListener;
 import org.loed.framework.mybatis.listener.spi.*;
@@ -14,7 +13,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import javax.annotation.PostConstruct;
 import java.util.List;
 
 /**
@@ -60,15 +58,5 @@ public class MybatisAutoConfiguration {
 //		defaultChainedInterceptor.addInterceptor(ChainedInterceptor.SHARDING_LIST_BY_IDS, new ShardingListByIdsInterceptor());
 		defaultChainedInterceptor.addInterceptor(ChainedInterceptor.INSERT_ORDER, new InsertInterceptor());
 		return defaultChainedInterceptor;
-	}
-
-	@PostConstruct
-	public void addListeners() {
-		MybatisListenerContainer.registerPreInsertListeners(preInsertListeners);
-		MybatisListenerContainer.registerPreUpdateListeners(preUpdateListeners);
-		MybatisListenerContainer.registerPreDeleteListeners(preDeleteListeners);
-		MybatisListenerContainer.registerPostInsertListeners(postInsertListeners);
-		MybatisListenerContainer.registerPostUpdateListeners(postUpdateListeners);
-		MybatisListenerContainer.registerPostDeleteListeners(postDeleteListeners);
 	}
 }
