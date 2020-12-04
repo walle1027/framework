@@ -14,7 +14,7 @@ public class TestPreDeleteListener implements PreDeleteListener {
 	@Override
 	public <T> Mono<T> preDelete(T object) {
 		return Mono.just(object).doOnNext(po -> {
-			log.info("preDelete object:" + po);
+			log.debug("preDelete object:" + po);
 		});
 	}
 }

@@ -125,7 +125,7 @@ public class JPAClassRowMapper<T> implements BiFunction<Row, RowMetadata, T> {
 					try {
 						Object convertedValue = DataType.toType(value, fieldType);
 						if (convertedValue == null) {
-							logger.error("convert origin value:" + value + " to target type:" + type + " to null");
+							logger.debug("convert origin value:" + value + " to target type:" + type + " to null");
 						}
 						field.set(object, convertedValue);
 					} catch (Exception e) {
