@@ -1,9 +1,9 @@
 package org.loed.framework.common.mapping.impl;
 
+import org.loed.framework.common.data.DataType;
 import org.loed.framework.common.mapping.Mapper;
 import org.loed.framework.common.mapping.config.MappingConfig;
 import org.loed.framework.common.mapping.config.PropertyConfig;
-import org.loed.framework.common.data.DataType;
 import org.loed.framework.common.util.ReflectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -115,10 +115,17 @@ public class MapperImpl implements Mapper {
 			if (ignorePropertySet.contains(destPropertyName)) {
 				continue;
 			}
-			Field origField = ReflectionUtils.getDeclaredField(orig, srcPropertyName);
+			Field srcField = ReflectionUtils.getDeclaredField(orig, srcPropertyName);
 			Field destField = ReflectionUtils.getDeclaredField(dest, destPropertyName);
 			try {
-				copyFieldValue(orig, dest, origField, destField, ignoreProps);
+				int modifiers = destField.getModifiers();
+				if (Modifier.isFinal(modifiers)) {
+					if (logger.isDebugEnabled()) {
+						logger.debug("can't convert from  field " + srcField.getName() + " to destField, because destField:" + destField.getName() + " is final");
+					}
+					continue;
+				}
+				copyFieldValue(orig, dest, srcField, destField, ignoreProps);
 			} catch (Exception e) {
 				logger.error(e.getMessage(), e);
 			}
@@ -145,6 +152,13 @@ public class MapperImpl implements Mapper {
 					continue;
 				}
 				Field destField = ReflectionUtils.getDeclaredField(destination.getClass(), srcField.getName());
+				int modifiers = destField.getModifiers();
+				if (Modifier.isFinal(modifiers)) {
+					if (logger.isDebugEnabled()) {
+						logger.debug("can't convert from  field " + srcField.getName() + " to destField, because destField:" + destField.getName() + " is final");
+					}
+					continue;
+				}
 				//复制属性值
 				copyFieldValue(origin, destination, srcField, destField, ignoreProps);
 			} catch (Exception e) {
