@@ -18,7 +18,7 @@
 		<module>framework-event</module>
 		<module>framework-mybatis</module>
 		<module>framework-r2dbc</module>
-		<module>framework-rest</module>
+		<module>framework-rpc</module>
 	</modules>
 	<!--属性文件-->
 	<properties>
