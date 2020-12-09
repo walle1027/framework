@@ -558,6 +558,11 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	}
 
 	@Override
+	public <R> Mono<Long> count(SFunction<T, R> property, R value) {
+		return count(Criteria.from(entityClass).and(property).is(value));
+	}
+
+	@Override
 	public <R> Flux<T> findByProperty(SFunction<T, R> property, R value) {
 		return find(Criteria.from(entityClass).and(property).is(value));
 	}
