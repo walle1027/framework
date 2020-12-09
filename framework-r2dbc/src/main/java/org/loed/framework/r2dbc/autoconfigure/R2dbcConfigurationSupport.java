@@ -22,7 +22,6 @@ import org.springframework.data.r2dbc.connectionfactory.R2dbcTransactionManager;
 import org.springframework.transaction.ReactiveTransactionManager;
 import org.springframework.util.StringUtils;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -57,16 +56,18 @@ public class R2dbcConfigurationSupport {
 	}
 
 	@Bean(destroyMethod = "dispose")
-	ConnectionPool connectionFactory(org.springframework.boot.autoconfigure.r2dbc.R2dbcProperties properties, ResourceLoader resourceLoader,
+	ConnectionPool connectionFactory(org.springframework.boot.autoconfigure.r2dbc.R2dbcProperties springProperties, ResourceLoader resourceLoader,
 	                                 ObjectProvider<ConnectionFactoryOptionsBuilderCustomizer> customizers) {
-		ConnectionFactory connectionFactory = createConnectionFactory(properties, resourceLoader.getClassLoader(),
+		ConnectionFactory connectionFactory = createConnectionFactory(springProperties, resourceLoader.getClassLoader(),
 				customizers.orderedStream().collect(Collectors.toList()));
-		org.springframework.boot.autoconfigure.r2dbc.R2dbcProperties.Pool pool = properties.getPool();
+		org.springframework.boot.autoconfigure.r2dbc.R2dbcProperties.Pool springPool = springProperties.getPool();
+		R2dbcProperties.Pool poolSupport = properties.getPool();
 		ConnectionPoolConfiguration.Builder builder = ConnectionPoolConfiguration.builder(connectionFactory)
-				.maxSize(pool.getMaxSize()).initialSize(pool.getInitialSize()).maxIdleTime(pool.getMaxIdleTime())
-				.maxAcquireTime(Duration.ofSeconds(3)).maxCreateConnectionTime(Duration.ofSeconds(5)).acquireRetry(3);
-		if (StringUtils.hasText(pool.getValidationQuery())) {
-			builder.validationQuery(pool.getValidationQuery());
+				.maxSize(springPool.getMaxSize()).initialSize(springPool.getInitialSize()).maxIdleTime(springPool.getMaxIdleTime())
+				.maxAcquireTime(poolSupport.getMaxAcquireTime()).maxCreateConnectionTime(poolSupport.getMaxCreateConnectionTime())
+				.acquireRetry(poolSupport.getMaxRetry());
+		if (StringUtils.hasText(springPool.getValidationQuery())) {
+			builder.validationQuery(springPool.getValidationQuery());
 		}
 		return new ConnectionPool(builder.build());
 	}

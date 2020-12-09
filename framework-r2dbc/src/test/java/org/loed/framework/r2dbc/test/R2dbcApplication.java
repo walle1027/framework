@@ -1,6 +1,5 @@
 package org.loed.framework.r2dbc.test;
 
-import org.loed.framework.r2dbc.autoconfigure.R2dbcConnectionPoolConfig;
 import org.loed.framework.r2dbc.autoconfigure.R2dbcDaoScanner;
 import org.loed.framework.r2dbc.autoconfigure.R2dbcDbInspector;
 import org.loed.framework.r2dbc.listener.TestPostInsertListener;
@@ -12,7 +11,6 @@ import org.loed.framework.r2dbc.test.po.LongId;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
 
 /**
  * @author thomason
@@ -22,7 +20,6 @@ import org.springframework.context.annotation.Import;
 @SpringBootApplication
 @R2dbcDaoScanner(basePackageClasses = LongIdDao.class)
 @R2dbcDbInspector(basePackageClasses = LongId.class)
-@Import(R2dbcConnectionPoolConfig.class)
 public class R2dbcApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(R2dbcApplication.class, args);
