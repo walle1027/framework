@@ -539,7 +539,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 		PageRequest pageRequest = PageRequest.of(1, 1);
 		pageRequest.setPaging(false);
 		pageRequest.setCounting(false);
-		return findPage(criteria, pageRequest).flatMap(pagination -> {
+		return findPage(pageRequest, criteria).flatMap(pagination -> {
 			return CollectionUtils.isEmpty(pagination.getRows()) ? Mono.empty() : Mono.just(pagination.getRows().get(0));
 		});
 	}
@@ -584,7 +584,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	}
 
 	@Override
-	public Mono<Pagination<T>> findPage(@NonNull Criteria<T> criteria, @NonNull PageRequest pageRequest) {
+	public Mono<Pagination<T>> findPage(@NonNull PageRequest pageRequest, @NonNull Criteria<T> criteria) {
 		boolean paged = pageRequest.isPaging();
 		if (paged) {
 			return Mono.zip(count(criteria), Mono.just(r2dbcSqlBuilder.findPage(table, criteria, pageRequest)).flatMap(r2dbcQuery -> {

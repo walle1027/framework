@@ -313,7 +313,7 @@ public class StringIdWithDeletedTest {
 					.and(StringIdWithDeleted::getProp10).is(Boolean.TRUE)
 					.and(StringIdWithDeleted::getProp11).is((byte) 0)
 					.asc(StringIdWithDeleted::getId);
-			return stringIdWithDeletedDao.findPage(criteria, PageRequest.of(1, 10));
+			return stringIdWithDeletedDao.findPage(PageRequest.of(1, 10), criteria);
 		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(page.log()).expectNextMatches(pg -> {
 			Assert.assertEquals(pg.getTotal(), (long) longIdList.size());

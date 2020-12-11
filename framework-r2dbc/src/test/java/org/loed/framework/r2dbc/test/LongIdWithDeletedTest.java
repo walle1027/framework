@@ -307,7 +307,7 @@ public class LongIdWithDeletedTest {
 					.and(LongIdWithDeleted::getProp10).is(Boolean.TRUE)
 					.and(LongIdWithDeleted::getProp11).is((byte) 0)
 					.asc(LongIdWithDeleted::getId);
-			return longIdWithDeletedDao.findPage(criteria, PageRequest.of(1, 10));
+			return longIdWithDeletedDao.findPage(PageRequest.of(1, 10), criteria);
 		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(page.log()).expectNextMatches(pg -> {
 			Assert.assertEquals(pg.getTotal(), (long) longIdList.size());

@@ -708,7 +708,7 @@ public class StringIdTest {
 					.and(StringId::getProp10).is(Boolean.TRUE)
 					.and(StringId::getProp11).is((byte) 0)
 					.asc(StringId::getId);
-			return stringIdDao.findPage(criteria, PageRequest.of(1, 10));
+			return stringIdDao.findPage(PageRequest.of(1, 10), criteria);
 		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(page.log()).expectNextMatches(pg -> {
 			Assert.assertEquals(pg.getTotal(), (long) longIdList.size());
