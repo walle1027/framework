@@ -343,11 +343,11 @@ public interface R2dbcDao<T, ID> {
 	 * 如果对象中有{@link TenantId} 会自动增加 过滤条件
 	 * 如果对象中有  {@link IsDeleted} 会自动增加过滤条件
 	 *
-	 * @param criteria    动态条件
 	 * @param pageRequest 分页参数
+	 * @param criteria    动态条件
 	 * @return 分页查询结果
 	 */
-	Mono<Pagination<T>> findPage(@NonNull Criteria<T> criteria, @NonNull PageRequest pageRequest);
+	Mono<Pagination<T>> findPage(@NonNull PageRequest pageRequest, @NonNull Criteria<T> criteria);
 
 	/**
 	 * 执行一个自定义的查询语句

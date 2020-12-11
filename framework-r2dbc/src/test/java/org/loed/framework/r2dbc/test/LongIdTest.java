@@ -710,7 +710,7 @@ public class LongIdTest {
 					.and(LongId::getProp10).is(Boolean.TRUE)
 					.and(LongId::getProp11).is((byte) 0)
 					.asc(LongId::getId);
-			return longIdDao.findPage(criteria, PageRequest.of(1, 10));
+			return longIdDao.findPage(PageRequest.of(1, 10), criteria);
 		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(page.log()).expectNextMatches(pg -> {
 			Assert.assertEquals(pg.getTotal(), (long) longIdList.size());
@@ -742,7 +742,7 @@ public class LongIdTest {
 			paramMap.put("prop1", new R2dbcParam(String.class, "%LongId%"));
 			return longIdDao.select(sql, paramMap);
 		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
-		StepVerifier.create(select.log()).expectNextMatches(poList ->{
+		StepVerifier.create(select.log()).expectNextMatches(poList -> {
 			for (LongId p : poList) {
 				Assert.assertEquals((long) p.getVersion(), 0);
 				Assert.assertEquals((long) p.getCreateBy(), 1L);

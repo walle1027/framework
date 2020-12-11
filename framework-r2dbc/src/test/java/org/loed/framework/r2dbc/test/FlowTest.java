@@ -12,6 +12,7 @@ import org.loed.framework.r2dbc.test.po.StringId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -62,7 +63,7 @@ public class FlowTest {
 	}
 
 
-//	@Transactional
+	@Transactional
 	public Mono<Integer> createOneFlow() {
 		StringId po = new StringId();
 		po.setProp1("StringId");
