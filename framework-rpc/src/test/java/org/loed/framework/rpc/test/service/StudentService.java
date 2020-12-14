@@ -13,6 +13,10 @@ import java.util.concurrent.CompletableFuture;
 
 @ServiceProxy(baseUri = "http://localhost:3000")
 public interface StudentService {
+	default Mono<Student> getStudentDefault(Long id) {
+		return getStudent2(id);
+	}
+
 	//----------------get mapping--------------//
 	@GetMapping(value = "/student/{id}")
 	Student getStudent(@PathVariable("id") Long id);

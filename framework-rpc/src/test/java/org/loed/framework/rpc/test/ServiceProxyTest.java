@@ -28,6 +28,13 @@ public class ServiceProxyTest {
 	private StudentService studentService;
 
 	@Test
+	public void testGetDefault() {
+		Long id = 1L;
+		Mono<String> mono = studentService.getStudentDefault(id).map(Student::getName);
+		StepVerifier.create(mono.log()).expectNext("test").verifyComplete();
+	}
+
+	@Test
 	public void testGet() {
 		Long id = 1L;
 		Student student = studentService.getStudent(id);
@@ -50,7 +57,7 @@ public class ServiceProxyTest {
 	}
 
 	@Test
-	public  void testAssignableFrom(){
+	public void testAssignableFrom() {
 		Assert.assertTrue(Mono.class.isAssignableFrom(ByteBufMono.class));
 	}
 

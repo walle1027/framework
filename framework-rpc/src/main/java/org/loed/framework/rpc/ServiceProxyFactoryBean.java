@@ -34,10 +34,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.*;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -69,10 +67,15 @@ public class ServiceProxyFactoryBean<T> implements FactoryBean<T>, MethodInterce
 		this.serviceInterface = interfaze;
 	}
 
+	private T proxy;
+
 	@Override
 	public Object invoke(MethodInvocation invocation) throws Throwable {
-		long start = System.currentTimeMillis();
 		Method method = invocation.getMethod();
+		if (isDefaultMethod(method)) {
+			return invokeDefaultMethod(proxy, method, invocation.getArguments());
+		}
+		long start = System.currentTimeMillis();
 		Object[] arguments = invocation.getArguments();
 		String methodName = method.getName();
 		if ("toString".equals(methodName) && method.getParameterTypes().length == 0) {
@@ -461,7 +464,7 @@ public class ServiceProxyFactoryBean<T> implements FactoryBean<T>, MethodInterce
 
 	@Override
 	public T getObject() throws Exception {
-		return (T) new ProxyFactory(serviceInterface, this).getProxy(ClassUtils.getDefaultClassLoader());
+		return proxy;
 	}
 
 	@Override
@@ -489,5 +492,25 @@ public class ServiceProxyFactoryBean<T> implements FactoryBean<T>, MethodInterce
 		} else {
 			this.webClient = WebClient.builder().build();
 		}
+		this.proxy = (T) new ProxyFactory(serviceInterface, this).getProxy(ClassUtils.getDefaultClassLoader());
 	}
+
+	private boolean isDefaultMethod(Method method) {
+		return ((method.getModifiers()
+				& (Modifier.ABSTRACT | Modifier.PUBLIC | Modifier.STATIC)) == Modifier.PUBLIC)
+				&& method.getDeclaringClass().isInterface();
+	}
+
+	private Object invokeDefaultMethod(Object proxy, Method method, Object[] args)
+			throws Throwable {
+		final Constructor<MethodHandles.Lookup> constructor = MethodHandles.Lookup.class
+				.getDeclaredConstructor(Class.class, int.class);
+		if (!constructor.isAccessible()) {
+			constructor.setAccessible(true);
+		}
+		final Class<?> declaringClass = method.getDeclaringClass();
+		return constructor.newInstance(declaringClass, MethodHandles.Lookup.PRIVATE)
+				.unreflectSpecial(method, declaringClass).bindTo(proxy).invokeWithArguments(args);
+	}
+
 }
