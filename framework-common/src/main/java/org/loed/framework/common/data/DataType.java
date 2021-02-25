@@ -956,6 +956,22 @@ public class DataType {
 		switch (srcType) {
 			case DT_String:
 				try {
+					return LocalDateTime.parse(value.toString(), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+				} catch (DateTimeParseException ignored) {
+				}
+				try {
+					return LocalDateTime.parse(value.toString(), DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+				} catch (DateTimeParseException ignored) {
+				}
+				try {
+					return LocalDateTime.parse(value.toString(), DateTimeFormatter.ISO_ZONED_DATE_TIME);
+				} catch (DateTimeParseException ignored) {
+				}
+				try {
+					return LocalDateTime.parse(value.toString(), DateTimeFormatter.ISO_DATE_TIME);
+				} catch (DateTimeParseException ignored) {
+				}
+				try {
 					return LocalDateTime.parse(value.toString(), yyyyMMddHHmmssSSS);
 				} catch (DateTimeParseException ignored) {
 				}

@@ -11,14 +11,15 @@ public class ReactiveSystemContext {
 	public static final String REACTIVE_SYSTEM_CONTEXT = "ReactiveSystemContext";
 
 	public static Mono<SystemContext> getSystemContext() throws NoSystemContextException {
-		return Mono.subscriberContext().handle((ctx, sink) -> {
+		return Mono.deferContextual(ctx -> {
+			SystemContext systemContext = null;
 			if (ctx.hasKey(REACTIVE_SYSTEM_CONTEXT)) {
-				sink.next(ctx.get(REACTIVE_SYSTEM_CONTEXT));
-			} else {
-				SystemContext systemContext = new SystemContext();
-				ctx.put(REACTIVE_SYSTEM_CONTEXT, systemContext);
-				sink.next(systemContext);
+				systemContext = ctx.get(REACTIVE_SYSTEM_CONTEXT);
 			}
+			if (systemContext == null) {
+				systemContext = new SystemContext();
+			}
+			return Mono.just(systemContext);
 		});
 	}
 

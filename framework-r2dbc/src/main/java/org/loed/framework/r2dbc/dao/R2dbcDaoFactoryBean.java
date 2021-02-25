@@ -22,9 +22,9 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.core.env.Environment;
 import org.springframework.data.projection.DefaultMethodInvokingMethodInterceptor;
-import org.springframework.data.r2dbc.core.DatabaseClient;
 import org.springframework.data.repository.core.support.MethodInvocationValidator;
 import org.springframework.data.util.Lazy;
+import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.transaction.interceptor.TransactionalProxy;
 
 import java.util.ArrayList;

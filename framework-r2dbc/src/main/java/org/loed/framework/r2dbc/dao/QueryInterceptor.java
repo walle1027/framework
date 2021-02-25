@@ -10,7 +10,7 @@ import org.loed.framework.r2dbc.R2dbcException;
 import org.loed.framework.r2dbc.query.Query;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.support.DefaultConversionService;
-import org.springframework.data.r2dbc.core.DatabaseClient;
+import org.springframework.r2dbc.core.DatabaseClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -63,7 +63,7 @@ public class QueryInterceptor<T, ID> implements MethodInterceptor {
 			return methodInvocation.proceed();
 		}
 		String sql = query.value();
-		DatabaseClient.GenericExecuteSpec executeSpec = databaseClient.execute(sql);
+		DatabaseClient.GenericExecuteSpec executeSpec = databaseClient.sql(sql);
 		if (StringUtils.isBlank(sql)) {
 			throw new RuntimeException("error invoke method:");
 		}

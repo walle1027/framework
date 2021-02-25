@@ -9,11 +9,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.loed.framework.common.data.DataType;
-import org.loed.framework.common.orm.schema.Table;
 import org.loed.framework.common.orm.Column;
 import org.loed.framework.common.orm.Index;
+import org.loed.framework.common.orm.schema.Table;
 import org.loed.framework.r2dbc.inspector.DdlProvider;
-import org.springframework.data.r2dbc.convert.ColumnMapRowMapper;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
@@ -127,9 +126,7 @@ public class MysqlProvider implements DdlProvider {
 			sql += " and TABLE_SCHEMA = '" + schema + "'";
 		}
 		return Mono.from(connection.createStatement(sql).execute()).flatMap(result -> {
-			return Mono.from(result.map(new ColumnMapRowMapper()));
-		}).map(table -> {
-			return (String) table.get("TABLE_NAME");
+			return Mono.from(result.map((row, rowMetadata) -> (String) row.get("TABLE_NAME")));
 		}).flatMap(tableSqlName -> describeTable(connection, tableSqlName));
 	}
 

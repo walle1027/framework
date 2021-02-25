@@ -14,9 +14,8 @@ public class ReactiveContextTest {
 	public void test1() {
 		String key = "message";
 		Mono<String> r = Mono.just("Hello")
-				.flatMap(s -> Mono.subscriberContext()
-						.map(ctx -> s + " " + ctx.get(key)))
-				.subscriberContext(ctx -> ctx.put(key, "World"));
+				.flatMap(s -> Mono.deferContextual(ctx -> Mono.just(s + " " + ctx.get(key))))
+				.contextWrite(ctx -> ctx.put(key, "World"));
 
 		StepVerifier.create(r)
 				.expectNext("Hello World")
@@ -27,11 +26,10 @@ public class ReactiveContextTest {
 	public void test2() {
 		String key = "message";
 		Mono<String> r = Mono.just("Hello")
-				.subscriberContext(ctx -> ctx.put(key, "World"))
-				.flatMap(s -> Mono.subscriberContext()
-						.map(ctx -> {
-							return s + " " + ctx.getOrDefault(key, "Stranger");
-						}));
+				.contextWrite(ctx -> ctx.put(key, "World"))
+				.flatMap(s -> Mono.deferContextual(ctx -> {
+					return Mono.just(s + " " + ctx.getOrDefault(key, "Stranger"));
+				}));
 
 		StepVerifier.create(r)
 				.expectNext("Hello Stranger")
@@ -42,10 +40,8 @@ public class ReactiveContextTest {
 	public void test3() {
 		String key = "message";
 
-		Mono<String> r = Mono.subscriberContext()
-				.map(ctx -> ctx.put(key, "Hello"))
-				.flatMap(ctx -> Mono.subscriberContext())
-				.map(ctx -> ctx.getOrDefault(key, "Default"));
+		Mono<String> r = Mono.just(key).contextWrite(ctx -> ctx.put(key, "Hello"))
+				.flatMap(s -> Mono.deferContextual(ctx -> Mono.just(ctx.getOrDefault(key, "Default"))));
 
 		StepVerifier.create(r)
 				.expectNext("Default")
@@ -56,12 +52,9 @@ public class ReactiveContextTest {
 	public void test4() {
 		String key = "message";
 
-		Mono<String> r = Mono.subscriberContext()
-				.map(ctx -> ctx.put(key, "Hello"))
-				.subscriberContext(ctx -> {
-					return ctx;
-				})
-				.map(ctx -> ctx.getOrDefault(key, "Default"));
+		Mono<String> r = Mono.just("").contextWrite(ctx -> ctx.put(key, "Stranger"))
+				.flatMap(s -> Mono.deferContextual(ctx -> Mono.just(ctx.getOrDefault(key, "Default"))))
+				.contextWrite(ctx -> ctx.put(key, "Hello"));
 
 		StepVerifier.create(r)
 				.expectNext("Hello")
