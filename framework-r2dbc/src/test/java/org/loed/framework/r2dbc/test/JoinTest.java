@@ -80,8 +80,8 @@ public class JoinTest {
 			}
 			menuList.add(menu);
 		}
-		menuDao.batchInsert(menuList).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext)).blockLast();
-		resourceDao.batchInsert(resourceList).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext)).blockLast();
+		menuDao.batchInsert(menuList).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext)).blockLast();
+		resourceDao.batchInsert(resourceList).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext)).blockLast();
 
 		//add user
 		User user = new User();
@@ -91,12 +91,12 @@ public class JoinTest {
 		user.setIsLocked(0);
 		user.setMobile("testMobile");
 		user.setEmail("test@test.com");
-		userDao.insert(user).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext)).block();
+		userDao.insert(user).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext)).block();
 		//add role
 		Role role = new Role();
 		role.setRoleCode("testAdminRole");
 		role.setRoleName("testAdminRole");
-		roleDao.insert(role).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext)).block();
+		roleDao.insert(role).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext)).block();
 
 		//add role menu and role resource
 		for (Resource resource : resourceList) {
@@ -104,20 +104,20 @@ public class JoinTest {
 			roleResource.setMenuId(resource.getMenuId());
 			roleResource.setRoleId(role.getId());
 			roleResource.setResourceId(resource.getId());
-			roleResourceDao.insert(roleResource).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext)).block();
+			roleResourceDao.insert(roleResource).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext)).block();
 		}
 		for (Menu menu : menuList) {
 			RoleMenu roleMenu = new RoleMenu();
 			roleMenu.setMenuId(menu.getId());
 			roleMenu.setRoleId(role.getId());
-			roleMenuDao.insert(roleMenu).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext)).block();
+			roleMenuDao.insert(roleMenu).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext)).block();
 		}
 
 		//user role
 		UserRole userRole = new UserRole();
 		userRole.setRoleId(role.getId());
 		userRole.setUserId(user.getId());
-		userRoleDao.insert(userRole).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext)).block();
+		userRoleDao.insert(userRole).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext)).block();
 	}
 
 	@Test

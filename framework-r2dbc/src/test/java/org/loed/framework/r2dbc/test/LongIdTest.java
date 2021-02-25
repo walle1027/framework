@@ -56,7 +56,7 @@ public class LongIdTest {
 	public void testInsert() {
 		Mono<LongId> po = longIdDao.insert(insert()).map(LongId::getId).flatMap(id -> {
 			return longIdDao.get(id);
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(po.log()).expectNextMatches(p -> {
 			Assert.assertEquals((long) p.getId(), 1L);
 			Assert.assertEquals((long) p.getVersion(), 0);
@@ -77,7 +77,7 @@ public class LongIdTest {
 	public void testBatchInsert() {
 		Mono<List<LongId>> insertResult = longIdDao.batchInsert(batchInsert()).flatMap(po -> {
 			return longIdDao.get(po.getId());
-		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).collectList().contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(insertResult.log()).expectNextMatches(insertList -> {
 			for (int i = 0; i < insertList.size(); i++) {
 				LongId p = insertList.get(i);
@@ -117,7 +117,7 @@ public class LongIdTest {
 			return longIdDao.update(po);
 		}).flatMap(po -> {
 			return longIdDao.get(po.getId());
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(update.log()).expectNextMatches(p -> {
 			Assert.assertEquals((long) p.getId(), 1L);
 			Assert.assertEquals((long) p.getVersion(), 1L);
@@ -157,7 +157,7 @@ public class LongIdTest {
 			return longIdDao.updateWith(po, LongId::getProp1, LongId::getProp2);
 		}).flatMap(po -> {
 			return longIdDao.get(po.getId());
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(update.log()).expectNextMatches(p -> {
 			Assert.assertEquals((long) p.getId(), 1L);
 			Assert.assertEquals((long) p.getVersion(), 1L);
@@ -197,7 +197,7 @@ public class LongIdTest {
 			return longIdDao.updateWithout(po, LongId::getProp1, LongId::getProp2);
 		}).flatMap(po -> {
 			return longIdDao.get(po.getId());
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(update.log()).expectNextMatches(p -> {
 			Assert.assertEquals((long) p.getId(), 1L);
 			Assert.assertEquals((long) p.getVersion(), 1L);
@@ -237,7 +237,7 @@ public class LongIdTest {
 			return longIdDao.updateNonNull(po);
 		}).flatMap(po -> {
 			return longIdDao.get(po.getId());
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(update.log()).expectNextMatches(p -> {
 			Assert.assertEquals((long) p.getId(), 1L);
 			Assert.assertEquals((long) p.getVersion(), 1L);
@@ -277,7 +277,7 @@ public class LongIdTest {
 			return longIdDao.updateNonNullAnd(po, LongId::getProp3);
 		}).flatMap(po -> {
 			return longIdDao.get(po.getId());
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(update.log()).expectNextMatches(p -> {
 			Assert.assertEquals((long) p.getId(), 1L);
 			Assert.assertEquals((long) p.getVersion(), 1L);
@@ -317,7 +317,7 @@ public class LongIdTest {
 			return longIdDao.batchUpdate(poList);
 		}).collectList().flatMapMany(updateList -> {
 			return longIdDao.find(Criteria.from(LongId.class).and(LongId::getId).in(updateList.stream().map(LongId::getId).collect(Collectors.toList())));
-		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).collectList().contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(batchUpdate.log()).expectNextMatches(poList -> {
 			for (LongId p : poList) {
 				Assert.assertEquals((long) p.getVersion(), 1L);
@@ -357,7 +357,7 @@ public class LongIdTest {
 			return longIdDao.batchUpdateWith(poList, LongId::getProp1, LongId::getProp2);
 		}).collectList().flatMapMany(updateList -> {
 			return longIdDao.find(Criteria.from(LongId.class).and(LongId::getId).in(updateList.stream().map(LongId::getId).collect(Collectors.toList())));
-		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).collectList().contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(batchUpdate.log()).expectNextMatches(poList -> {
 			for (LongId p : poList) {
 				Assert.assertEquals((long) p.getVersion(), 1L);
@@ -399,7 +399,7 @@ public class LongIdTest {
 			return longIdDao.batchUpdateWithout(poList, LongId::getProp1, LongId::getProp2);
 		}).collectList().flatMapMany(updateList -> {
 			return longIdDao.find(Criteria.from(LongId.class).and(LongId::getId).in(updateList.stream().map(LongId::getId).collect(Collectors.toList())));
-		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).collectList().contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(batchUpdate.log()).expectNextMatches(poList -> {
 			for (LongId p : poList) {
 				Assert.assertEquals((long) p.getVersion(), 1L);
@@ -441,7 +441,7 @@ public class LongIdTest {
 			return longIdDao.batchUpdateNonNull(poList);
 		}).collectList().flatMapMany(updateList -> {
 			return longIdDao.find(Criteria.from(LongId.class).and(LongId::getId).in(updateList.stream().map(LongId::getId).collect(Collectors.toList())));
-		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).collectList().contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(batchUpdate.log()).expectNextMatches(poList -> {
 			for (LongId p : poList) {
 				Assert.assertEquals((long) p.getVersion(), 1L);
@@ -483,7 +483,7 @@ public class LongIdTest {
 			return longIdDao.batchUpdateNonNullAnd(poList, LongId::getProp3);
 		}).collectList().flatMapMany(updateList -> {
 			return longIdDao.find(Criteria.from(LongId.class).and(LongId::getId).in(updateList.stream().map(LongId::getId).collect(Collectors.toList())));
-		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).collectList().contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(batchUpdate.log()).expectNextMatches(poList -> {
 			for (LongId p : poList) {
 				Assert.assertEquals((long) p.getVersion(), 1L);
@@ -508,7 +508,7 @@ public class LongIdTest {
 	public void testGet() {
 		Mono<LongId> get = longIdDao.insert(insert()).flatMap(po -> {
 			return longIdDao.get(po.getId());
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(get.log()).expectNextMatches(p -> {
 			Assert.assertEquals((long) p.getId(), 1L);
 			Assert.assertEquals((long) p.getVersion(), 0);
@@ -530,7 +530,7 @@ public class LongIdTest {
 	public void testExistsById() {
 		Mono<Boolean> existsById = longIdDao.insert(insert()).flatMap(po -> {
 			return longIdDao.existsById(po.getId());
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(existsById.log()).expectNext(true).verifyComplete();
 	}
 
@@ -538,7 +538,7 @@ public class LongIdTest {
 	public void testDelete() {
 		Mono<Integer> delete = longIdDao.insert(insert()).flatMap(po -> {
 			return longIdDao.delete(po.getId());
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(delete.log()).expectNext(1).verifyComplete();
 	}
 
@@ -558,7 +558,7 @@ public class LongIdTest {
 					.and(LongId::getProp10).is(Boolean.TRUE)
 					.and(LongId::getProp11).is((byte) 0);
 			return longIdDao.delete(criteria);
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(delete.log()).expectNext(longIdList.size()).verifyComplete();
 	}
 
@@ -580,7 +580,7 @@ public class LongIdTest {
 					.and(LongId::getProp10).is(Boolean.TRUE)
 					.and(LongId::getProp11).is((byte) 0);
 			return longIdDao.find(criteria);
-		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).collectList().contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(find.log()).expectNextMatches(poList -> {
 			for (LongId p : poList) {
 				Assert.assertEquals((long) p.getVersion(), 0);
@@ -617,7 +617,7 @@ public class LongIdTest {
 					.and(LongId::getProp10).is(Boolean.TRUE)
 					.and(LongId::getProp11).is((byte) 0);
 			return longIdDao.findOne(criteria);
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(find.log()).expectNextMatches(p -> {
 			Assert.assertEquals((long) p.getVersion(), 0);
 			Assert.assertEquals((long) p.getCreateBy(), 1L);
@@ -651,7 +651,7 @@ public class LongIdTest {
 					.and(LongId::getProp10).is(Boolean.TRUE)
 					.and(LongId::getProp11).is((byte) 0);
 			return longIdDao.count(criteria);
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(count.log()).expectNext((long) longIdList.size()).verifyComplete();
 	}
 
@@ -660,7 +660,7 @@ public class LongIdTest {
 		List<LongId> longIdList = batchInsert();
 		Mono<List<LongId>> find = longIdDao.batchInsert(longIdList).collectList().flatMapMany(poList -> {
 			return longIdDao.findByProperty(LongId::getProp1, "LongId1");
-		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).collectList().contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(find.log()).expectNextMatches(poList -> {
 			for (LongId p : poList) {
 				Assert.assertEquals((long) p.getId(), 1L);
@@ -686,7 +686,7 @@ public class LongIdTest {
 		Mono<Tuple2<Boolean, Boolean>> repeat = longIdDao.batchInsert(longIdList).collectList().flatMap(poList -> {
 			return Mono.zip(longIdDao.isRepeated(1L, LongId::getProp1, "LongId1"),
 					longIdDao.isRepeated(null, LongId::getProp1, "LongId1"));
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(repeat.log()).expectNextMatches(tup -> {
 			return !tup.getT1() && tup.getT2();
 		}).verifyComplete();
@@ -711,7 +711,7 @@ public class LongIdTest {
 					.and(LongId::getProp11).is((byte) 0)
 					.asc(LongId::getId);
 			return longIdDao.findPage(PageRequest.of(1, 10), criteria);
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(page.log()).expectNextMatches(pg -> {
 			Assert.assertEquals(pg.getTotal(), (long) longIdList.size());
 			int i = 0;
@@ -741,7 +741,7 @@ public class LongIdTest {
 			Map<String, R2dbcParam> paramMap = new HashMap<>();
 			paramMap.put("prop1", new R2dbcParam(String.class, "%LongId%"));
 			return longIdDao.select(sql, paramMap);
-		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).collectList().contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(select.log()).expectNextMatches(poList -> {
 			for (LongId p : poList) {
 				Assert.assertEquals((long) p.getVersion(), 0);

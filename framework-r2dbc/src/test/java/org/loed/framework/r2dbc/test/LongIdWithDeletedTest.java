@@ -56,7 +56,7 @@ public class LongIdWithDeletedTest {
 	public void testInsert() {
 		Mono<LongIdWithDeleted> insert = longIdWithDeletedDao.insert(insert()).flatMap(po -> {
 			return longIdWithDeletedDao.get(po.getId());
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(insert.log()).expectNextMatches(po -> {
 			Assert.assertEquals(po.getId(), BigInteger.valueOf(1L));
 			Assert.assertEquals(po.getVersion(), BigInteger.valueOf(0));
@@ -95,7 +95,7 @@ public class LongIdWithDeletedTest {
 			return longIdWithDeletedDao.update(po);
 		}).flatMap(po -> {
 			return longIdWithDeletedDao.get(po.getId());
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(update.log()).expectNextMatches(po -> {
 			Assert.assertEquals(po.getId(), BigInteger.valueOf(1L));
 			Assert.assertEquals(po.getVersion(), BigInteger.valueOf(1L));
@@ -122,7 +122,7 @@ public class LongIdWithDeletedTest {
 		}).flatMap(tup -> {
 			BigInteger id = tup.getT1().getId();
 			return Mono.zip(longIdWithDeletedDao.get(id).defaultIfEmpty(new LongIdWithDeleted()), Mono.just(tup.getT2()));
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(delete.log()).expectNextMatches(tup -> {
 			Assert.assertNull(tup.getT1().getId());
 			Assert.assertEquals((int) tup.getT2(), 1);
@@ -135,7 +135,7 @@ public class LongIdWithDeletedTest {
 		Criteria<LongIdWithDeleted> criteria = Criteria.from(LongIdWithDeleted.class);
 		criteria = criteria.and(LongIdWithDeleted::getId).lessThan(BigInteger.valueOf(1000L));
 		Mono<List<LongIdWithDeleted>> deleteResult = longIdWithDeletedDao.batchInsert(batchInsert()).then(longIdWithDeletedDao.delete(criteria)).then(longIdWithDeletedDao.find(Criteria.from(LongIdWithDeleted.class)).collectList())
-				.subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+				.contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(deleteResult.log()).expectNextMatches(poList -> {
 			Assert.assertEquals(poList.size(), 1);
 			for (LongIdWithDeleted po : poList) {
@@ -177,7 +177,7 @@ public class LongIdWithDeletedTest {
 					.and(LongIdWithDeleted::getProp10).is(Boolean.TRUE)
 					.and(LongIdWithDeleted::getProp11).is((byte) 0);
 			return longIdWithDeletedDao.find(criteria);
-		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).collectList().contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(find.log()).expectNextMatches(poList -> {
 			for (LongIdWithDeleted p : poList) {
 				Assert.assertEquals(p.getVersion(), BigInteger.ZERO);
@@ -214,7 +214,7 @@ public class LongIdWithDeletedTest {
 					.and(LongIdWithDeleted::getProp10).is(Boolean.TRUE)
 					.and(LongIdWithDeleted::getProp11).is((byte) 0);
 			return longIdWithDeletedDao.findOne(criteria);
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(find.log()).expectNextMatches(p -> {
 			Assert.assertEquals(p.getVersion(), BigInteger.ZERO);
 			Assert.assertEquals(p.getCreateBy(), BigInteger.ONE);
@@ -248,7 +248,7 @@ public class LongIdWithDeletedTest {
 					.and(LongIdWithDeleted::getProp10).is(Boolean.TRUE)
 					.and(LongIdWithDeleted::getProp11).is((byte) 0);
 			return longIdWithDeletedDao.count(criteria);
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(count.log()).expectNext((long) longIdList.size()).verifyComplete();
 	}
 
@@ -257,7 +257,7 @@ public class LongIdWithDeletedTest {
 		List<LongIdWithDeleted> longIdList = batchInsert();
 		Mono<List<LongIdWithDeleted>> find = longIdWithDeletedDao.batchInsert(longIdList).collectList().flatMapMany(poList -> {
 			return longIdWithDeletedDao.findByProperty(LongIdWithDeleted::getProp1, "LongId1");
-		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).collectList().contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(find.log()).expectNextMatches(poList -> {
 			for (LongIdWithDeleted p : poList) {
 				Assert.assertEquals(p.getId(), BigInteger.ONE);
@@ -283,7 +283,7 @@ public class LongIdWithDeletedTest {
 		Mono<Tuple2<Boolean, Boolean>> repeat = longIdWithDeletedDao.batchInsert(longIdList).collectList().flatMap(poList -> {
 			return Mono.zip(longIdWithDeletedDao.isRepeated(BigInteger.ONE, LongIdWithDeleted::getProp1, "LongIdWithDeleted1"),
 					longIdWithDeletedDao.isRepeated(null, LongIdWithDeleted::getProp1, "LongIdWithDeleted1"));
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(repeat.log()).expectNextMatches(tup -> {
 			return !tup.getT1() && tup.getT2();
 		}).verifyComplete();
@@ -308,7 +308,7 @@ public class LongIdWithDeletedTest {
 					.and(LongIdWithDeleted::getProp11).is((byte) 0)
 					.asc(LongIdWithDeleted::getId);
 			return longIdWithDeletedDao.findPage(PageRequest.of(1, 10), criteria);
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(page.log()).expectNextMatches(pg -> {
 			Assert.assertEquals(pg.getTotal(), (long) longIdList.size());
 			int i = 0;
@@ -338,7 +338,7 @@ public class LongIdWithDeletedTest {
 			Map<String, R2dbcParam> paramMap = new HashMap<>();
 			paramMap.put("prop1", new R2dbcParam(String.class, "%LongIdWithDeleted%"));
 			return longIdWithDeletedDao.select(sql, paramMap);
-		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).collectList().contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(select.log()).expectNextMatches(poList -> {
 			for (LongIdWithDeleted p : poList) {
 				Assert.assertEquals(p.getVersion(), BigInteger.ZERO);

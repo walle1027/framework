@@ -18,7 +18,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.io.ResourceLoader;
-import org.springframework.data.r2dbc.connectionfactory.R2dbcTransactionManager;
+import org.springframework.r2dbc.connection.R2dbcTransactionManager;
 import org.springframework.transaction.ReactiveTransactionManager;
 import org.springframework.util.StringUtils;
 
@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
  * @since 2020/9/1 3:22 下午
  */
 @Configuration
+//@AutoConfigureBefore(R2dbcAutoConfiguration.class)
 public class R2dbcConfigurationSupport {
 	@Autowired
 	private R2dbcProperties properties;

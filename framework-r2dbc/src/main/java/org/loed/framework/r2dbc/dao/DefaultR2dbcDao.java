@@ -25,9 +25,9 @@ import org.loed.framework.r2dbc.query.R2dbcParam;
 import org.loed.framework.r2dbc.query.R2dbcQuery;
 import org.loed.framework.r2dbc.query.R2dbcSqlBuilder;
 import org.reactivestreams.Publisher;
-import org.springframework.data.r2dbc.connectionfactory.ConnectionFactoryUtils;
-import org.springframework.data.r2dbc.core.DatabaseClient;
 import org.springframework.lang.NonNull;
+import org.springframework.r2dbc.connection.ConnectionFactoryUtils;
+import org.springframework.r2dbc.core.DatabaseClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
@@ -553,7 +553,14 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 				.flatMap(mergedCriteria -> {
 					R2dbcQuery query = r2dbcSqlBuilder.count(table, mergedCriteria);
 					DatabaseClient.GenericExecuteSpec exec = bind(query);
-					return exec.as(Long.class).fetch().one();
+					return exec.map(row -> {
+						Object count = row.get(0);
+						if (count == null){
+							log.warn("error got count");
+							return 0L;
+						}
+						return Long.valueOf(String.valueOf(count));
+					}).one();
 				});
 	}
 
@@ -625,7 +632,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	}
 
 	private DatabaseClient.GenericExecuteSpec bind(R2dbcQuery query) {
-		DatabaseClient.GenericExecuteSpec execute = databaseClient.execute(query.getStatement());
+		DatabaseClient.GenericExecuteSpec execute = databaseClient.sql(query.getStatement());
 		Map<String, R2dbcParam> params = query.getParams();
 		if (params != null) {
 			for (Map.Entry<String, R2dbcParam> entry : params.entrySet()) {
