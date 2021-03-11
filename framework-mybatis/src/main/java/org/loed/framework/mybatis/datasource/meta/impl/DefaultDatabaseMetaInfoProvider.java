@@ -1,13 +1,15 @@
 package org.loed.framework.mybatis.datasource.meta.impl;
 
-import org.loed.framework.mybatis.datasource.meta.DatabaseMetaInfo;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.loed.framework.mybatis.datasource.meta.BalancedDataSource;
+import org.loed.framework.mybatis.datasource.meta.DataSourceMetaInfo;
 import org.loed.framework.mybatis.datasource.meta.DatabaseMetaInfoProvider;
 import org.loed.framework.mybatis.datasource.readwriteisolate.ReadWriteStrategy;
-import org.apache.commons.lang3.StringUtils;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 基于配置文件的数据源路由配置
@@ -16,63 +18,68 @@ import java.util.Map;
  * @version 1.0
  * @since 2017/11/11 17:25
  */
-
+@Slf4j
 public class DefaultDatabaseMetaInfoProvider implements DatabaseMetaInfoProvider {
 	private String name;
 	/**
 	 * 基于配置文件的数据源路由配置
 	 * 在配置文件中按照如下格式配置数据源即可
-	 * 公司代码.应用代码.read/write(读写类型).jdbc.url=jdbc:postgresql://www.dev.com:5432/oms
-	 * 公司代码.应用代码.read/write(读写类型).jdbc.username=postgres
-	 * 公司代码.应用代码.read/write(读写类型).jdbc.password=postgres
+	 * key:路由key#路由值
+	 * value: 数据源
 	 */
-	private Map<String, DatabaseMetaInfo> configMap;
+	private final Map<String, BalancedDataSource> configMap;
 
-	public DefaultDatabaseMetaInfoProvider() {
-		this.configMap = new HashMap<>();
+	public DefaultDatabaseMetaInfoProvider(Map<String, BalancedDataSource> configMap) {
+		this.configMap = configMap;
 	}
 
 	/**
 	 * 获取数据库信息
 	 * 根据当前上下文中读写数据库的标记获取数据源配置
 	 *
-	 * @param horizontalKey   水平切分键
-	 * @param horizontalValue 水平切分值
+	 * @param routingKey   水平切分键
+	 * @param routingValue 水平切分值
 	 * @return 数据源元信息
 	 */
 	@Override
-	public DatabaseMetaInfo getDatabaseMetaHorizontally(String horizontalKey, String horizontalValue) {
-		return null;
-	}
-
-	@Override
-	public DatabaseMetaInfo getDatabaseMeta() {
-		return configMap.get(name);
-	}
-
-	@Override
-	public DatabaseMetaInfo getDatabaseMeta(ReadWriteStrategy strategy) {
-		String databaseKey = name + "#" + strategy;
-		return configMap.get(databaseKey);
+	public DataSourceMetaInfo getDatabase(String routingKey, String routingValue) {
+		BalancedDataSource balancedDataSource = configMap.get(uniqueKey(routingKey, routingValue));
+		if (balancedDataSource == null) {
+			log.error("no datasource for routingKey:{} and routingValue:{}", routingKey, routingValue);
+			return null;
+		}
+		return balancedDataSource.getMaster();
 	}
 
 	/**
 	 * 获取数据库信息
 	 * 根据当前上下文中读写数据库的标记获取数据源配置
 	 *
-	 * @param horizontalKey     水平切分键
-	 * @param horizontalValue   水平切分值
+	 * @param routingKey        水平切分键
+	 * @param routingValue      水平切分值
 	 * @param readWriteStrategy 读写类型
 	 * @return 数据源元信息
 	 */
 	@Override
-	public DatabaseMetaInfo getDatabaseMetaHorizontally(String horizontalKey, String horizontalValue, ReadWriteStrategy readWriteStrategy) {
-		return null;
+	public DataSourceMetaInfo getDatabase(String routingKey, String routingValue, ReadWriteStrategy readWriteStrategy) {
+		BalancedDataSource balancedDataSource = configMap.get(uniqueKey(routingKey, routingValue));
+		if (balancedDataSource == null) {
+			log.error("no datasource for routingKey:{} and routingValue:{}", routingKey, routingValue);
+			return null;
+		}
+		switch (readWriteStrategy) {
+			case write:
+				return balancedDataSource.getMaster();
+			case read:
+				return balancedDataSource.getSlave();
+			default:
+				return null;
+		}
 	}
 
 	@Override
-	public List<DatabaseMetaInfo> getAllMetaInfo() {
-		return null;
+	public List<DataSourceMetaInfo> getAllDataSource() {
+		return this.configMap.values().stream().map(BalancedDataSource::getMaster).collect(Collectors.toList());
 	}
 
 	public String buildKey(String tenantId, ReadWriteStrategy strategy) {
@@ -89,6 +96,10 @@ public class DefaultDatabaseMetaInfoProvider implements DatabaseMetaInfoProvider
 		return builder.deleteCharAt(builder.length() - 1).toString();
 	}
 
+	public static String uniqueKey(String routingKey, String routingValue) {
+		return routingKey + "_#_" + routingValue;
+	}
+
 	public String getName() {
 		return name;
 	}
@@ -97,11 +108,8 @@ public class DefaultDatabaseMetaInfoProvider implements DatabaseMetaInfoProvider
 		this.name = name;
 	}
 
-	public Map<String, DatabaseMetaInfo> getConfigMap() {
+	public Map<String, BalancedDataSource> getConfigMap() {
 		return configMap;
 	}
 
-	public void setConfigMap(Map<String, DatabaseMetaInfo> configMap) {
-		this.configMap = configMap;
-	}
 }

@@ -25,7 +25,7 @@ public class DruidDataSourceCreator implements DataSourceCreator {
 		//设置主要属性
 		dataSource.setDriverClassName(databaseMeta.getDriverClass());
 		dataSource.setUrl(databaseMeta.getJdbcUrl());
-		dataSource.setUsername(databaseMeta.getUserName());
+		dataSource.setUsername(databaseMeta.getUsername());
 		dataSource.setPassword(databaseMeta.getPassword());
 		//设置次要属性
 		dataSource.setMaxActive(druidProperties.getMaxActive());

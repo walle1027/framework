@@ -4,7 +4,7 @@ import com.alibaba.druid.filter.Filter;
 import com.alibaba.druid.filter.logging.Slf4jLogFilter;
 import com.alibaba.druid.filter.stat.StatFilter;
 import com.alibaba.druid.pool.DruidDataSource;
-import org.loed.framework.mybatis.datasource.meta.DatabaseMetaInfo;
+import org.loed.framework.mybatis.datasource.meta.DataSourceMetaInfo;
 import org.loed.framework.mybatis.datasource.routing.AbstractRoutingDataSource;
 
 import javax.sql.DataSource;
@@ -23,7 +23,7 @@ public class DruidRoutingDataSource extends AbstractRoutingDataSource {
 	private DruidDataSource dataSourceTemplate;
 
 	@Override
-	protected DataSource createTargetDatasource(DatabaseMetaInfo databaseMeta) throws Exception {
+	protected DataSource createTargetDatasource(DataSourceMetaInfo databaseMeta) throws Exception {
 		DruidDataSource dataSource = new DruidDataSource();
 		//设置主要属性
 		dataSource.setDriverClassName(databaseMeta.getDriverClass());

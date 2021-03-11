@@ -1,7 +1,7 @@
 package org.loed.framework.mybatis.datasource.routing.impl;
 
 import com.mchange.v2.c3p0.ComboPooledDataSource;
-import org.loed.framework.mybatis.datasource.meta.DatabaseMetaInfo;
+import org.loed.framework.mybatis.datasource.meta.DataSourceMetaInfo;
 import org.loed.framework.mybatis.datasource.routing.AbstractRoutingDataSource;
 
 import javax.sql.DataSource;
@@ -13,7 +13,7 @@ import javax.sql.DataSource;
  */
 public class C3p0RoutingDataSource extends AbstractRoutingDataSource {
 	@Override
-	protected DataSource createTargetDatasource(DatabaseMetaInfo databaseMeta) throws Exception {
+	protected DataSource createTargetDatasource(DataSourceMetaInfo databaseMeta) throws Exception {
 		ComboPooledDataSource dataSource = new ComboPooledDataSource();
 		dataSource.setUser(databaseMeta.getUsername());
 		dataSource.setJdbcUrl(databaseMeta.getJdbcUrl());

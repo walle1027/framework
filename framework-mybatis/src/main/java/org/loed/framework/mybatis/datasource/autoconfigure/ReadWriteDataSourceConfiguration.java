@@ -34,6 +34,8 @@ import java.util.List;
  * @since 2019/6/20 3:24 PM
  */
 @Configuration
+@ConditionalOnMissingClass(value = "org.loed.framework.mybatis.datasource.autoconfigure.RoutingDataSourceConfigure")
+@ConditionalOnProperty(prefix = ConfigureConstant.datasource_ns, name = "readWriteIsolate", havingValue = "true", matchIfMissing = true)
 public class ReadWriteDataSourceConfiguration {
 	@Autowired
 	private DataSourceProperties properties;
@@ -77,14 +79,14 @@ public class ReadWriteDataSourceConfiguration {
 		Balancer<DataSourceMetaInfo> balancer = BalancerFactory.getBalancer(readBalanceStrategy);
 
 		ConfiguredReadWriteDataSourceProvider dataSourceProvider = new ConfiguredReadWriteDataSourceProvider(balancer);
-		if (write.getDatabaseName() == null) {
-			write.setDatabaseName(properties.getDatabaseName());
+		if (write.getName() == null) {
+			write.setName(properties.getDatabaseName());
 		}
 		dataSourceProvider.setWriteDataSource(write);
 
 		reads.forEach(read -> {
-			if (read.getDatabaseName() == null) {
-				read.setDatabaseName(properties.getDatabaseName());
+			if (read.getName() == null) {
+				read.setName(properties.getDatabaseName());
 			}
 		});
 
@@ -94,8 +96,6 @@ public class ReadWriteDataSourceConfiguration {
 	}
 
 	@Bean
-	@ConditionalOnMissingClass(value = "org.loed.framework.mybatis.datasource.autoconfigure.RoutingDataSourceConfigure")
-	@ConditionalOnProperty(prefix = ConfigureConstant.datasource_ns, name = "readWriteIsolate", havingValue = "true", matchIfMissing = true)
 	public ReadWriteIsolateDataSource readWriteIsolateDataSource(DataSourceCreator dataSourceCreator, ReadWriteDataSourceProvider readWriteDataSourceProvider) {
 		return new ReadWriteIsolateDataSource(readWriteDataSourceProvider, dataSourceCreator);
 	}

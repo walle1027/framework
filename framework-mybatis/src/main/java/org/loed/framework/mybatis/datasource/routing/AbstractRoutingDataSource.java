@@ -1,13 +1,13 @@
 package org.loed.framework.mybatis.datasource.routing;
 
 import com.mchange.v2.c3p0.ComboPooledDataSource;
+import org.apache.commons.collections4.CollectionUtils;
 import org.loed.framework.common.RoutingDataSource;
 import org.loed.framework.common.context.SystemContextHolder;
-import org.loed.framework.mybatis.datasource.meta.DatabaseMetaInfo;
+import org.loed.framework.mybatis.datasource.meta.DataSourceMetaInfo;
 import org.loed.framework.mybatis.datasource.meta.DatabaseMetaInfoProvider;
 import org.loed.framework.mybatis.datasource.readwriteisolate.ReadWriteContext;
 import org.loed.framework.mybatis.datasource.readwriteisolate.ReadWriteStrategy;
-import org.apache.commons.collections4.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
@@ -41,13 +41,9 @@ public abstract class AbstractRoutingDataSource implements RoutingDataSource, Di
 	 */
 	private DatabaseMetaInfoProvider metaInfoProvider;
 	/**
-	 * 是否做数据库水平切分
-	 */
-	private boolean horizontalSharding = true;
-	/**
 	 * 水平切分key
 	 */
-	private String horizontalShardingKey;
+	private String routingKey;
 	/**
 	 * 是否读写分离
 	 */
@@ -136,41 +132,33 @@ public abstract class AbstractRoutingDataSource implements RoutingDataSource, Di
 	 * @throws SQLException 创建数据源异常或者无法找到对应公司的数据源时抛出的异常
 	 */
 	private DataSource getDataSource() throws SQLException {
-		DatabaseMetaInfo databaseMeta = null;
-		if (horizontalSharding) {
-			//公司代码
-			String horizontalShardingValue = getHorizontalShardingValue();
-			if (readWriteIsolate) {
-				ReadWriteStrategy readWriteStrategy = getReadWriteStrategy();
-				databaseMeta = metaInfoProvider.getDatabaseMetaHorizontally(horizontalShardingKey, horizontalShardingValue, readWriteStrategy);
-			} else {
-				databaseMeta = metaInfoProvider.getDatabaseMetaHorizontally(horizontalShardingKey, horizontalShardingValue);
-			}
+		DataSourceMetaInfo dataSourceMetaInfo = null;
+		//路由值
+		String routingValue = getRoutingValue();
+		if (readWriteIsolate) {
+			ReadWriteStrategy readWriteStrategy = getReadWriteStrategy();
+			dataSourceMetaInfo = metaInfoProvider.getDatabase(routingKey, routingValue, readWriteStrategy);
 		} else {
-			if (readWriteIsolate) {
-				ReadWriteStrategy readWriteStrategy = getReadWriteStrategy();
-				databaseMeta = metaInfoProvider.getDatabaseMeta(readWriteStrategy);
-			} else {
-				databaseMeta = metaInfoProvider.getDatabaseMeta();
-			}
+			dataSourceMetaInfo = metaInfoProvider.getDatabase(routingKey, routingValue);
 		}
-		if (databaseMeta == null) {
+
+		if (dataSourceMetaInfo == null) {
 			throw new SQLException("Can't find data source");
 		}
-		return getDataSource(databaseMeta);
+		return getDataSource(dataSourceMetaInfo);
 	}
 
-	private DataSource getDataSource(DatabaseMetaInfo databaseMeta) throws SQLException {
-		String databaseKey = databaseMeta.getDatabaseKey();
+	private DataSource getDataSource(DataSourceMetaInfo dataSourceMetaInfo) throws SQLException {
+		String databaseKey = dataSourceMetaInfo.getDatabaseKey();
 		if (dataSourceMap.containsKey(databaseKey)) {
 			return dataSourceMap.get(databaseKey);
 		}
+		lock.lock();
 		try {
-			lock.lock();
 			if (dataSourceMap.containsKey(databaseKey)) {
 				return dataSourceMap.get(databaseKey);
 			}
-			DataSource dataSource = createTargetDatasource(databaseMeta);
+			DataSource dataSource = createTargetDatasource(dataSourceMetaInfo);
 			dataSourceMap.put(databaseKey, dataSource);
 			return dataSource;
 		} catch (Exception e) {
@@ -180,16 +168,16 @@ public abstract class AbstractRoutingDataSource implements RoutingDataSource, Di
 		}
 	}
 
-	private String getHorizontalShardingValue() {
-		return SystemContextHolder.get(horizontalShardingKey);
+	private String getRoutingValue() {
+		return SystemContextHolder.get(routingKey);
 	}
 
 	@Override
 	public List<DataSource> getAllDataSource() {
-		List<DatabaseMetaInfo> metaInfoList = metaInfoProvider.getAllMetaInfo();
+		List<DataSourceMetaInfo> metaInfoList = metaInfoProvider.getAllDataSource();
 		if (metaInfoList != null) {
 			List<DataSource> dataSourceList = new ArrayList<>();
-			metaInfoList.stream().collect(Collectors.groupingBy(DatabaseMetaInfo::getDatabaseKey)).forEach(
+			metaInfoList.stream().collect(Collectors.groupingBy(DataSourceMetaInfo::getDatabaseKey)).forEach(
 					(k, v) -> {
 						try {
 							if (v != null && v.size() > 0) {
@@ -217,7 +205,7 @@ public abstract class AbstractRoutingDataSource implements RoutingDataSource, Di
 		this.metaInfoProvider = metaInfoProvider;
 	}
 
-	protected abstract DataSource createTargetDatasource(DatabaseMetaInfo databaseMeta) throws Exception;
+	protected abstract DataSource createTargetDatasource(DataSourceMetaInfo dataSourceMetaInfo) throws Exception;
 
 	@Override
 	public void destroy() throws Exception {
@@ -241,14 +229,6 @@ public abstract class AbstractRoutingDataSource implements RoutingDataSource, Di
 		}
 	}
 
-	public boolean isHorizontalSharding() {
-		return horizontalSharding;
-	}
-
-	public void setHorizontalSharding(boolean horizontalSharding) {
-		this.horizontalSharding = horizontalSharding;
-	}
-
 	public boolean isReadWriteIsolate() {
 		return readWriteIsolate;
 	}
@@ -257,11 +237,11 @@ public abstract class AbstractRoutingDataSource implements RoutingDataSource, Di
 		this.readWriteIsolate = readWriteIsolate;
 	}
 
-	public String getHorizontalShardingKey() {
-		return horizontalShardingKey;
+	public String getRoutingKey() {
+		return routingKey;
 	}
 
-	public void setHorizontalShardingKey(String horizontalShardingKey) {
-		this.horizontalShardingKey = horizontalShardingKey;
+	public void setRoutingKey(String routingKey) {
+		this.routingKey = routingKey;
 	}
 }
