@@ -1,7 +1,9 @@
 package org.loed.framework.mybatis.datasource.autoconfigure;
 
+import lombok.extern.slf4j.Slf4j;
 import org.loed.framework.common.ConfigureConstant;
-import org.loed.framework.mybatis.datasource.meta.DatabaseMetaInfo;
+import org.loed.framework.mybatis.datasource.meta.BalancedDataSource;
+import org.loed.framework.mybatis.datasource.meta.DataSourceGroup;
 import org.loed.framework.mybatis.datasource.meta.DatabaseMetaInfoProvider;
 import org.loed.framework.mybatis.datasource.meta.impl.DefaultDatabaseMetaInfoProvider;
 import org.loed.framework.mybatis.datasource.meta.impl.ZKDatabaseMetaInfoProvider;
@@ -31,6 +33,7 @@ import java.util.Map;
 @ConditionalOnClass(AbstractRoutingDataSource.class)
 @Import({ReadWriteAopAutoConfiguration.class})
 @EnableConfigurationProperties(DataSourceProperties.class)
+@Slf4j
 public class RoutingDataSourceConfigure {
 	@Autowired
 	private DataSourceProperties dataSourceProperties;
@@ -38,32 +41,37 @@ public class RoutingDataSourceConfigure {
 	@Bean
 	@ConditionalOnProperty(prefix = ConfigureConstant.datasource_ns, name = "provider", havingValue = "default")
 	public DatabaseMetaInfoProvider defaultMetaInfoProvider() {
-		DefaultDatabaseMetaInfoProvider defaultMetaInfoProvider = new DefaultDatabaseMetaInfoProvider();
-		defaultMetaInfoProvider.setName(dataSourceProperties.getDatabaseName());
-		Map<String, DatabaseMetaInfo> configs = dataSourceProperties.getRouting().getConfigs();
+		Map<String, Map<String, DataSourceGroup>> configs = dataSourceProperties.getRouting().getConfigs();
 		if (configs == null || configs.isEmpty()) {
 			throw new IllegalArgumentException("empty routing configs for:" + ConfigureConstant.datasource_ns);
 		}
-		Map<String, DatabaseMetaInfo> newConfigs = new HashMap<>();
-		for (Map.Entry<String, DatabaseMetaInfo> entry : configs.entrySet()) {
-			String tenantId = entry.getKey();
-			DatabaseMetaInfo databaseMetaInfo = entry.getValue();
-			//TODO 处理
-			databaseMetaInfo.setHorizontalShardingKey("tenantId");
-			databaseMetaInfo.setHorizontalShardingValue(tenantId);
-			databaseMetaInfo.setDatabase(dataSourceProperties.getDatabaseName());
-			databaseMetaInfo.setStrategy(null);
-			String key = defaultMetaInfoProvider.buildKey(tenantId, null);
-			newConfigs.put(key, databaseMetaInfo);
+		Map<String, BalancedDataSource> newConfigs = new HashMap<>();
+		for (Map.Entry<String, Map<String, DataSourceGroup>> entry : configs.entrySet()) {
+			String routingKey = entry.getKey();
+			Map<String, DataSourceGroup> routingMap = entry.getValue();
+			if (routingMap == null || routingMap.isEmpty()) {
+				log.error("routing map is empty for routing key:{}", routingKey);
+				continue;
+			}
+			for (Map.Entry<String, DataSourceGroup> routingMapEntry : routingMap.entrySet()) {
+				String routingValue = routingMapEntry.getKey();
+				DataSourceGroup dataSourceGroup = routingMapEntry.getValue();
+				String uniqueKey = DefaultDatabaseMetaInfoProvider.uniqueKey(routingKey, routingValue);
+				BalancedDataSource balancedDataSource = new BalancedDataSource(dataSourceProperties.getReadBalanceStrategy());
+				balancedDataSource.update(dataSourceGroup);
+				newConfigs.put(uniqueKey, balancedDataSource);
+
+			}
 		}
-		dataSourceProperties.getRouting().setConfigs(newConfigs);
+		DefaultDatabaseMetaInfoProvider defaultMetaInfoProvider = new DefaultDatabaseMetaInfoProvider(newConfigs);
+		defaultMetaInfoProvider.setName(dataSourceProperties.getDatabaseName());
 		return defaultMetaInfoProvider;
 	}
 
 	@Bean
 	@ConditionalOnProperty(prefix = ConfigureConstant.datasource_ns, name = "provider", havingValue = "zookeeper")
 	public DatabaseMetaInfoProvider zkMetaInfoProvider() {
-		ZKDatabaseMetaInfoProvider zkDbMetaInfoProvider = new ZKDatabaseMetaInfoProvider();
+		ZKDatabaseMetaInfoProvider zkDbMetaInfoProvider = new ZKDatabaseMetaInfoProvider(dataSourceProperties.getReadBalanceStrategy(), dataSourceProperties.isAllowAutoAllocate());
 		zkDbMetaInfoProvider.setDatabase(dataSourceProperties.getDatabaseName());
 		zkDbMetaInfoProvider.setZkAddress(dataSourceProperties.getZkAddress());
 		return zkDbMetaInfoProvider;
@@ -75,7 +83,6 @@ public class RoutingDataSourceConfigure {
 	public DataSource c3p0RoutingDatasource(DatabaseMetaInfoProvider databaseMetaInfoProvider) {
 		C3p0RoutingDataSource routingDataSource = new C3p0RoutingDataSource();
 		routingDataSource.setReadWriteIsolate(dataSourceProperties.isReadWriteIsolate());
-		routingDataSource.setHorizontalSharding(true);
 		routingDataSource.setMetaInfoProvider(databaseMetaInfoProvider);
 		return routingDataSource;
 	}
@@ -86,7 +93,6 @@ public class RoutingDataSourceConfigure {
 	public DataSource druidRoutingDatasource(DatabaseMetaInfoProvider databaseMetaInfoProvider) {
 		DruidRoutingDataSource routingDataSource = new DruidRoutingDataSource();
 		routingDataSource.setReadWriteIsolate(dataSourceProperties.isReadWriteIsolate());
-		routingDataSource.setHorizontalSharding(true);
 		routingDataSource.setMetaInfoProvider(databaseMetaInfoProvider);
 		routingDataSource.setMaxActive(dataSourceProperties.getDruid().getMaxActive());
 		routingDataSource.setMinIdle(dataSourceProperties.getDruid().getMinIdle());
