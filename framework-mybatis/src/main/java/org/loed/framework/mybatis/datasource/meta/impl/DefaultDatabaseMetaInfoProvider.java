@@ -2,7 +2,7 @@ package org.loed.framework.mybatis.datasource.meta.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.loed.framework.mybatis.datasource.meta.BalancedDataSource;
+import org.loed.framework.common.balancer.FocusBalancer;
 import org.loed.framework.mybatis.datasource.meta.DataSourceMetaInfo;
 import org.loed.framework.mybatis.datasource.meta.DatabaseMetaInfoProvider;
 import org.loed.framework.mybatis.datasource.readwriteisolate.ReadWriteStrategy;
@@ -27,9 +27,9 @@ public class DefaultDatabaseMetaInfoProvider implements DatabaseMetaInfoProvider
 	 * key:路由key#路由值
 	 * value: 数据源
 	 */
-	private final Map<String, BalancedDataSource> configMap;
+	private final Map<String, FocusBalancer<DataSourceMetaInfo>> configMap;
 
-	public DefaultDatabaseMetaInfoProvider(Map<String, BalancedDataSource> configMap) {
+	public DefaultDatabaseMetaInfoProvider(Map<String, FocusBalancer<DataSourceMetaInfo>> configMap) {
 		this.configMap = configMap;
 	}
 
@@ -43,12 +43,12 @@ public class DefaultDatabaseMetaInfoProvider implements DatabaseMetaInfoProvider
 	 */
 	@Override
 	public DataSourceMetaInfo getDatabase(String routingKey, String routingValue) {
-		BalancedDataSource balancedDataSource = configMap.get(uniqueKey(routingKey, routingValue));
+		FocusBalancer<DataSourceMetaInfo> balancedDataSource = configMap.get(uniqueKey(routingKey, routingValue));
 		if (balancedDataSource == null) {
 			log.error("no datasource for routingKey:{} and routingValue:{}", routingKey, routingValue);
 			return null;
 		}
-		return balancedDataSource.getMaster();
+		return balancedDataSource.getFocus();
 	}
 
 	/**
@@ -62,16 +62,16 @@ public class DefaultDatabaseMetaInfoProvider implements DatabaseMetaInfoProvider
 	 */
 	@Override
 	public DataSourceMetaInfo getDatabase(String routingKey, String routingValue, ReadWriteStrategy readWriteStrategy) {
-		BalancedDataSource balancedDataSource = configMap.get(uniqueKey(routingKey, routingValue));
+		FocusBalancer<DataSourceMetaInfo> balancedDataSource = configMap.get(uniqueKey(routingKey, routingValue));
 		if (balancedDataSource == null) {
 			log.error("no datasource for routingKey:{} and routingValue:{}", routingKey, routingValue);
 			return null;
 		}
 		switch (readWriteStrategy) {
 			case write:
-				return balancedDataSource.getMaster();
+				return balancedDataSource.getFocus();
 			case read:
-				return balancedDataSource.getSlave();
+				return balancedDataSource.select();
 			default:
 				return null;
 		}
@@ -79,7 +79,7 @@ public class DefaultDatabaseMetaInfoProvider implements DatabaseMetaInfoProvider
 
 	@Override
 	public List<DataSourceMetaInfo> getAllDataSource() {
-		return this.configMap.values().stream().map(BalancedDataSource::getMaster).collect(Collectors.toList());
+		return this.configMap.values().stream().map(FocusBalancer::getFocus).collect(Collectors.toList());
 	}
 
 	public String buildKey(String tenantId, ReadWriteStrategy strategy) {
@@ -108,7 +108,7 @@ public class DefaultDatabaseMetaInfoProvider implements DatabaseMetaInfoProvider
 		this.name = name;
 	}
 
-	public Map<String, BalancedDataSource> getConfigMap() {
+	public Map<String, FocusBalancer<DataSourceMetaInfo>> getConfigMap() {
 		return configMap;
 	}
 

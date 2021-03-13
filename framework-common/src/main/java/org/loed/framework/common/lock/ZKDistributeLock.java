@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * @author Thomason
@@ -63,4 +64,34 @@ public class ZKDistributeLock {
 	public boolean accept(String lockPath, Consumer<String> consumer) {
 		return accept(lockPath, 10, TimeUnit.SECONDS, consumer);
 	}
+
+	/**
+	 * 获取分布式锁，并且返回函数执行结果
+	 *
+	 * @param lockPath 分布式锁的唯一标识
+	 * @param time     锁超时时间
+	 * @param unit     锁超时时间单位
+	 * @param function 函数
+	 * @param <T>      返回类型
+	 * @return 返回值
+	 */
+	public <T> T get(String lockPath, long time, TimeUnit unit, Function<String, T> function) {
+		InterProcessMutex lock = new InterProcessMutex(zkClient, StringHelper.formatPath(LOCK_PATH + "/" + lockPath));
+		try {
+			if (lock.acquire(time, unit)) {
+				return function.apply(lockPath);
+			}
+			return null;
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+		} finally {
+			try {
+				lock.release();
+			} catch (Exception e) {
+				logger.error(e.getMessage(), e);
+			}
+		}
+		return null;
+	}
+
 }

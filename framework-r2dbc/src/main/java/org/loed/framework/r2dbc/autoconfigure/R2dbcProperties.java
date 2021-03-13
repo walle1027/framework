@@ -1,6 +1,7 @@
 package org.loed.framework.r2dbc.autoconfigure;
 
 import lombok.Data;
+import org.loed.framework.r2dbc.R2dbcDialect;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Duration;
@@ -22,6 +23,8 @@ public class R2dbcProperties {
 	private boolean quote = true;
 
 	private boolean enableRouting = false;
+
+	private R2dbcDialect dialect = R2dbcDialect.mysql;
 
 	private RoutingProvider routingProvider = RoutingProvider.zk;
 

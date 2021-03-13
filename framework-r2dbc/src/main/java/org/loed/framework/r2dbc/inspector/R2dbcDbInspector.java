@@ -11,9 +11,7 @@ import org.loed.framework.common.orm.Table;
 import org.loed.framework.common.orm.schema.Column;
 import org.loed.framework.common.orm.schema.Index;
 import org.loed.framework.common.util.SerializeUtils;
-import org.loed.framework.r2dbc.R2dbcDialect;
-import org.loed.framework.r2dbc.routing.R2dbcPropertiesProvider;
-import org.loed.framework.r2dbc.routing.RoutingConnectionFactory;
+import org.loed.framework.r2dbc.datasource.routing.RoutingConnectionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.r2dbc.R2dbcProperties;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -46,7 +44,7 @@ import java.util.stream.Collectors;
  * @since 2020/8/8 12:43 下午
  */
 @Slf4j
-public class R2dbcDbInspector implements ApplicationEventPublisherAware, EnvironmentAware{
+public class R2dbcDbInspector implements ApplicationEventPublisherAware, EnvironmentAware {
 	private static final String RESOURCE_PATTERN = "/**/*.class";
 	private static final String PACKAGE_INFO_SUFFIX = ".package-info";
 	private final ResourcePatternResolver resourcePatternResolver = new PathMatchingResourcePatternResolver();
@@ -99,7 +97,6 @@ public class R2dbcDbInspector implements ApplicationEventPublisherAware, Environ
 		String schema = "";
 		if (connectionFactory instanceof RoutingConnectionFactory) {
 			//TODO getDatabaseName
-
 		} else {
 			BindResult<R2dbcProperties> bind = Binder.get(environment).bind("spring.r2dbc", R2dbcProperties.class);
 			R2dbcProperties r2dbcProperties = bind.orElseGet(null);
@@ -241,17 +238,10 @@ public class R2dbcDbInspector implements ApplicationEventPublisherAware, Environ
 	}
 
 	private DdlProvider createDdlProvider() {
-		org.springframework.boot.autoconfigure.r2dbc.R2dbcProperties r2dbcProperties = null;
-		if (connectionFactory instanceof RoutingConnectionFactory) {
-			R2dbcPropertiesProvider r2dbcPropertiesProvider =  ((RoutingConnectionFactory) connectionFactory).getPropertiesProvider();
-			r2dbcProperties = r2dbcPropertiesProvider.getAllProperties().get(0);
-		} else {
-			r2dbcProperties = Binder.get(environment).bind("spring.r2dbc", org.springframework.boot.autoconfigure.r2dbc.R2dbcProperties.class).orElse(new org.springframework.boot.autoconfigure.r2dbc.R2dbcProperties());
-		}
-		R2dbcDialect dialect = R2dbcDialect.autoGuessDialect(r2dbcProperties.getUrl());
-		org.loed.framework.r2dbc.autoconfigure.R2dbcProperties properties = Binder.get(environment).bind(org.loed.framework.r2dbc.autoconfigure.R2dbcProperties.PREFIX, org.loed.framework.r2dbc.autoconfigure.R2dbcProperties.class)
-				.orElse(new org.loed.framework.r2dbc.autoconfigure.R2dbcProperties());
-		DdlProvider ddlProvider = DdlProviderFactory.getInstance().getDdlProvider(dialect, properties);
+		Binder binder = Binder.get(environment);
+		BindResult<org.loed.framework.r2dbc.autoconfigure.R2dbcProperties> bind = binder.bind(org.loed.framework.r2dbc.autoconfigure.R2dbcProperties.PREFIX, org.loed.framework.r2dbc.autoconfigure.R2dbcProperties.class);
+		org.loed.framework.r2dbc.autoconfigure.R2dbcProperties r2dbcProperties = bind.orElseGet(org.loed.framework.r2dbc.autoconfigure.R2dbcProperties::new);
+		DdlProvider ddlProvider = DdlProviderFactory.getInstance().getDdlProvider(r2dbcProperties.getDialect(), r2dbcProperties);
 		if (ddlProvider == null) {
 			throw new RuntimeException("can't find R2dbcSqlBuilder from properties:" + SerializeUtils.toJson(r2dbcProperties));
 		}
