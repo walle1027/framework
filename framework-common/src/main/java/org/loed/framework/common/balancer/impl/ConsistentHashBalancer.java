@@ -14,28 +14,28 @@ import java.util.concurrent.locks.ReentrantLock;
  * @version 1.0
  * @since 2016/7/4 22:07
  */
-public class ConsistentHashBalancer implements ConditionBalancer<Balanceable, String> {
+public class ConsistentHashBalancer<T extends Balanceable> implements ConditionBalancer<T, String> {
 
 	protected Lock lock = new ReentrantLock();
 
-	private ConsistentHash<ConsistentHasBalanceAdapter> consistentHash;
+	private ConsistentHash<ConsistentHasBalanceAdapter<T>> consistentHash;
 
 	@Override
-	public Balanceable select() {
+	public T select() {
 		return select("defaultEmptyKey");
 	}
 
 
 	@Override
-	public void updateProfiles(Collection<Balanceable> nodeList) {
+	public void updateProfiles(Collection<T> nodeList) {
 		lock.lock();
 		try {
 			if (consistentHash == null) {
 				consistentHash = new ConsistentHash<>();
 			}
 			consistentHash.clear();
-			for (Balanceable balanceable : nodeList) {
-				consistentHash.add(new ConsistentHasBalanceAdapter(balanceable));
+			for (T node : nodeList) {
+				consistentHash.add(new ConsistentHasBalanceAdapter<>(node));
 			}
 		} finally {
 			lock.unlock();
@@ -48,43 +48,39 @@ public class ConsistentHashBalancer implements ConditionBalancer<Balanceable, St
 	}
 
 	@Override
-	public Balanceable select(String condition) {
-		ConsistentHasBalanceAdapter consistentHasBalanceAdapter = consistentHash.get(condition);
+	public T select(String condition) {
+		ConsistentHasBalanceAdapter<T> consistentHasBalanceAdapter = consistentHash.get(condition);
 		if (consistentHasBalanceAdapter == null) {
 			return null;
 		}
-		return consistentHasBalanceAdapter.getBalanceable();
+		return consistentHasBalanceAdapter.getDelegate();
 	}
 
-	public static class ConsistentHasBalanceAdapter implements Balanceable, ConsistentHashNode {
+	public static class ConsistentHasBalanceAdapter<T extends Balanceable> implements Balanceable, ConsistentHashNode {
 
-		private Balanceable balanceable;
+		private final T delegate;
 
-		public ConsistentHasBalanceAdapter(Balanceable balanceable) {
-			this.balanceable = balanceable;
+		public ConsistentHasBalanceAdapter(T delegate) {
+			this.delegate = delegate;
 		}
 
 		@Override
 		public boolean isAvailable() {
-			return balanceable.isAvailable();
+			return delegate.isAvailable();
 		}
 
 		@Override
 		public int getWeight() {
-			return balanceable.getWeight();
+			return delegate.getWeight();
 		}
 
 		@Override
 		public String hashString() {
-			return balanceable.toString();
+			return delegate.toString();
 		}
 
-		public Balanceable getBalanceable() {
-			return balanceable;
-		}
-
-		public void setBalanceable(Balanceable balanceable) {
-			this.balanceable = balanceable;
+		public T getDelegate() {
+			return delegate;
 		}
 	}
 }

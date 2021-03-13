@@ -2,8 +2,10 @@ package org.loed.framework.mybatis.datasource.autoconfigure;
 
 import lombok.extern.slf4j.Slf4j;
 import org.loed.framework.common.ConfigureConstant;
-import org.loed.framework.mybatis.datasource.meta.BalancedDataSource;
+import org.loed.framework.common.balancer.BalancerFactory;
+import org.loed.framework.common.balancer.FocusBalancer;
 import org.loed.framework.mybatis.datasource.meta.DataSourceGroup;
+import org.loed.framework.mybatis.datasource.meta.DataSourceMetaInfo;
 import org.loed.framework.mybatis.datasource.meta.DatabaseMetaInfoProvider;
 import org.loed.framework.mybatis.datasource.meta.impl.DefaultDatabaseMetaInfoProvider;
 import org.loed.framework.mybatis.datasource.meta.impl.ZKDatabaseMetaInfoProvider;
@@ -21,6 +23,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 import javax.sql.DataSource;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -45,7 +48,7 @@ public class RoutingDataSourceConfigure {
 		if (configs == null || configs.isEmpty()) {
 			throw new IllegalArgumentException("empty routing configs for:" + ConfigureConstant.datasource_ns);
 		}
-		Map<String, BalancedDataSource> newConfigs = new HashMap<>();
+		Map<String, FocusBalancer<DataSourceMetaInfo>> newConfigs = new HashMap<>();
 		for (Map.Entry<String, Map<String, DataSourceGroup>> entry : configs.entrySet()) {
 			String routingKey = entry.getKey();
 			Map<String, DataSourceGroup> routingMap = entry.getValue();
@@ -57,10 +60,12 @@ public class RoutingDataSourceConfigure {
 				String routingValue = routingMapEntry.getKey();
 				DataSourceGroup dataSourceGroup = routingMapEntry.getValue();
 				String uniqueKey = DefaultDatabaseMetaInfoProvider.uniqueKey(routingKey, routingValue);
-				BalancedDataSource balancedDataSource = new BalancedDataSource(dataSourceProperties.getReadBalanceStrategy());
-				balancedDataSource.update(dataSourceGroup);
-				newConfigs.put(uniqueKey, balancedDataSource);
 
+				FocusBalancer<DataSourceMetaInfo> balancedDataSource = new FocusBalancer<>(dataSourceGroup.getMaster(), BalancerFactory.getBalancer(dataSourceProperties.getReadBalanceStrategy()));
+				if (dataSourceGroup.getSlaves() != null && dataSourceGroup.getSlaves().length > 0) {
+					balancedDataSource.updateProfiles(Arrays.asList(dataSourceGroup.getSlaves()));
+				}
+				newConfigs.put(uniqueKey, balancedDataSource);
 			}
 		}
 		DefaultDatabaseMetaInfoProvider defaultMetaInfoProvider = new DefaultDatabaseMetaInfoProvider(newConfigs);
