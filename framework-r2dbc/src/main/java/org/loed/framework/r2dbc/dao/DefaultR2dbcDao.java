@@ -555,7 +555,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 					DatabaseClient.GenericExecuteSpec exec = bind(query);
 					return exec.map(row -> {
 						Object count = row.get(0);
-						if (count == null){
+						if (count == null) {
 							log.warn("error got count");
 							return 0L;
 						}
@@ -594,16 +594,29 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	public Mono<Pagination<T>> findPage(@NonNull PageRequest pageRequest, @NonNull Criteria<T> criteria) {
 		boolean paged = pageRequest.isPaging();
 		if (paged) {
-			return Mono.zip(count(criteria), Mono.just(r2dbcSqlBuilder.findPage(table, criteria, pageRequest)).flatMap(r2dbcQuery -> {
-				return query(r2dbcQuery).collectList();
-			})).map(tup -> {
-				Pagination<T> pagination = new Pagination<>();
-				pagination.setPageNo(pageRequest.getPageNumber());
-				pagination.setPageSize(pageRequest.getPageSize());
-				pagination.setTotal(tup.getT1());
-				pagination.setRows(tup.getT2());
-				return pagination;
-			});
+			if (pageRequest.isCounting()) {
+				return Mono.zip(count(criteria), Mono.just(r2dbcSqlBuilder.findPage(table, criteria, pageRequest)).flatMap(r2dbcQuery -> {
+					return query(r2dbcQuery).collectList();
+				})).map(tup -> {
+					Pagination<T> pagination = new Pagination<>();
+					pagination.setPageNo(pageRequest.getPageNumber());
+					pagination.setPageSize(pageRequest.getPageSize());
+					pagination.setTotal(tup.getT1());
+					pagination.setRows(tup.getT2());
+					return pagination;
+				});
+			} else {
+				return Mono.just(r2dbcSqlBuilder.findPage(table, criteria, pageRequest)).flatMap(r2dbcQuery -> {
+					return query(r2dbcQuery).collectList();
+				}).map(rows -> {
+					Pagination<T> pagination = new Pagination<>();
+					pagination.setPageNo(pageRequest.getPageNumber());
+					pagination.setPageSize(pageRequest.getPageSize());
+					pagination.setTotal(-1);
+					pagination.setRows(rows);
+					return pagination;
+				});
+			}
 		} else {
 			return find(criteria).collectList().map(result -> {
 				Pagination<T> pagination = new Pagination<>();
