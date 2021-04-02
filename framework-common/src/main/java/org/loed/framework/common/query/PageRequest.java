@@ -11,8 +11,8 @@ import lombok.Data;
 public class PageRequest {
 	private int pageNumber = 1;
 	private int pageSize = 10;
-	private boolean paging;
-	private boolean counting;
+	private boolean paging = true;
+	private boolean counting = true;
 
 	public static PageRequest of(int pageNumber, int pageSize) {
 		PageRequest pageRequest = new PageRequest();
