@@ -97,6 +97,8 @@ public class R2dbcDaoFactoryBean<R extends R2dbcDao<T, ID>, T, ID> implements In
 
 			result.addAdvice(new QueryInterceptor<>(daoInterface, databaseClient));
 
+			result.addAdvice(new ExecuteInterceptor(databaseClient));
+
 			if (DefaultMethodInvokingMethodInterceptor.hasDefaultMethods(daoInterface)) {
 				result.addAdvice(new DefaultMethodInvokingMethodInterceptor());
 			}
