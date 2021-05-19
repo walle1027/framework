@@ -345,12 +345,12 @@ public final class Criteria<T> implements Serializable, Copyable<Criteria<T>> {
 		}
 
 		@SafeVarargs
-		public final Criteria<T> asc(SFunction<T, ?>... lambda) {
+		public final Criteria<T> asc(SFunction<R, ?>... lambda) {
 			if (lambda == null || lambda.length == 0) {
 				return this.criteria;
 			}
 //			Criteria<T> criteria = this.criteria.copy();
-			for (SFunction<T, ?> function : lambda) {
+			for (SFunction<R, ?> function : lambda) {
 				String prop = LambdaUtils.getPropFromLambda(function);
 				String sortProp = this.join.getUniquePath() + Condition.PATH_SEPARATOR + prop;
 				criteria.sort(new SortProperty(sortProp, Sort.ASC));
@@ -359,12 +359,12 @@ public final class Criteria<T> implements Serializable, Copyable<Criteria<T>> {
 		}
 
 		@SafeVarargs
-		public final Criteria<T> desc(SFunction<T, ?>... lambda) {
+		public final Criteria<T> desc(SFunction<R, ?>... lambda) {
 			if (lambda == null || lambda.length == 0) {
 				return this.criteria;
 			}
 //			Criteria<T> criteria = this.criteria.copy();
-			for (SFunction<T, ?> function : lambda) {
+			for (SFunction<R, ?> function : lambda) {
 				String prop = LambdaUtils.getPropFromLambda(function);
 				String sortProp = this.join.getUniquePath() + Condition.PATH_SEPARATOR + prop;
 				criteria.sort(new SortProperty(sortProp, Sort.DESC));
