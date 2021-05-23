@@ -58,9 +58,9 @@ public class RedisShardingManager implements ShardingManager {
 		Set<IdMapping> collect = Arrays.stream(idMappings).collect(Collectors.toSet());
 		AtomicInteger count = new AtomicInteger(0);
 		collect.forEach(c -> {
-			String cacheKey = buildIdCacheKey(c.getTableName(), c.getId());
+			String cacheKey = buildIdCacheKey(c.getTableName(), c.getTableId());
 			Map<String, String> shardingMap = new HashMap<>();
-			shardingMap.put("id", c.getId() + "");
+			shardingMap.put("tableId", c.getTableId() + "");
 			shardingMap.put("tableName", c.getTableName());
 			shardingMap.put("shardingKey", c.getShardingKey());
 			shardingMap.put("shardingValue", c.getShardingValue());

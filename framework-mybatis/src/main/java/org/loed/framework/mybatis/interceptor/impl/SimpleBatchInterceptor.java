@@ -93,7 +93,7 @@ public class SimpleBatchInterceptor extends BaseBatchInterceptor {
 							idMapping.setTableName(table.getSqlName());
 							idMapping.setShardingValue(v);
 							idMapping.setShardingKey(shardingColumns.stream().map(Column::getSqlName).collect(Collectors.joining(",")));
-							idMapping.setId((Serializable) ReflectionUtils.getFieldValue(po, idColumn.getJavaName()));
+							idMapping.setTableId((Serializable) ReflectionUtils.getFieldValue(po, idColumn.getJavaName()));
 							idMappings.add(idMapping);
 							oneTableBatchList.add(po);
 						}
@@ -110,7 +110,7 @@ public class SimpleBatchInterceptor extends BaseBatchInterceptor {
 							idMapping.setTableName(table.getSqlName());
 							idMapping.setShardingValue(v);
 							idMapping.setShardingKey(shardingColumns.stream().map(Column::getSqlName).collect(Collectors.joining(",")));
-							idMapping.setId((Serializable) ReflectionUtils.getFieldValue(po, idColumn.getJavaName()));
+							idMapping.setTableId((Serializable) ReflectionUtils.getFieldValue(po, idColumn.getJavaName()));
 							idMappings.add(idMapping);
 							oneTableBatchList.add(po);
 						}
