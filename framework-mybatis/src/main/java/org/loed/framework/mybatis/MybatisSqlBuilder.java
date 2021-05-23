@@ -854,7 +854,7 @@ public class MybatisSqlBuilder {
 		String shardingTableName = getShardingManager().getShardingTableNameByValue(table, shardingValue);
 		IdMapping idMapping = new IdMapping();
 		Serializable idValue = getIdValue(table, object);
-		idMapping.setId(idValue);
+		idMapping.setTableId(idValue);
 		idMapping.setShardingKey(shardingColumns.stream().map(Column::getSqlName).collect(Collectors.joining(",")));
 		idMapping.setShardingValue(shardingValue);
 		idMapping.setTableName(table.getSqlName());
