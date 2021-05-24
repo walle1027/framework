@@ -464,6 +464,7 @@ public interface BaseMapper<T, ID extends Serializable> extends MybatisOperation
 	 * @param request 查询条件
 	 * @return 分页查询结果
 	 */
+	@Deprecated
 	default Pagination<T> findPage(PageRequest request, Criteria<T> criteria) {
 		if (request.isPaging()) {
 			if (request.isCounting()) {
@@ -480,6 +481,19 @@ public interface BaseMapper<T, ID extends Serializable> extends MybatisOperation
 		response.setRows(pageInfo.getList());
 		response.setPageSize(request.getPageSize());
 		response.setPageNo(request.getPageNumber());
+		return response;
+	}
+
+	default Pagination<T> findPage(Criteria<T> criteria) {
+		PageHelper.offsetPage(criteria.getOffset() == null ? 0 : criteria.getOffset().intValue(), criteria.getLimit() == null ? 0 : criteria.getLimit());
+//		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
+		List<T> list = this.find(criteria);
+		PageInfo<T> pageInfo = new PageInfo<>(list);
+		Pagination<T> response = new Pagination<>();
+		response.setTotal(pageInfo.getTotal());
+		response.setRows(pageInfo.getList());
+//		response.setPageSize(request.getPageSize());
+//		response.setPageNo(request.getPageNumber());
 		return response;
 	}
 
