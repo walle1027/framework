@@ -734,6 +734,47 @@ public class LongIdTest {
 	}
 
 	@Test
+	public void testFindPage2() {
+		List<LongId> longIdList = batchInsert();
+		Mono<Pagination<LongId>> page = longIdDao.batchInsert(longIdList).collectList().flatMap(poList -> {
+			Criteria<LongId> criteria = Criteria.from(LongId.class)
+					.and(LongId::getId).in(poList.stream().map(LongId::getId).collect(Collectors.toList()))
+					.and(LongId::getProp1).contains("LongId")
+					.and(LongId::getProp2).is(Integer.MAX_VALUE)
+					.and(LongId::getProp3).is(1.00d)
+					.and(LongId::getProp4).is(1.00f)
+					.and(LongId::getProp5).is(Long.MAX_VALUE)
+					.and(LongId::getProp6).is(BigInteger.valueOf(Long.MAX_VALUE))
+					.and(LongId::getProp7).is(BigDecimal.ONE)
+					.and(LongId::getProp8).lessEqual(LocalDate.now())
+					.and(LongId::getProp9).lessEqual(LocalDateTime.now())
+					.and(LongId::getProp10).is(Boolean.TRUE)
+					.and(LongId::getProp11).is((byte) 0)
+					.asc(LongId::getId).limit(10).offset(0L);
+			return longIdDao.findPage(criteria);
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		StepVerifier.create(page.log()).expectNextMatches(pg -> {
+			Assert.assertEquals(pg.getTotal(), (long) longIdList.size());
+			int i = 0;
+			for (LongId p : pg.getRows()) {
+				Assert.assertEquals((long) p.getId(), ++i);
+				Assert.assertEquals((long) p.getVersion(), 0);
+				Assert.assertEquals((long) p.getCreateBy(), 1L);
+				Assert.assertEquals(p.getProp1(), "LongId" + p.getId());
+				Assert.assertEquals((int) p.getProp2(), Integer.MAX_VALUE);
+				Assert.assertEquals((double) p.getProp3(), 1.00d, 2);
+				Assert.assertEquals((float) p.getProp4(), 1.00f, 2);
+				Assert.assertEquals((long) p.getProp5(), Long.MAX_VALUE);
+				Assert.assertEquals(p.getProp6(), BigInteger.valueOf(Long.MAX_VALUE));
+				Assert.assertEquals(p.getProp7().intValue(), BigDecimal.ONE.intValue());
+				Assert.assertEquals(p.getProp10(), Boolean.TRUE);
+				Assert.assertEquals((byte) p.getProp11(), (byte) 0);
+			}
+			return true;
+		}).verifyComplete();
+	}
+
+	@Test
 	public void testSelect() {
 		List<LongId> longIdList = batchInsert();
 		Mono<List<LongId>> select = longIdDao.batchInsert(longIdList).collectList().flatMapMany(poList -> {
