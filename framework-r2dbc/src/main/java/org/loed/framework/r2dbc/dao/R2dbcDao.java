@@ -350,6 +350,16 @@ public interface R2dbcDao<T, ID> {
 	Mono<Pagination<T>> findPage(@NonNull PageRequest pageRequest, @NonNull Criteria<T> criteria);
 
 	/**
+	 * 按照动态条件查询记录，并且分页
+	 * 如果对象中有{@link TenantId} 会自动增加 过滤条件
+	 * 如果对象中有  {@link IsDeleted} 会自动增加过滤条件
+	 *
+	 * @param criteria    动态条件
+	 * @return 分页查询结果
+	 */
+	Mono<Pagination<T>> findPage(@NonNull Criteria<T> criteria);
+
+	/**
 	 * 执行一个自定义的查询语句
 	 *
 	 * @param sql    查询语句

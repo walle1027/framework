@@ -594,8 +594,10 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	public Mono<Pagination<T>> findPage(@NonNull PageRequest pageRequest, @NonNull Criteria<T> criteria) {
 		boolean paged = pageRequest.isPaging();
 		if (paged) {
+			int limit = pageRequest.getPageSize();
+			long offset = pageRequest.getPageNumber() < 0 ? 0 : (pageRequest.getPageNumber() - 1) * pageRequest.getPageSize();
 			if (pageRequest.isCounting()) {
-				return Mono.zip(count(criteria), Mono.just(r2dbcSqlBuilder.findPage(table, criteria, pageRequest)).flatMap(r2dbcQuery -> {
+				return Mono.zip(count(criteria), Mono.just(r2dbcSqlBuilder.findPage(table, criteria, limit, offset)).flatMap(r2dbcQuery -> {
 					return query(r2dbcQuery).collectList();
 				})).map(tup -> {
 					Pagination<T> pagination = new Pagination<>();
@@ -606,7 +608,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 					return pagination;
 				});
 			} else {
-				return Mono.just(r2dbcSqlBuilder.findPage(table, criteria, pageRequest)).flatMap(r2dbcQuery -> {
+				return Mono.just(r2dbcSqlBuilder.findPage(table, criteria, limit, offset)).flatMap(r2dbcQuery -> {
 					return query(r2dbcQuery).collectList();
 				}).map(rows -> {
 					Pagination<T> pagination = new Pagination<>();
@@ -627,6 +629,26 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 				return pagination;
 			});
 		}
+	}
+
+	/**
+	 * 按照动态条件查询记录，并且分页
+	 * 如果对象中有{@link TenantId} 会自动增加 过滤条件
+	 * 如果对象中有  {@link IsDeleted} 会自动增加过滤条件
+	 *
+	 * @param criteria 动态条件
+	 * @return 分页查询结果
+	 */
+	@Override
+	public Mono<Pagination<T>> findPage(@NonNull Criteria<T> criteria) {
+		return Mono.zip(count(criteria), Mono.just(r2dbcSqlBuilder.findPage(table, criteria, criteria.getLimit(), criteria.getOffset())).flatMap(r2dbcQuery -> {
+			return query(r2dbcQuery).collectList();
+		})).map(tup -> {
+			Pagination<T> pagination = new Pagination<>();
+			pagination.setTotal(tup.getT1());
+			pagination.setRows(tup.getT2());
+			return pagination;
+		});
 	}
 
 	@Override
