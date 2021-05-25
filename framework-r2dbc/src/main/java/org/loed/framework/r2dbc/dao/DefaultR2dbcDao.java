@@ -641,7 +641,9 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	 */
 	@Override
 	public Mono<Pagination<T>> findPage(@NonNull Criteria<T> criteria) {
-		return Mono.zip(count(criteria), Mono.just(r2dbcSqlBuilder.findPage(table, criteria, criteria.getLimit(), criteria.getOffset())).flatMap(r2dbcQuery -> {
+		int limit = criteria.getLimit() == null ? 0 : criteria.getLimit();
+		long offset = criteria.getOffset() == null ? 0 : criteria.getOffset();
+		return Mono.zip(count(criteria), Mono.just(r2dbcSqlBuilder.findPage(table, criteria, limit, offset)).flatMap(r2dbcQuery -> {
 			return query(r2dbcQuery).collectList();
 		})).map(tup -> {
 			Pagination<T> pagination = new Pagination<>();
