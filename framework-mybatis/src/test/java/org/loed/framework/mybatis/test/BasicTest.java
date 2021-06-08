@@ -371,7 +371,7 @@ public class BasicTest {
 		PageRequest pageRequest = PageRequest.of(0, 10);
 		Pagination<User> pagination = userMapper.findPage(pageRequest, criteria);
 		Assert.assertEquals(pagination.getRows().size(), 0);
-		Assert.assertEquals(pageRequest.getPageNumber(), 0);
+		Assert.assertEquals(pageRequest.getPageNo(), 0);
 		Assert.assertEquals(pageRequest.getPageSize(), 10);
 	}
 
