@@ -468,9 +468,9 @@ public interface BaseMapper<T, ID extends Serializable> extends MybatisOperation
 	default Pagination<T> findPage(PageRequest request, Criteria<T> criteria) {
 		if (request.isPaging()) {
 			if (request.isCounting()) {
-				PageHelper.startPage(request.getPageNumber(), request.getPageSize(), true);
+				PageHelper.startPage(request.getPageNo(), request.getPageSize(), true);
 			} else {
-				PageHelper.startPage(request.getPageNumber(), request.getPageSize(), false);
+				PageHelper.startPage(request.getPageNo(), request.getPageSize(), false);
 			}
 		}
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
@@ -480,7 +480,7 @@ public interface BaseMapper<T, ID extends Serializable> extends MybatisOperation
 		response.setTotal(pageInfo.getTotal());
 		response.setRows(pageInfo.getList());
 		response.setPageSize(request.getPageSize());
-		response.setPageNo(request.getPageNumber());
+		response.setPageNo(request.getPageNo());
 		return response;
 	}
 

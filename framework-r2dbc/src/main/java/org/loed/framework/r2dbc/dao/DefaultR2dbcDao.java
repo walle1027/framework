@@ -595,13 +595,13 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 		boolean paged = pageRequest.isPaging();
 		if (paged) {
 			int limit = pageRequest.getPageSize();
-			long offset = pageRequest.getPageNumber() < 0 ? 0 : (pageRequest.getPageNumber() - 1) * pageRequest.getPageSize();
+			long offset = pageRequest.getPageNo() < 0 ? 0 : (pageRequest.getPageNo() - 1) * pageRequest.getPageSize();
 			if (pageRequest.isCounting()) {
 				return Mono.zip(count(criteria), Mono.just(r2dbcSqlBuilder.findPage(table, criteria, limit, offset)).flatMap(r2dbcQuery -> {
 					return query(r2dbcQuery).collectList();
 				})).map(tup -> {
 					Pagination<T> pagination = new Pagination<>();
-					pagination.setPageNo(pageRequest.getPageNumber());
+					pagination.setPageNo(pageRequest.getPageNo());
 					pagination.setPageSize(pageRequest.getPageSize());
 					pagination.setTotal(tup.getT1());
 					pagination.setRows(tup.getT2());
@@ -612,7 +612,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 					return query(r2dbcQuery).collectList();
 				}).map(rows -> {
 					Pagination<T> pagination = new Pagination<>();
-					pagination.setPageNo(pageRequest.getPageNumber());
+					pagination.setPageNo(pageRequest.getPageNo());
 					pagination.setPageSize(pageRequest.getPageSize());
 					pagination.setTotal(-1);
 					pagination.setRows(rows);
