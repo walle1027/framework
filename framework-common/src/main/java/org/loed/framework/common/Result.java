@@ -8,9 +8,9 @@ import java.io.Serializable;
  * @since 2017/5/23 17:19
  */
 public class Result<T> implements Serializable {
-	public static final Result<Void> UNKNOWN_ERROR = new Result<>("503", "unknown error");
+	public static final Result<Void> UNKNOWN_ERROR = new Result<>(503, "Unknown Server Error");
 
-	private String code;
+	private int code;
 	private String message;
 	private T data;
 
@@ -21,26 +21,26 @@ public class Result<T> implements Serializable {
 		this.data = data;
 	}
 
-	public Result(String code) {
+	public Result(int code) {
 		this.code = code;
 	}
 
-	public Result(String code, String message) {
+	public Result(int code, String message) {
 		this.code = code;
 		this.message = message;
 	}
 
-	public Result(String code, String message, T data) {
+	public Result(int code, String message, T data) {
 		this.code = code;
 		this.message = message;
 		this.data = data;
 	}
 
-	public String getCode() {
+	public int getCode() {
 		return code;
 	}
 
-	public void setCode(String code) {
+	public void setCode(int code) {
 		this.code = code;
 	}
 

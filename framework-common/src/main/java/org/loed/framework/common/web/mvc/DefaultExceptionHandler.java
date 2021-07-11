@@ -3,7 +3,7 @@ package org.loed.framework.common.web.mvc;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.loed.framework.common.BusinessException;
-import org.loed.framework.common.ErrorInfo;
+import org.loed.framework.common.Message;
 import org.loed.framework.common.Result;
 import org.loed.framework.common.SystemConstant;
 import org.loed.framework.common.web.mvc.i18n.I18nProvider;
@@ -58,20 +58,16 @@ public class DefaultExceptionHandler {
 				i18nProvider = I18nProvider.DEFAULT_I18N_PROVIDER;
 			}
 			if (ex instanceof BusinessException) {
-				List<ErrorInfo> errors = ((BusinessException) ex).getErrors();
-				String code = SystemConstant.SERVER_ERROR;
-				if (errors != null) {
-					for (ErrorInfo error : errors) {
-						Object[] args = error.getArgs();
-						if (args != null) {
-							error.setText(i18nProvider.getText(error.getCode() + "", args));
-						} else {
-							error.setText(i18nProvider.getText(error.getCode() + ""));
-						}
-						code = error.getCode();
+				Message error = ((BusinessException) ex).getMessageInfo();
+				if (error != null) {
+					Object[] args = error.getArgs();
+					if (args != null) {
+						error.setText(i18nProvider.getText(error.getI18nKey(), args));
+					} else {
+						error.setText(i18nProvider.getText(error.getI18nKey()));
 					}
-					result.setMessage(errors.stream().map(ErrorInfo::getText).collect(Collectors.joining("\n")));
-					result.setCode(code);
+					result.setMessage(error.getText());
+					result.setCode(((BusinessException) ex).getErrorCode());
 				}
 			} else if (ex instanceof BindException) {
 				BindingResult bindingResult = ((BindException) ex).getBindingResult();
