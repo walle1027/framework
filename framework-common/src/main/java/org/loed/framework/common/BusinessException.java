@@ -11,29 +11,28 @@ import java.util.stream.Collectors;
  *
  * @author Thomason
  * @version 1.2
- * @修改原因
  * @since 2009-07-04
  */
 public class BusinessException extends RuntimeException {
-	private List<Message> errors;
+	private List<ErrorInfo> errors;
 
 	public BusinessException() {
 		super();
 	}
 
-	public BusinessException(String msg) {
-		super(msg);
-		addError(msg);
+	public BusinessException(String errorCode) {
+		super(errorCode);
+		addError(errorCode);
 	}
 
-	public BusinessException(Message error) {
-		super(error == null ? null : error.getKey());
+	public BusinessException(ErrorInfo error) {
+		super(error == null ? null : error.getCode());
 		addError(error);
 	}
 
-	public BusinessException(List<Message> errors) {
+	public BusinessException(List<ErrorInfo> errors) {
 		if (errors != null) {
-			for (Message error : errors) {
+			for (ErrorInfo error : errors) {
 				addError(error);
 			}
 		}
@@ -48,12 +47,11 @@ public class BusinessException extends RuntimeException {
 	}
 
 	private void addError(String msg) {
-		Message message = new Message(msg);
-		message.setType(Message.MSG_ERROR);
+		ErrorInfo message = new ErrorInfo(msg, null);
 		addError(message);
 	}
 
-	private void addError(Message error) {
+	private void addError(ErrorInfo error) {
 		if (error == null) {
 			return;
 		}
@@ -63,18 +61,17 @@ public class BusinessException extends RuntimeException {
 		errors.add(error);
 	}
 
-	public List<Message> getErrors() {
+	public List<ErrorInfo> getErrors() {
 		return errors;
 	}
 
-	public void setErrors(List<Message> errors) {
+	public void setErrors(List<ErrorInfo> errors) {
 		this.errors = errors;
 	}
 
-
 	public String getErrorMsg() {
 		if (errors != null) {
-			return String.join("", errors.stream().map(SimpleMessage::getText).collect(Collectors.toList()));
+			return errors.stream().map(ErrorInfo::getText).collect(Collectors.joining(""));
 		}
 		return null;
 	}
