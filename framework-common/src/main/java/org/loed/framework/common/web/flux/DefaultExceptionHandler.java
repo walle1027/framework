@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.loed.framework.common.BusinessException;
-import org.loed.framework.common.Message;
+import org.loed.framework.common.ErrorInfo;
 import org.loed.framework.common.Result;
 import org.loed.framework.common.SystemConstant;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,14 +56,14 @@ public class DefaultExceptionHandler {
 			i18nProvider = ReactiveI18nProvider.DEFAULT_REACTIVE_I18N_PROVIDER;
 		}
 		if (ex instanceof BusinessException) {
-			List<Message> businessErrors = ((BusinessException) ex).getErrors();
+			List<ErrorInfo> businessErrors = ((BusinessException) ex).getErrors();
 			if (businessErrors != null) {
 				return Flux.fromIterable(businessErrors).flatMap(error -> {
 					Object[] args = error.getArgs();
 					if (args != null) {
-						return i18nProvider.getText(error.getKey() + "", args);
+						return i18nProvider.getText(error.getCode() + "", args);
 					} else {
-						return i18nProvider.getText(error.getKey() + "");
+						return i18nProvider.getText(error.getCode() + "");
 					}
 				}).collectList().map(this::convertToResult);
 			} else {
@@ -95,7 +95,7 @@ public class DefaultExceptionHandler {
 		} else {
 			//这里是未知异常，直接报服务器错误
 			Result<Void> result = new Result<>();
-			result.setCode(SystemConstant.MSG_ERROR);
+			result.setCode(SystemConstant.SERVER_ERROR);
 			String stackTrace = ExceptionUtils.getStackTrace(ex);
 			if (stackTrace.length() > 300) {
 				result.setMessage(stackTrace.substring(0, 300));
@@ -108,7 +108,7 @@ public class DefaultExceptionHandler {
 
 	private Result<Void> convertToResult(List<String> errors) {
 		Result<Void> result = new Result<>();
-		result.setCode(SystemConstant.MSG_ERROR);
+		result.setCode(SystemConstant.SERVER_ERROR);
 		result.setMessage(String.join("\n", errors));
 		return result;
 	}

@@ -8,13 +8,8 @@ package org.loed.framework.common;
  * @since 2009-03-10
  */
 public interface SystemConstant {
-
-	//提示消息
-	int MSG_INFO = 0;
-	//警告消息
-	int MSG_WARNING = 1;
 	//错误消息
-	int MSG_ERROR = 2;
+	String SERVER_ERROR = "503";
 
 	String RESPONSE_WRAPPED ="ResponseWrapped";
 
