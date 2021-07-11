@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.loed.framework.common.BusinessException;
-import org.loed.framework.common.ErrorInfo;
+import org.loed.framework.common.Message;
 import org.loed.framework.common.Result;
 import org.loed.framework.common.SystemConstant;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,16 +56,21 @@ public class DefaultExceptionHandler {
 			i18nProvider = ReactiveI18nProvider.DEFAULT_REACTIVE_I18N_PROVIDER;
 		}
 		if (ex instanceof BusinessException) {
-			List<ErrorInfo> businessErrors = ((BusinessException) ex).getErrors();
-			if (businessErrors != null) {
-				return Flux.fromIterable(businessErrors).flatMap(error -> {
+			Message message = ((BusinessException) ex).getMessageInfo();
+			if (message != null) {
+				return Mono.just(message).flatMap(error -> {
 					Object[] args = error.getArgs();
 					if (args != null) {
-						return i18nProvider.getText(error.getCode() + "", args);
+						return i18nProvider.getText(error.getI18nKey() + "", args);
 					} else {
-						return i18nProvider.getText(error.getCode() + "");
+						return i18nProvider.getText(error.getI18nKey() + "");
 					}
-				}).collectList().map(this::convertToResult);
+				}).map(errorText ->{
+					Result<Void> result = new Result<>();
+					result.setCode(((BusinessException) ex).getErrorCode());
+					result.setMessage(errorText);
+					return result;
+				});
 			} else {
 				return Mono.just(Result.UNKNOWN_ERROR);
 			}
@@ -76,7 +81,7 @@ public class DefaultExceptionHandler {
 				return Flux.fromIterable(fieldErrors).flatMap(fieldError -> {
 					String defaultMessage = fieldError.getDefaultMessage();
 					return i18nProvider.getText(defaultMessage);
-				}).collectList().map(this::convertToResult);
+				}).collectList().map(this::convertToServerError);
 			} else {
 				return Mono.just(Result.UNKNOWN_ERROR);
 			}
@@ -85,7 +90,7 @@ public class DefaultExceptionHandler {
 			if (CollectionUtils.isNotEmpty(violationSet)) {
 				return Flux.fromIterable(violationSet).flatMap(error -> {
 					return i18nProvider.getText(error.getMessage());
-				}).collectList().map(this::convertToResult);
+				}).collectList().map(this::convertToServerError);
 			} else {
 				return Mono.just(Result.UNKNOWN_ERROR);
 			}
@@ -106,7 +111,7 @@ public class DefaultExceptionHandler {
 		}
 	}
 
-	private Result<Void> convertToResult(List<String> errors) {
+	private Result<Void> convertToServerError(List<String> errors) {
 		Result<Void> result = new Result<>();
 		result.setCode(SystemConstant.SERVER_ERROR);
 		result.setMessage(String.join("\n", errors));

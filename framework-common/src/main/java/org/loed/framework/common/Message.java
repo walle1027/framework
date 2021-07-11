@@ -8,36 +8,35 @@ import java.io.Serializable;
  * @author Thomason
  * @version 1.0
  */
-public class ErrorInfo implements Serializable {
-	/**
-	 * 消息的key
-	 */
-	private final String code;
+public class Message implements Serializable {
 	/**
 	 * 消息文本
 	 */
-	private String text;
+	private final String i18nKey;
 	/**
 	 * 消息参数
 	 */
 	private final Object[] args;
 	/**
+	 * 消息文本
+	 */
+	private String text;
+	/**
 	 * 消息是否格式化过
 	 */
 	private boolean formatted = false;
-	/**
-	 * 构造函数
-	 *
-	 * @param code  消息的key
-	 * @param args 消息的参数
-	 */
-	public ErrorInfo(String code, Object[] args) {
-		this.code = code;
+
+	public Message(String i18nKey, Object[] args) {
+		this.i18nKey = i18nKey;
 		this.args = args;
 	}
 
-	public String getCode() {
-		return code;
+	public String getI18nKey() {
+		return i18nKey;
+	}
+
+	public Object[] getArgs() {
+		return args;
 	}
 
 	public String getText() {
@@ -46,10 +45,6 @@ public class ErrorInfo implements Serializable {
 
 	public void setText(String text) {
 		this.text = text;
-	}
-
-	public Object[] getArgs() {
-		return args;
 	}
 
 	public boolean isFormatted() {
