@@ -209,6 +209,10 @@ public class MysqlProvider implements DdlProvider {
 			builder.deleteCharAt(builder.length() - 1);
 		}
 		builder.append(")");
+		if (StringUtils.isNotBlank(table.getComment())) {
+			builder.append(";");
+			builder.append("alter table ").append(wrap(table.getSqlName())).append(" comment '").append(table.getComment()).append("'");
+		}
 		return builder.toString();
 	}
 

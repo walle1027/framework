@@ -46,6 +46,10 @@ public class ORMapping {
 			table.setSqlName(name);
 			table.setCatalog(clazzAnnotation.catalog());
 			table.setSchema(clazzAnnotation.schema());
+			Comment comment = clazz.getAnnotation(Comment.class);
+			if (comment != null) {
+				table.setComment(comment.value());
+			}
 			//处理索引
 			javax.persistence.Index[] indexes = clazzAnnotation.indexes();
 			Arrays.stream(indexes).forEach(t -> {
