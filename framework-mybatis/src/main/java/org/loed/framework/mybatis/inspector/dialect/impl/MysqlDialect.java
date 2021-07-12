@@ -7,6 +7,7 @@ import org.loed.framework.common.orm.Table;
 import org.loed.framework.mybatis.inspector.dialect.Dialect;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -124,6 +125,12 @@ public class MysqlDialect implements Dialect {
 			builder.deleteCharAt(builder.length() - 1);
 		}
 		builder.append(")");
+		if (StringUtils.isNotBlank(table.getComment())){
+			List<String> sqls = new ArrayList<>();
+			sqls.add(builder.toString());
+			sqls.add("alter table " + table.getSqlName() + " comment '" + table.getComment() + "'");
+			return sqls;
+		}
 		return Collections.singletonList(builder.toString());
 	}
 
