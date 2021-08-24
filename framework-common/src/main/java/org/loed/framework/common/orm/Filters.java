@@ -33,7 +33,7 @@ public interface Filters {
 				return true;
 			}
 		}
-		return true;
+		return column.isInsertable();
 	};
 	/**
 	 * 可更新列的过滤器
@@ -90,27 +90,40 @@ public interface Filters {
 
 		@Override
 		public boolean test(Column column) {
-			if (column.isPk()) {
-				return false;
-			}
-			if (column.isVersioned()) {
-				return false;
-			}
 			Object value = ReflectionUtils.getFieldValue(object, column.getJavaName());
-			if (value == null) {
-				return false;
-			}
-			return true;
+			return value != null;
 		}
 	}
 
 	/**
 	 * 动态判断属性为空的过滤器
 	 */
-	class NonBlankFilter implements Predicate<Column> {
+	class UpdateNonNullFilter implements Predicate<Column> {
+		private final NonNullFilter nonNullFilter;
+
+		public UpdateNonNullFilter(@NonNull Object object) {
+			this.nonNullFilter = new NonNullFilter(object);
+		}
+
+		@Override
+		public boolean test(Column column) {
+			if (column.isPk()) {
+				return false;
+			}
+			if (column.isVersioned()) {
+				return false;
+			}
+			return nonNullFilter.test(column);
+		}
+	}
+
+	/**
+	 * 动态判断属性为空的过滤器
+	 */
+	class UpdateNonBlankFilter implements Predicate<Column> {
 		private final Object object;
 
-		public NonBlankFilter(@NonNull Object object) {
+		public UpdateNonBlankFilter(@NonNull Object object) {
 			this.object = object;
 		}
 

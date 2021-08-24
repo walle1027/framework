@@ -241,14 +241,14 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 
 	@Override
 	public <S extends T> Mono<S> updateNonNull(@NonNull S entity) {
-		return Mono.just(entity).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, new Filters.NonNullFilter(po))).flatMap(postUpdateFunction());
+		return Mono.just(entity).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, new Filters.UpdateNonNullFilter(po))).flatMap(postUpdateFunction());
 	}
 
 	@Override
 	public <S extends T> Mono<S> updateNonNullAnd(S entity, SFunction<T, ?>... columns) {
 		List<String> includes = (columns == null || columns.length == 0) ? null : Arrays.stream(columns).map(LambdaUtils::getPropFromLambda).collect(Collectors.toList());
 		return Mono.just(entity).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po,
-				includes == null ? new Filters.NonNullFilter(po) : new Filters.NonNullFilter(po).or(new Filters.IncludeFilter(includes)))
+				includes == null ? new Filters.UpdateNonNullFilter(po) : new Filters.UpdateNonNullFilter(po).or(new Filters.IncludeFilter(includes)))
 		).flatMap(postUpdateFunction());
 	}
 
@@ -270,7 +270,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 					List<Condition> updateConditions = new ArrayList<>();
 					updateConditions.add(new Condition(idColumn.getJavaName(), Operator.equal, id));
 					updateConditions.addAll(conditions);
-					Predicate<Column> predicate = includes == null ? new Filters.NonNullFilter(s) : new Filters.NonNullFilter(s).or(includes);
+					Predicate<Column> predicate = includes == null ? new Filters.UpdateNonNullFilter(s) : new Filters.UpdateNonNullFilter(s).or(includes);
 					String rawUpdate = r2dbcSqlBuilder.rawUpdate(s, table, updateConditions, predicate.and(Filters.UPDATABLE_FILTER));
 					batch.add(rawUpdate);
 				}

@@ -31,7 +31,7 @@ public interface MybatisOperations<T> {
 	int _batchUpdateNonNull(@Param("list") List<T> poList, @Param("predicate") Predicate<Column> predicate);
 
 	@Insert(INSERT)
-	int _insert(T po);
+	int _insert(@Param("po")T po,@Param("predicate") Predicate<Column> predicate);
 
 	@Insert(BATCH_INSERT)
 	int _batchInsert(@Param("list") List<T> poList, @Param("map") Map<String, Object> map);

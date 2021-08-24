@@ -264,8 +264,8 @@ public class SimpleBatchInterceptor extends BaseBatchInterceptor {
 							throw new BatchOperationException("pk property:" + column.getJavaName() + " is null when update");
 						}
 					});
-					Filters.NonBlankFilter nonBlankFilter = new Filters.NonBlankFilter(object);
-					String sql = buildDynamicUpdateSql(builder, tableName, object, table, nonBlankFilter.and(predicate));
+					Filters.UpdateNonBlankFilter updateNonBlankFilter = new Filters.UpdateNonBlankFilter(object);
+					String sql = buildDynamicUpdateSql(builder, tableName, object, table, updateNonBlankFilter.and(predicate));
 					if (logger.isDebugEnabled()) {
 						logger.debug("simple batch update selective {} ", sql);
 					}
@@ -293,8 +293,8 @@ public class SimpleBatchInterceptor extends BaseBatchInterceptor {
 							throw new BatchOperationException("pk property:" + column.getJavaName() + " is null when update");
 						}
 					});
-					Filters.NonNullFilter nonNullFilter = new Filters.NonNullFilter(object);
-					String sql = buildDynamicUpdateSql(builder, tableName, object, table, nonNullFilter.and(predicate));
+					Filters.UpdateNonNullFilter updateNonNullFilter = new Filters.UpdateNonNullFilter(object);
+					String sql = buildDynamicUpdateSql(builder, tableName, object, table, updateNonNullFilter.and(predicate));
 					if (logger.isDebugEnabled()) {
 						logger.debug("simple batch update selective {} ", sql);
 					}

@@ -47,7 +47,27 @@ public interface BaseMapper<T, ID extends Serializable> extends MybatisOperation
 				}
 			}
 		}
-		int rows = _insert(po);
+		int rows = _insert(po, Filters.INSERTABLE_FILTER);
+		//post insert listener 处理
+		List<PostInsertListener> postInsertListeners = MybatisListenerContainer.getPostInsertListeners();
+		if (CollectionUtils.isNotEmpty(postInsertListeners)) {
+			postInsertListeners.forEach(postInsertListener -> postInsertListener.postInsert(po));
+		}
+		return rows;
+	}
+
+	default int insertNonNull(T po) {
+		//pre insert listener 处理
+		List<PreInsertListener> preInsertListeners = MybatisListenerContainer.getPreInsertListeners();
+		if (CollectionUtils.isNotEmpty(preInsertListeners)) {
+			for (PreInsertListener preInsertListener : preInsertListeners) {
+				boolean execute = preInsertListener.preInsert(po);
+				if (!execute) {
+					return 0;
+				}
+			}
+		}
+		int rows = _insert(po, Filters.INSERTABLE_FILTER.and(new Filters.NonNullFilter(po)));
 		//post insert listener 处理
 		List<PostInsertListener> postInsertListeners = MybatisListenerContainer.getPostInsertListeners();
 		if (CollectionUtils.isNotEmpty(postInsertListeners)) {
@@ -165,7 +185,7 @@ public interface BaseMapper<T, ID extends Serializable> extends MybatisOperation
 		}
 		List<Condition> conditions = new ArrayList<>();
 		conditions.add(new Condition(id.getJavaName(), Operator.equal, idValue));
-		return _update(po, new Filters.NonBlankFilter(po), conditions);
+		return _update(po, new Filters.UpdateNonBlankFilter(po), conditions);
 	}
 
 	default int updateNonNull(T po) {
@@ -181,7 +201,7 @@ public interface BaseMapper<T, ID extends Serializable> extends MybatisOperation
 		}
 		List<Condition> conditions = new ArrayList<>();
 		conditions.add(new Condition(id.getJavaName(), Operator.equal, idValue));
-		return _update(po, new Filters.NonNullFilter(po), conditions);
+		return _update(po, new Filters.UpdateNonNullFilter(po), conditions);
 	}
 
 	@Deprecated
@@ -198,7 +218,7 @@ public interface BaseMapper<T, ID extends Serializable> extends MybatisOperation
 		}
 		List<Condition> conditions = new ArrayList<>();
 		conditions.add(new Condition(id.getJavaName(), Operator.equal, idValue));
-		Predicate<Column> predicate = new Filters.NonBlankFilter(po);
+		Predicate<Column> predicate = new Filters.UpdateNonBlankFilter(po);
 		if (props != null && props.length > 0) {
 			List<String> includes = Arrays.stream(props).map(LambdaUtils::getPropFromLambda).collect(Collectors.toList());
 			predicate = predicate.or(new Filters.IncludeFilter(includes));
@@ -220,7 +240,7 @@ public interface BaseMapper<T, ID extends Serializable> extends MybatisOperation
 		}
 		List<Condition> conditions = new ArrayList<>();
 		conditions.add(new Condition(id.getJavaName(), Operator.equal, idValue));
-		Predicate<Column> predicate = new Filters.NonNullFilter(po);
+		Predicate<Column> predicate = new Filters.UpdateNonNullFilter(po);
 		if (props != null && props.length > 0) {
 			List<String> includes = Arrays.stream(props).map(LambdaUtils::getPropFromLambda).collect(Collectors.toList());
 			predicate = predicate.or(new Filters.IncludeFilter(includes));

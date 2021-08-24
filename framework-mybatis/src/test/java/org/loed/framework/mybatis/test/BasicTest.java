@@ -45,6 +45,15 @@ public class BasicTest {
 	}
 
 	@Test
+	public void testInsertNonNull() {
+		User user = new User();
+		user.setAccount("testAccount");
+		user.setEmail("test@test.com");
+		int i = userMapper.insertNonNull(user);
+		Assert.assertEquals(i, 1);
+	}
+
+	@Test
 	public void testBatchInsert() {
 		List<User> userList = new ArrayList<>();
 		int batchCount = 10000;

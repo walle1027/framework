@@ -1,16 +1,16 @@
 package org.loed.framework.mybatis.test;
 
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.loed.framework.common.context.SystemContextHolder;
 import org.loed.framework.common.query.Criteria;
 import org.loed.framework.mybatis.test.mapper.LongIdIsDeletedPOMapper;
 import org.loed.framework.mybatis.test.mapper.LongIdPOMapper;
 import org.loed.framework.mybatis.test.po.LongIdIsDeletedPO;
 import org.loed.framework.mybatis.test.po.LongIdPO;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -55,6 +55,24 @@ public class LongIdTest {
 		Assert.assertTrue(po.getProp6().equals(BigInteger.valueOf(Long.MAX_VALUE)));
 		Assert.assertEquals(po.getProp12(), Boolean.TRUE);
 		Assert.assertEquals((byte) po.getProp13(), (byte) 1);
+	}
+
+	@Test
+	public void testInsertNonNull() {
+		LongIdPO insert = new LongIdPO();
+		insert.setProp1("stringProp1");
+		insert.setProp2(Integer.MAX_VALUE);
+		insert.setProp3(Double.MAX_VALUE);
+		insert.setProp4(Float.MAX_VALUE);
+		longIdPOMapper.insertNonNull(insert);
+		LongIdPO po = longIdPOMapper.get(insert.getId());
+		Assert.assertEquals((long) po.getCreateBy(), 1L);
+		Assert.assertEquals((long) po.getVersion(), 0L);
+		Assert.assertEquals(po.getProp1(), "stringProp1");
+		Assert.assertEquals((int) po.getProp2(), Integer.MAX_VALUE);
+		Assert.assertEquals(po.getProp5(), 0L);
+		Assert.assertNull(po.getProp6());
+		Assert.assertNull(po.getProp12());
 	}
 
 	@Test

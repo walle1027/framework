@@ -1,12 +1,5 @@
 package org.loed.framework.mybatis.interceptor.impl;
 
-import org.loed.framework.common.data.DataType;
-import org.loed.framework.common.orm.Column;
-import org.loed.framework.common.orm.ORMapping;
-import org.loed.framework.common.orm.Table;
-import org.loed.framework.common.util.ReflectionUtils;
-import org.loed.framework.mybatis.BaseMapper;
-import org.loed.framework.mybatis.MybatisSqlBuilder;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.MappedStatement;
@@ -14,11 +7,20 @@ import org.apache.ibatis.mapping.SqlSource;
 import org.apache.ibatis.plugin.Intercepts;
 import org.apache.ibatis.plugin.Invocation;
 import org.apache.ibatis.plugin.Signature;
+import org.loed.framework.common.data.DataType;
+import org.loed.framework.common.orm.Column;
+import org.loed.framework.common.orm.ORMapping;
+import org.loed.framework.common.orm.Table;
+import org.loed.framework.common.util.ReflectionUtils;
+import org.loed.framework.mybatis.BaseMapper;
+import org.loed.framework.mybatis.MybatisSqlBuilder;
 
 import javax.persistence.GenerationType;
 import java.sql.*;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -35,11 +37,12 @@ public class InsertInterceptor extends BasePreProcessInterceptor<Boolean> {
 	@Override
 	protected Object doIntercept(Invocation invocation, Boolean context) throws Throwable {
 		Object[] args = invocation.getArgs();
-		Object object = args[1];
+		HashMap<Object, Object> parameterHashMap = (HashMap<Object, Object>) args[1];
+		Object object = parameterHashMap.get("po");
+		Predicate<Column> predicate = (Predicate<Column>) parameterHashMap.get("predicate");
 		Executor executor = (Executor) invocation.getTarget();
 		Table table = ORMapping.get(object.getClass());
-
-		List<Column> insertList = table.getColumns().stream().filter(Column::isInsertable).collect(Collectors.toList());
+		List<Column> insertList = table.getColumns().stream().filter(predicate).collect(Collectors.toList());
 		Connection connection = executor.getTransaction().getConnection();
 		StringBuilder builder = new StringBuilder();
 		builder.append("insert into ");
