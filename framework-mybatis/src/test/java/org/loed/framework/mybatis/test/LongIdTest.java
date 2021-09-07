@@ -36,6 +36,9 @@ public class LongIdTest {
 	@Autowired
 	private LongIdIsDeletedPOMapper longIdIsDeletedPOMapper;
 
+	private double doubleValue = 2.223d;
+	private float floatValue = 3.1415f;
+
 	@Before
 	public void setUp() {
 		SystemContextHolder.setUserId(1 + "");
@@ -51,10 +54,21 @@ public class LongIdTest {
 		Assert.assertEquals((long) po.getVersion(), 0L);
 		Assert.assertEquals(po.getProp1(), "stringProp1");
 		Assert.assertEquals((int) po.getProp2(), Integer.MAX_VALUE);
-		Assert.assertEquals((long) po.getProp5(), Long.MAX_VALUE);
+		Assert.assertEquals(po.getProp3(), doubleValue, 3);
+		Assert.assertEquals(po.getProp4(), floatValue, 4);
+		Assert.assertEquals(po.getProp5(), Long.MAX_VALUE);
 		Assert.assertTrue(po.getProp6().equals(BigInteger.valueOf(Long.MAX_VALUE)));
+		Assert.assertEquals(po.getProp7().longValue(), Long.MAX_VALUE);
 		Assert.assertEquals(po.getProp12(), Boolean.TRUE);
-		Assert.assertEquals((byte) po.getProp13(), (byte) 1);
+		Assert.assertEquals((byte) po.getProp13(), (byte) 4);
+		Assert.assertEquals(po.getProp14(), 'c');
+		Assert.assertEquals(po.getProp15(), (byte) 1);
+		Assert.assertEquals(po.getProp16(), 128);
+		Assert.assertEquals(po.getProp17(), Long.MAX_VALUE);
+		Assert.assertEquals(po.getProp18(), doubleValue, 3);
+		Assert.assertEquals(po.getProp19(), floatValue, 4);
+		Assert.assertEquals(po.isProp20(), Boolean.TRUE);
+		Assert.assertEquals(po.getProp21(), (byte) 2);
 	}
 
 	@Test
@@ -89,17 +103,25 @@ public class LongIdTest {
 		LongIdPO po = new LongIdPO();
 		po.setProp1("stringProp1");
 		po.setProp2(Integer.MAX_VALUE);
-		po.setProp3(Double.MAX_VALUE);
-		po.setProp4(Float.MAX_VALUE);
+		po.setProp3(doubleValue);
+		po.setProp4(floatValue);
 		po.setProp5(Long.MAX_VALUE);
 		po.setProp6(BigInteger.valueOf(Long.MAX_VALUE));
-		po.setProp7(BigDecimal.valueOf(Integer.MAX_VALUE));
+		po.setProp7(BigDecimal.valueOf(Long.MAX_VALUE));
 		po.setProp8(new Date());
 		po.setProp9(new java.sql.Date(System.currentTimeMillis()));
 		po.setProp10(LocalDate.now());
 		po.setProp11(LocalDateTime.now());
 		po.setProp12(Boolean.TRUE);
-		po.setProp13((byte) 1);
+		po.setProp13((byte) 4);
+		po.setProp14('c');
+		po.setProp15((byte) 1);
+		po.setProp16(128);
+		po.setProp17(Long.MAX_VALUE);
+		po.setProp18(doubleValue);
+		po.setProp19(floatValue);
+		po.setProp20(true);
+		po.setProp21((short) 2);
 		longIdPOMapper.insert(po);
 		return po;
 	}
