@@ -7,8 +7,10 @@ import org.apache.ibatis.type.JdbcType;
 import org.loed.framework.common.ServiceLocator;
 import org.loed.framework.common.context.SystemContextHolder;
 import org.loed.framework.common.data.DataType;
-import org.loed.framework.common.orm.Filters;
-import org.loed.framework.common.orm.*;
+import org.loed.framework.common.orm.Column;
+import org.loed.framework.common.orm.JoinTable;
+import org.loed.framework.common.orm.ORMapping;
+import org.loed.framework.common.orm.Table;
 import org.loed.framework.common.query.*;
 import org.loed.framework.common.util.ReflectionUtils;
 import org.loed.framework.common.util.StringHelper;
@@ -589,7 +591,7 @@ public class MybatisSqlBuilder {
 		Serializable idValue = getIdValue(table, object);
 		builder.append(getTableNameById(table, idValue));
 		builder.append(BLANK).append("set").append(BLANK);
-		String set = table.getColumns().stream().filter(predicate.or(Filters.ALWAYS_UPDATE_FILTER)).map(column -> {
+		String set = table.getColumns().stream().filter(predicate).map(column -> {
 			StringBuilder columnBuilder = new StringBuilder();
 			if (column.isVersioned()) {
 				columnBuilder.append(column.getSqlName()).append(BLANK).append("=").append(BLANK)
