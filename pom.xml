@@ -37,7 +37,7 @@
 		<druid-starter.version>1.2.1</druid-starter.version>
 		<c3p0.version>0.9.5.5</c3p0.version>
 		<p6spy.version>3.9.0</p6spy.version>
-		<mybatis.version>3.4.6</mybatis.version>
+		<mybatis.version>3.5.6</mybatis.version>
 		<pagehelper.version>5.1.11</pagehelper.version>
 		<mybatis-spring.version>1.3.2</mybatis-spring.version>
 		<disruptor.version>3.4.1</disruptor.version>
