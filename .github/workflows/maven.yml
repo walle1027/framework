@@ -23,4 +23,7 @@ jobs:
         distribution: 'adopt'
         cache: maven
     - name: Build with Maven
-      run: mvn -s /home/github/settings.xml -B deploy -DskipTests=true --file pom.xml
+      uses: whelk-io/maven-settings-xml-action@v4 
+      with:
+        servers: '[{ "id": "loed", "username": "admin", "password": "yangtao1027" }]'
+      run: mvn -B deploy -DskipTests=true --file pom.xml
