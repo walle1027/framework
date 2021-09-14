@@ -88,7 +88,7 @@ public class DoubleWriteManager implements ShardingManager {
 
 	private IdMapping createIdMapping(Table table, Serializable id, String shardingTableName) {
 		IdMapping idMapping = new IdMapping();
-		idMapping.setId(id);
+		idMapping.setTableId(id);
 		idMapping.setTableName(table.getSqlName());
 		idMapping.setShardingKey(table.getColumns().stream().filter(Column::isShardingColumn).map(Column::getSqlName).collect(Collectors.joining(",")));
 		idMapping.setShardingTableName(shardingTableName);

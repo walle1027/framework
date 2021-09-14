@@ -1,10 +1,10 @@
 package org.loed.framework.mybatis.datasource.meta;
 
 
-import org.loed.framework.common.balancer.Balanceable;
-import org.loed.framework.mybatis.datasource.readwriteisolate.ReadWriteStrategy;
 import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
+import org.loed.framework.common.balancer.Balanceable;
+import org.loed.framework.mybatis.datasource.readwriteisolate.ReadWriteStrategy;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -15,14 +15,34 @@ import java.util.Objects;
  * @since 2016/8/21 18:38
  */
 @Data
-public class DataSourceMetaInfo implements Serializable,Balanceable {
-	//数据库读写类型
-	private String databaseName;
+public class DataSourceMetaInfo implements Serializable, Balanceable {
+	/**
+	 * 数据库名称
+	 */
+	private String name;
+	/**
+	 * 驱动类
+	 */
 	private String driverClass;
+	/**
+	 * jdbcURL
+	 */
 	private String jdbcUrl;
-	private String userName;
+	/**
+	 * database username
+	 */
+	private String username;
+	/**
+	 * database password
+	 */
 	private String password;
-	private int weight = 1;//负载
+	/**
+	 * 负载
+	 */
+	private int weight = 1;
+	/**
+	 * 主库还是备库
+	 */
 	private ReadWriteStrategy strategy = ReadWriteStrategy.write;
 
 	public DataSourceMetaInfo() {
@@ -46,7 +66,7 @@ public class DataSourceMetaInfo implements Serializable,Balanceable {
 	}
 
 	public String getDatabaseKey() {
-		return driverClass + ";" + jdbcUrl + ";" + userName;
+		return driverClass + ";" + jdbcUrl + ";" + username;
 	}
 
 	public String getDriverClass() {
@@ -66,12 +86,12 @@ public class DataSourceMetaInfo implements Serializable,Balanceable {
 		autoDetectDriverClass();
 	}
 
-	public String getUserName() {
-		return userName;
+	public String getUsername() {
+		return username;
 	}
 
-	public void setUserName(String userName) {
-		this.userName = userName;
+	public void setUsername(String username) {
+		this.username = username;
 	}
 
 	public String getPassword() {
@@ -83,12 +103,12 @@ public class DataSourceMetaInfo implements Serializable,Balanceable {
 	}
 
 
-	public String getDatabaseName() {
-		return databaseName;
+	public String getName() {
+		return name;
 	}
 
-	public void setDatabaseName(String databaseName) {
-		this.databaseName = databaseName;
+	public void setName(String name) {
+		this.name = name;
 	}
 
 	@Override
@@ -114,25 +134,25 @@ public class DataSourceMetaInfo implements Serializable,Balanceable {
 			return false;
 		}
 		DataSourceMetaInfo that = (DataSourceMetaInfo) o;
-		return Objects.equals(databaseName, that.databaseName) &&
+		return Objects.equals(name, that.name) &&
 				Objects.equals(driverClass, that.driverClass) &&
 				Objects.equals(jdbcUrl, that.jdbcUrl) &&
-				Objects.equals(userName, that.userName);
+				Objects.equals(username, that.username);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(databaseName, driverClass, jdbcUrl, userName);
+		return Objects.hash(name, driverClass, jdbcUrl, username);
 	}
 
 
 	@Override
 	public String toString() {
 		return "DataSourceMetaInfo{" +
-				", databaseName='" + databaseName + '\'' +
+				", name='" + name + '\'' +
 				", driverClass='" + driverClass + '\'' +
 				", jdbcUrl='" + jdbcUrl + '\'' +
-				", userName='" + userName + '\'' +
+				", userName='" + username + '\'' +
 				", password='" + password + '\'' +
 				'}';
 	}

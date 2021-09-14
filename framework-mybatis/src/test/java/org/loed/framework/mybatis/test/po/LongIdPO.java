@@ -76,7 +76,7 @@ public class LongIdPO {
 	@Column()
 	private BigInteger prop6;
 
-	@Column(length = 20,scale = 2)
+	@Column(length = 25,scale = 2)
 	private BigDecimal prop7;
 
 	@Column()
@@ -96,4 +96,28 @@ public class LongIdPO {
 
 	@Column()
 	private Byte prop13;
+
+	@Column()
+	private char prop14;
+
+	@Column()
+	private byte prop15;
+
+	@Column()
+	private int prop16;
+
+	@Column()
+	private long prop17;
+
+	@Column()
+	private double prop18;
+
+	@Column()
+	private float prop19;
+
+	@Column()
+	private boolean prop20;
+
+	@Column()
+	private short prop21;
 }

@@ -8,7 +8,7 @@ import java.io.Serializable;
  * @since 2017/5/23 17:19
  */
 public class Result<T> implements Serializable {
-	public static final Result<Void> UNKNOWN_ERROR = new Result<>(Message.MSG_ERROR, "unknown error");
+	public static final Result<Void> UNKNOWN_ERROR = new Result<>(503, "Unknown Server Error");
 
 	private int code;
 	private String message;

@@ -37,6 +37,14 @@ public final class Criteria<T> implements Serializable, Copyable<Criteria<T>> {
 	private TreeMap<String, Join> joins;
 
 	private final boolean lenient;
+	/**
+	 * limit
+	 */
+	private Integer limit = null;
+	/**
+	 * offset
+	 */
+	private Long offset = null;
 
 	public static <S> Criteria<S> empty() {
 		return new Criteria<>(false);
@@ -53,6 +61,16 @@ public final class Criteria<T> implements Serializable, Copyable<Criteria<T>> {
 	private Criteria(boolean lenient) {
 		this.conditions = new ArrayList<>();
 		this.lenient = lenient;
+	}
+
+	public Criteria<T> limit(Integer limit) {
+		this.limit = limit;
+		return this;
+	}
+
+	public Criteria<T> offset(Long offset) {
+		this.offset = offset;
+		return this;
 	}
 
 	@SafeVarargs
@@ -276,7 +294,6 @@ public final class Criteria<T> implements Serializable, Copyable<Criteria<T>> {
 		criteria.conditions = this.conditions.stream().map(Condition::copy).collect(Collectors.toList());
 		if (CollectionUtils.isNotEmpty(this.sortProperties)) {
 			criteria.sortProperties = this.sortProperties.stream().map(SortProperty::copy).collect(Collectors.toList());
-			;
 		}
 		if (this.selector != null) {
 			criteria.selector = this.selector.copy();
@@ -288,6 +305,8 @@ public final class Criteria<T> implements Serializable, Copyable<Criteria<T>> {
 			}
 			criteria.joins = map;
 		}
+		criteria.limit = this.limit;
+		criteria.offset = this.offset;
 		return criteria;
 	}
 
@@ -345,12 +364,12 @@ public final class Criteria<T> implements Serializable, Copyable<Criteria<T>> {
 		}
 
 		@SafeVarargs
-		public final Criteria<T> asc(SFunction<T, ?>... lambda) {
+		public final Criteria<T> asc(SFunction<R, ?>... lambda) {
 			if (lambda == null || lambda.length == 0) {
 				return this.criteria;
 			}
 //			Criteria<T> criteria = this.criteria.copy();
-			for (SFunction<T, ?> function : lambda) {
+			for (SFunction<R, ?> function : lambda) {
 				String prop = LambdaUtils.getPropFromLambda(function);
 				String sortProp = this.join.getUniquePath() + Condition.PATH_SEPARATOR + prop;
 				criteria.sort(new SortProperty(sortProp, Sort.ASC));
@@ -359,12 +378,12 @@ public final class Criteria<T> implements Serializable, Copyable<Criteria<T>> {
 		}
 
 		@SafeVarargs
-		public final Criteria<T> desc(SFunction<T, ?>... lambda) {
+		public final Criteria<T> desc(SFunction<R, ?>... lambda) {
 			if (lambda == null || lambda.length == 0) {
 				return this.criteria;
 			}
 //			Criteria<T> criteria = this.criteria.copy();
-			for (SFunction<T, ?> function : lambda) {
+			for (SFunction<R, ?> function : lambda) {
 				String prop = LambdaUtils.getPropFromLambda(function);
 				String sortProp = this.join.getUniquePath() + Condition.PATH_SEPARATOR + prop;
 				criteria.sort(new SortProperty(sortProp, Sort.DESC));

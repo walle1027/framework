@@ -8,15 +8,12 @@ package org.loed.framework.common;
  * @since 2009-03-10
  */
 public interface SystemConstant {
+	/**
+	 * 错误消息
+	 */
+	int SERVER_ERROR = 503;
 
-	//提示消息
-	int MSG_INFO = 0;
-	//警告消息
-	int MSG_WARNING = 1;
-	//错误消息
-	int MSG_ERROR = 2;
-
-	String RESPONSE_WRAPPED ="ResponseWrapped";
+	String RESPONSE_WRAPPED = "ResponseWrapped";
 
 	//*******************http请求响应类型**************/
 	String RESPONSE_TYPE_JSON = "json";

@@ -25,13 +25,13 @@ public interface MybatisOperations<T> {
 	int _batchUpdate(@Param("list") List<T> poList, @Param("predicate") Predicate<Column> predicate);
 
 	@Update(BATCH_UPDATE_NON_BLANK)
-	int _batchUpdateNonBlank(@Param("list") List<T> poList, @Param("predicate") Predicate<Column> predicate);
+	int _batchUpdateNonBlank(@Param("list") List<T> poList);
 
 	@Update(BATCH_UPDATE_NON_NULL)
-	int _batchUpdateNonNull(@Param("list") List<T> poList, @Param("predicate") Predicate<Column> predicate);
+	int _batchUpdateNonNull(@Param("list") List<T> poList);
 
 	@Insert(INSERT)
-	int _insert(T po);
+	int _insert(@Param("po")T po,@Param("predicate") Predicate<Column> predicate);
 
 	@Insert(BATCH_INSERT)
 	int _batchInsert(@Param("list") List<T> poList, @Param("map") Map<String, Object> map);

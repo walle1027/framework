@@ -52,26 +52,22 @@ public class DefaultExceptionHandler {
 	 */
 	private Result<Void> resolveException(Throwable ex) {
 		Result<Void> result = new Result<>();
-		result.setCode(SystemConstant.MSG_ERROR);
+		result.setCode(SystemConstant.SERVER_ERROR);
 		try {
 			if (i18nProvider == null) {
 				i18nProvider = I18nProvider.DEFAULT_I18N_PROVIDER;
 			}
 			if (ex instanceof BusinessException) {
-				List<Message> errors = ((BusinessException) ex).getErrors();
-				int code = SystemConstant.MSG_ERROR;
-				if (errors != null) {
-					for (Message error : errors) {
-						Object[] args = error.getArgs();
-						if (args != null) {
-							error.setText(i18nProvider.getText(error.getKey() + "", args));
-						} else {
-							error.setText(i18nProvider.getText(error.getKey() + ""));
-						}
-						code = error.getType();
+				Message error = ((BusinessException) ex).getMessageInfo();
+				if (error != null) {
+					Object[] args = error.getArgs();
+					if (args != null) {
+						error.setText(i18nProvider.getText(error.getI18nKey(), args));
+					} else {
+						error.setText(i18nProvider.getText(error.getI18nKey()));
 					}
-					result.setMessage(errors.stream().map(Message::getText).collect(Collectors.joining("\n")));
-					result.setCode(code);
+					result.setMessage(error.getText());
+					result.setCode(((BusinessException) ex).getErrorCode());
 				}
 			} else if (ex instanceof BindException) {
 				BindingResult bindingResult = ((BindException) ex).getBindingResult();

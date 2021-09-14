@@ -1,8 +1,8 @@
 package org.loed.framework.mybatis.sharding.table.po;
 
-import javax.persistence.Column;
-import javax.persistence.Table;
+import javax.persistence.*;
 import java.io.Serializable;
+import java.math.BigInteger;
 import java.util.Objects;
 
 /**
@@ -10,13 +10,17 @@ import java.util.Objects;
  * @version 1.0
  * @since 2017/10/2 上午10:19
  */
-@Table(name = "t_id_mapping")
+@Table(name = "t_id_mapping", indexes = {@Index(name = "idx_id_mapping", columnList = "table_id,table_name", unique = true)})
 public class IdMapping {
+	@Id
+	@GeneratedValue(strategy = GenerationType.AUTO)
+	@Column(nullable = false, updatable = false)
+	private BigInteger id;
 	/**
 	 * 原始数据的主键
 	 */
-	@Column()
-	private Serializable id;
+	@Column(columnDefinition = "varchar(255)")
+	private Serializable tableId;
 	/**
 	 * 表名
 	 */
@@ -47,21 +51,29 @@ public class IdMapping {
 			return false;
 		}
 		IdMapping idMapping = (IdMapping) o;
-		return Objects.equals(id, idMapping.id) &&
+		return Objects.equals(tableId, idMapping.tableId) &&
 				Objects.equals(shardingTableName, idMapping.shardingTableName);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(id, shardingTableName);
+		return Objects.hash(tableId, shardingTableName);
 	}
 
-	public Serializable getId() {
+	public BigInteger getId() {
 		return id;
 	}
 
-	public void setId(Serializable id) {
+	public void setId(BigInteger id) {
 		this.id = id;
+	}
+
+	public Serializable getTableId() {
+		return tableId;
+	}
+
+	public void setTableId(Serializable tableId) {
+		this.tableId = tableId;
 	}
 
 	public String getTableName() {

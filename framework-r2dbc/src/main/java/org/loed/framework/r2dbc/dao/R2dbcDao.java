@@ -89,7 +89,7 @@ public interface R2dbcDao<T, ID> {
 	 * @param <S>     对象的子类
 	 * @return 更新后的对象
 	 */
-	<S extends T> Mono<S>  updateWith(@NonNull S entity, @Nullable SFunction<T, ?>... columns);
+	<S extends T> Mono<S> updateWith(@NonNull S entity, @Nullable SFunction<T, ?>... columns);
 
 	/**
 	 * 更新一个对象，忽略指定的属性
@@ -306,6 +306,16 @@ public interface R2dbcDao<T, ID> {
 	Mono<Long> count(@NonNull Criteria<T> criteria);
 
 	/**
+	 * 按照属性名=属性值查询对象个数)
+	 * 如果对象中有{@link TenantId} 会自动增加 过滤条件
+	 * 如果对象中有  {@link IsDeleted} 会自动增加过滤条件
+	 *
+	 * @param property 动态条件
+	 * @return 记录数
+	 */
+	<R> Mono<Long> count(@NonNull SFunction<T, R> property, R value);
+
+	/**
 	 * 按照属性名=属性值查询对象(返回多个结果)
 	 * 如果对象中有{@link TenantId} 会自动增加 过滤条件
 	 * 如果对象中有  {@link IsDeleted} 会自动增加过滤条件
@@ -333,11 +343,21 @@ public interface R2dbcDao<T, ID> {
 	 * 如果对象中有{@link TenantId} 会自动增加 过滤条件
 	 * 如果对象中有  {@link IsDeleted} 会自动增加过滤条件
 	 *
-	 * @param criteria 动态条件
 	 * @param pageRequest 分页参数
+	 * @param criteria    动态条件
 	 * @return 分页查询结果
 	 */
-	Mono<Pagination<T>> findPage(@NonNull Criteria<T> criteria, @NonNull PageRequest pageRequest);
+	Mono<Pagination<T>> findPage(@NonNull PageRequest pageRequest, @NonNull Criteria<T> criteria);
+
+	/**
+	 * 按照动态条件查询记录，并且分页
+	 * 如果对象中有{@link TenantId} 会自动增加 过滤条件
+	 * 如果对象中有  {@link IsDeleted} 会自动增加过滤条件
+	 *
+	 * @param criteria    动态条件
+	 * @return 分页查询结果
+	 */
+	Mono<Pagination<T>> findPage(@NonNull Criteria<T> criteria);
 
 	/**
 	 * 执行一个自定义的查询语句

@@ -1,9 +1,5 @@
 package org.loed.framework.common;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
 /**
  * Service层的公用Exception
  * <p/>
@@ -11,71 +7,48 @@ import java.util.stream.Collectors;
  *
  * @author Thomason
  * @version 1.2
- * @修改原因
  * @since 2009-07-04
  */
 public class BusinessException extends RuntimeException {
-	private List<Message> errors;
+	private final int errorCode;
+	private Message message;
 
 	public BusinessException() {
 		super();
+		this.errorCode = SystemConstant.SERVER_ERROR;
 	}
 
-	public BusinessException(String msg) {
-		super(msg);
-		addError(msg);
+	public BusinessException(int errorCode) {
+		this.errorCode = errorCode;
 	}
 
-	public BusinessException(Message error) {
-		super(error == null ? null : error.getKey());
-		addError(error);
+	public BusinessException(String message) {
+		super(message);
+		this.errorCode = SystemConstant.SERVER_ERROR;
+		this.message = new Message(message, null);
 	}
 
-	public BusinessException(List<Message> errors) {
-		if (errors != null) {
-			for (Message error : errors) {
-				addError(error);
-			}
-		}
+	public BusinessException(int errorCode, String message) {
+		this.errorCode = errorCode;
+		this.message = new Message(message, null);
 	}
 
-	public BusinessException(Throwable cause) {
-		super(cause);
-	}
-
-	public BusinessException(String msg, Throwable cause) {
-		super(msg, cause);
-	}
-
-	private void addError(String msg) {
-		Message message = new Message(msg);
-		message.setType(Message.MSG_ERROR);
-		addError(message);
-	}
-
-	private void addError(Message error) {
-		if (error == null) {
-			return;
-		}
-		if (this.errors == null) {
-			errors = new ArrayList<>();
-		}
-		errors.add(error);
-	}
-
-	public List<Message> getErrors() {
-		return errors;
-	}
-
-	public void setErrors(List<Message> errors) {
-		this.errors = errors;
+	public BusinessException(int errorCode, Message message) {
+		this.errorCode = errorCode;
+		this.message = message;
 	}
 
 
-	public String getErrorMsg() {
-		if (errors != null) {
-			return String.join("", errors.stream().map(SimpleMessage::getText).collect(Collectors.toList()));
-		}
-		return null;
+	public int getErrorCode() {
+		return errorCode;
+	}
+
+	@Override
+	public String getMessage() {
+		return message == null ? null : message.getI18nKey();
+	}
+
+	public Message getMessageInfo() {
+		return this.message;
 	}
 }

@@ -2,11 +2,11 @@ package org.loed.framework.r2dbc.test;
 
 import org.loed.framework.r2dbc.autoconfigure.R2dbcDaoScanner;
 import org.loed.framework.r2dbc.autoconfigure.R2dbcDbInspector;
-import org.loed.framework.r2dbc.test.dao.LongIdDao;
 import org.loed.framework.r2dbc.listener.TestPostInsertListener;
 import org.loed.framework.r2dbc.listener.TestPreDeleteListener;
 import org.loed.framework.r2dbc.listener.spi.PostInsertListener;
 import org.loed.framework.r2dbc.listener.spi.PreDeleteListener;
+import org.loed.framework.r2dbc.test.dao.LongIdDao;
 import org.loed.framework.r2dbc.test.po.LongId;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

@@ -76,7 +76,7 @@ public class ReactiveSystemContextFilter implements WebFilter {
 			}
 		});
 
-		return chain.filter(exchange).subscriberContext(context -> {
+		return chain.filter(exchange).contextWrite(context -> {
 			return context.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext);
 		});
 	}

@@ -25,9 +25,9 @@ import org.loed.framework.r2dbc.query.R2dbcParam;
 import org.loed.framework.r2dbc.query.R2dbcQuery;
 import org.loed.framework.r2dbc.query.R2dbcSqlBuilder;
 import org.reactivestreams.Publisher;
-import org.springframework.data.r2dbc.connectionfactory.ConnectionFactoryUtils;
-import org.springframework.data.r2dbc.core.DatabaseClient;
 import org.springframework.lang.NonNull;
+import org.springframework.r2dbc.connection.ConnectionFactoryUtils;
+import org.springframework.r2dbc.core.DatabaseClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
@@ -241,14 +241,14 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 
 	@Override
 	public <S extends T> Mono<S> updateNonNull(@NonNull S entity) {
-		return Mono.just(entity).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, new Filters.NonNullFilter(po))).flatMap(postUpdateFunction());
+		return Mono.just(entity).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po, new Filters.UpdateNonNullFilter(po))).flatMap(postUpdateFunction());
 	}
 
 	@Override
 	public <S extends T> Mono<S> updateNonNullAnd(S entity, SFunction<T, ?>... columns) {
 		List<String> includes = (columns == null || columns.length == 0) ? null : Arrays.stream(columns).map(LambdaUtils::getPropFromLambda).collect(Collectors.toList());
 		return Mono.just(entity).flatMap(preUpdateFunction()).flatMap(po -> doUpdate(po,
-				includes == null ? new Filters.NonNullFilter(po) : new Filters.NonNullFilter(po).or(new Filters.IncludeFilter(includes)))
+				includes == null ? new Filters.UpdateNonNullFilter(po) : new Filters.UpdateNonNullFilter(po).or(new Filters.IncludeFilter(includes)))
 		).flatMap(postUpdateFunction());
 	}
 
@@ -270,7 +270,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 					List<Condition> updateConditions = new ArrayList<>();
 					updateConditions.add(new Condition(idColumn.getJavaName(), Operator.equal, id));
 					updateConditions.addAll(conditions);
-					Predicate<Column> predicate = includes == null ? new Filters.NonNullFilter(s) : new Filters.NonNullFilter(s).or(includes);
+					Predicate<Column> predicate = includes == null ? new Filters.UpdateNonNullFilter(s) : new Filters.UpdateNonNullFilter(s).or(includes);
 					String rawUpdate = r2dbcSqlBuilder.rawUpdate(s, table, updateConditions, predicate.and(Filters.UPDATABLE_FILTER));
 					batch.add(rawUpdate);
 				}
@@ -539,7 +539,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 		PageRequest pageRequest = PageRequest.of(1, 1);
 		pageRequest.setPaging(false);
 		pageRequest.setCounting(false);
-		return findPage(criteria, pageRequest).flatMap(pagination -> {
+		return findPage(pageRequest, criteria).flatMap(pagination -> {
 			return CollectionUtils.isEmpty(pagination.getRows()) ? Mono.empty() : Mono.just(pagination.getRows().get(0));
 		});
 	}
@@ -553,8 +553,20 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 				.flatMap(mergedCriteria -> {
 					R2dbcQuery query = r2dbcSqlBuilder.count(table, mergedCriteria);
 					DatabaseClient.GenericExecuteSpec exec = bind(query);
-					return exec.as(Long.class).fetch().one();
+					return exec.map(row -> {
+						Object count = row.get(0);
+						if (count == null) {
+							log.warn("error got count");
+							return 0L;
+						}
+						return Long.valueOf(String.valueOf(count));
+					}).one();
 				});
+	}
+
+	@Override
+	public <R> Mono<Long> count(SFunction<T, R> property, R value) {
+		return count(Criteria.from(entityClass).and(property).is(value));
 	}
 
 	@Override
@@ -579,19 +591,34 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	}
 
 	@Override
-	public Mono<Pagination<T>> findPage(@NonNull Criteria<T> criteria, @NonNull PageRequest pageRequest) {
+	public Mono<Pagination<T>> findPage(@NonNull PageRequest pageRequest, @NonNull Criteria<T> criteria) {
 		boolean paged = pageRequest.isPaging();
 		if (paged) {
-			return Mono.zip(count(criteria), Mono.just(r2dbcSqlBuilder.findPage(table, criteria, pageRequest)).flatMap(r2dbcQuery -> {
-				return query(r2dbcQuery).collectList();
-			})).map(tup -> {
-				Pagination<T> pagination = new Pagination<>();
-				pagination.setPageNo(pageRequest.getPageNumber());
-				pagination.setPageSize(pageRequest.getPageSize());
-				pagination.setTotal(tup.getT1());
-				pagination.setRows(tup.getT2());
-				return pagination;
-			});
+			int limit = pageRequest.getPageSize();
+			long offset = pageRequest.getPageNo() < 0 ? 0 : (pageRequest.getPageNo() - 1) * pageRequest.getPageSize();
+			if (pageRequest.isCounting()) {
+				return Mono.zip(count(criteria), Mono.just(r2dbcSqlBuilder.findPage(table, criteria, limit, offset)).flatMap(r2dbcQuery -> {
+					return query(r2dbcQuery).collectList();
+				})).map(tup -> {
+					Pagination<T> pagination = new Pagination<>();
+					pagination.setPageNo(pageRequest.getPageNo());
+					pagination.setPageSize(pageRequest.getPageSize());
+					pagination.setTotal(tup.getT1());
+					pagination.setRows(tup.getT2());
+					return pagination;
+				});
+			} else {
+				return Mono.just(r2dbcSqlBuilder.findPage(table, criteria, limit, offset)).flatMap(r2dbcQuery -> {
+					return query(r2dbcQuery).collectList();
+				}).map(rows -> {
+					Pagination<T> pagination = new Pagination<>();
+					pagination.setPageNo(pageRequest.getPageNo());
+					pagination.setPageSize(pageRequest.getPageSize());
+					pagination.setTotal(-1);
+					pagination.setRows(rows);
+					return pagination;
+				});
+			}
 		} else {
 			return find(criteria).collectList().map(result -> {
 				Pagination<T> pagination = new Pagination<>();
@@ -602,6 +629,28 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 				return pagination;
 			});
 		}
+	}
+
+	/**
+	 * 按照动态条件查询记录，并且分页
+	 * 如果对象中有{@link TenantId} 会自动增加 过滤条件
+	 * 如果对象中有  {@link IsDeleted} 会自动增加过滤条件
+	 *
+	 * @param criteria 动态条件
+	 * @return 分页查询结果
+	 */
+	@Override
+	public Mono<Pagination<T>> findPage(@NonNull Criteria<T> criteria) {
+		int limit = criteria.getLimit() == null ? 0 : criteria.getLimit();
+		long offset = criteria.getOffset() == null ? 0 : criteria.getOffset();
+		return Mono.zip(count(criteria), Mono.just(r2dbcSqlBuilder.findPage(table, criteria, limit, offset)).flatMap(r2dbcQuery -> {
+			return query(r2dbcQuery).collectList();
+		})).map(tup -> {
+			Pagination<T> pagination = new Pagination<>();
+			pagination.setTotal(tup.getT1());
+			pagination.setRows(tup.getT2());
+			return pagination;
+		});
 	}
 
 	@Override
@@ -620,7 +669,7 @@ public class DefaultR2dbcDao<T, ID> implements R2dbcDao<T, ID> {
 	}
 
 	private DatabaseClient.GenericExecuteSpec bind(R2dbcQuery query) {
-		DatabaseClient.GenericExecuteSpec execute = databaseClient.execute(query.getStatement());
+		DatabaseClient.GenericExecuteSpec execute = databaseClient.sql(query.getStatement());
 		Map<String, R2dbcParam> params = query.getParams();
 		if (params != null) {
 			for (Map.Entry<String, R2dbcParam> entry : params.entrySet()) {

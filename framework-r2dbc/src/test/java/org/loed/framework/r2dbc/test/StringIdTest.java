@@ -57,7 +57,7 @@ public class StringIdTest {
 	public void testInsert() {
 		Mono<StringId> po = stringIdDao.insert(insert()).map(StringId::getId).flatMap(id -> {
 			return stringIdDao.get(id);
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(po.log()).expectNextMatches(p -> {
 			Assert.assertEquals((long) p.getVersion(), 0);
 			Assert.assertEquals(p.getCreateBy(), systemContext.getUserId());
@@ -79,7 +79,7 @@ public class StringIdTest {
 	public void testBatchInsert() {
 		Mono<List<StringId>> insertResult = stringIdDao.batchInsert(batchInsert()).flatMap(po -> {
 			return stringIdDao.get(po.getId());
-		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).collectList().contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(insertResult.log()).expectNextMatches(insertList -> {
 			for (int i = 0; i < insertList.size(); i++) {
 				StringId p = insertList.get(i);
@@ -121,7 +121,7 @@ public class StringIdTest {
 			return stringIdDao.update(po);
 		}).flatMap(po -> {
 			return stringIdDao.get(po.getId());
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(update.log()).expectNextMatches(p -> {
 			Assert.assertEquals((long) p.getVersion(), 1L);
 			Assert.assertEquals(p.getCreateBy(), systemContext.getUserId());
@@ -160,7 +160,7 @@ public class StringIdTest {
 			return stringIdDao.updateWith(po, StringId::getProp1, StringId::getProp2);
 		}).flatMap(po -> {
 			return stringIdDao.get(po.getId());
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(update.log()).expectNextMatches(p -> {
 			Assert.assertEquals((long) p.getVersion(), 1L);
 			Assert.assertEquals(p.getCreateBy(), systemContext.getUserId());
@@ -199,7 +199,7 @@ public class StringIdTest {
 			return stringIdDao.updateWithout(po, StringId::getProp1, StringId::getProp2);
 		}).flatMap(po -> {
 			return stringIdDao.get(po.getId());
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(update.log()).expectNextMatches(p -> {
 			Assert.assertEquals((long) p.getVersion(), 1L);
 			Assert.assertEquals(p.getCreateBy(), systemContext.getUserId());
@@ -238,7 +238,7 @@ public class StringIdTest {
 			return stringIdDao.updateNonNull(po);
 		}).flatMap(po -> {
 			return stringIdDao.get(po.getId());
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(update.log()).expectNextMatches(p -> {
 			Assert.assertEquals((long) p.getVersion(), 1L);
 			Assert.assertEquals(p.getCreateBy(), systemContext.getUserId());
@@ -277,7 +277,7 @@ public class StringIdTest {
 			return stringIdDao.updateNonNullAnd(po, StringId::getProp3);
 		}).flatMap(po -> {
 			return stringIdDao.get(po.getId());
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(update.log()).expectNextMatches(p -> {
 			Assert.assertEquals((long) p.getVersion(), 1L);
 			Assert.assertEquals(p.getCreateBy(), systemContext.getUserId());
@@ -316,7 +316,7 @@ public class StringIdTest {
 			return stringIdDao.batchUpdate(poList);
 		}).collectList().flatMapMany(updateList -> {
 			return stringIdDao.find(Criteria.from(StringId.class).and(StringId::getId).in(updateList.stream().map(StringId::getId).collect(Collectors.toList())));
-		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).collectList().contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(batchUpdate.log()).expectNextMatches(poList -> {
 			for (StringId p : poList) {
 				Assert.assertEquals((long) p.getVersion(), 1L);
@@ -356,7 +356,7 @@ public class StringIdTest {
 			return stringIdDao.batchUpdateWith(poList, StringId::getProp1, StringId::getProp2);
 		}).collectList().flatMapMany(updateList -> {
 			return stringIdDao.find(Criteria.from(StringId.class).and(StringId::getId).in(updateList.stream().map(StringId::getId).collect(Collectors.toList())));
-		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).collectList().contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(batchUpdate.log()).expectNextMatches(poList -> {
 			for (StringId p : poList) {
 				Assert.assertEquals((long) p.getVersion(), 1L);
@@ -398,7 +398,7 @@ public class StringIdTest {
 			return stringIdDao.batchUpdateWithout(poList, StringId::getProp1, StringId::getProp2);
 		}).collectList().flatMapMany(updateList -> {
 			return stringIdDao.find(Criteria.from(StringId.class).and(StringId::getId).in(updateList.stream().map(StringId::getId).collect(Collectors.toList())));
-		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).collectList().contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(batchUpdate.log()).expectNextMatches(poList -> {
 			for (StringId p : poList) {
 				Assert.assertEquals((long) p.getVersion(), 1L);
@@ -440,7 +440,7 @@ public class StringIdTest {
 			return stringIdDao.batchUpdateNonNull(poList);
 		}).collectList().flatMapMany(updateList -> {
 			return stringIdDao.find(Criteria.from(StringId.class).and(StringId::getId).in(updateList.stream().map(StringId::getId).collect(Collectors.toList())));
-		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).collectList().contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(batchUpdate.log()).expectNextMatches(poList -> {
 			for (StringId p : poList) {
 				Assert.assertEquals((long) p.getVersion(), 1L);
@@ -482,7 +482,7 @@ public class StringIdTest {
 			return stringIdDao.batchUpdateNonNullAnd(poList, StringId::getProp3);
 		}).collectList().flatMapMany(updateList -> {
 			return stringIdDao.find(Criteria.from(StringId.class).and(StringId::getId).in(updateList.stream().map(StringId::getId).collect(Collectors.toList())));
-		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).collectList().contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(batchUpdate.log()).expectNextMatches(poList -> {
 			for (StringId p : poList) {
 				Assert.assertEquals((long) p.getVersion(), 1L);
@@ -507,7 +507,7 @@ public class StringIdTest {
 	public void testGet() {
 		Mono<StringId> get = stringIdDao.insert(insert()).flatMap(po -> {
 			return stringIdDao.get(po.getId());
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(get.log()).expectNextMatches(p -> {
 			Assert.assertEquals((long) p.getVersion(), 0);
 			Assert.assertEquals(p.getCreateBy(), systemContext.getUserId());
@@ -528,7 +528,7 @@ public class StringIdTest {
 	public void testExistsById() {
 		Mono<Boolean> existsById = stringIdDao.insert(insert()).flatMap(po -> {
 			return stringIdDao.existsById(po.getId());
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(existsById.log()).expectNext(true).verifyComplete();
 	}
 
@@ -536,7 +536,7 @@ public class StringIdTest {
 	public void testDelete() {
 		Mono<Integer> delete = stringIdDao.insert(insert()).flatMap(po -> {
 			return stringIdDao.delete(po.getId());
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(delete.log()).expectNext(1).verifyComplete();
 	}
 
@@ -556,7 +556,7 @@ public class StringIdTest {
 					.and(StringId::getProp10).is(Boolean.TRUE)
 					.and(StringId::getProp11).is((byte) 0);
 			return stringIdDao.delete(criteria);
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(delete.log()).expectNext(longIdList.size()).verifyComplete();
 	}
 
@@ -578,7 +578,7 @@ public class StringIdTest {
 					.and(StringId::getProp10).is(Boolean.TRUE)
 					.and(StringId::getProp11).is((byte) 0);
 			return stringIdDao.find(criteria);
-		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).collectList().contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(find.log()).expectNextMatches(poList -> {
 			for (StringId p : poList) {
 				Assert.assertEquals((long) p.getVersion(), 0);
@@ -615,7 +615,7 @@ public class StringIdTest {
 					.and(StringId::getProp10).is(Boolean.TRUE)
 					.and(StringId::getProp11).is((byte) 0);
 			return stringIdDao.findOne(criteria);
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(find.log()).expectNextMatches(p -> {
 			Assert.assertEquals((long) p.getVersion(), 0);
 			Assert.assertEquals(p.getCreateBy(), systemContext.getUserId());
@@ -649,7 +649,7 @@ public class StringIdTest {
 					.and(StringId::getProp10).is(Boolean.TRUE)
 					.and(StringId::getProp11).is((byte) 0);
 			return stringIdDao.count(criteria);
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(count.log()).expectNext((long) longIdList.size()).verifyComplete();
 	}
 
@@ -658,7 +658,7 @@ public class StringIdTest {
 		List<StringId> longIdList = batchInsert();
 		Mono<List<StringId>> find = stringIdDao.batchInsert(longIdList).collectList().flatMapMany(poList -> {
 			return stringIdDao.findByProperty(StringId::getProp1, "StringId1");
-		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).collectList().contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(find.log()).expectNextMatches(poList -> {
 			for (StringId p : poList) {
 				Assert.assertEquals((long) p.getVersion(), 0);
@@ -684,7 +684,7 @@ public class StringIdTest {
 			String id = poList.stream().filter(po -> po.getProp1().equals("StringId1")).findFirst().get().getId();
 			return Mono.zip(stringIdDao.isRepeated(id, StringId::getProp1, "StringId1"),
 					stringIdDao.isRepeated(null, StringId::getProp1, "StringId1"));
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(repeat.log()).expectNextMatches(tup -> {
 			return !tup.getT1() && tup.getT2();
 		}).verifyComplete();
@@ -708,8 +708,8 @@ public class StringIdTest {
 					.and(StringId::getProp10).is(Boolean.TRUE)
 					.and(StringId::getProp11).is((byte) 0)
 					.asc(StringId::getId);
-			return stringIdDao.findPage(criteria, PageRequest.of(1, 10));
-		}).subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+			return stringIdDao.findPage(PageRequest.of(1, 10), criteria);
+		}).contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(page.log()).expectNextMatches(pg -> {
 			Assert.assertEquals(pg.getTotal(), (long) longIdList.size());
 			int i = 10;
@@ -738,7 +738,7 @@ public class StringIdTest {
 			Map<String, R2dbcParam> paramMap = new HashMap<>();
 			paramMap.put("prop1", new R2dbcParam(String.class, "%StringId%"));
 			return stringIdDao.select(sql, paramMap);
-		}).collectList().subscriberContext(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
+		}).collectList().contextWrite(ctx -> ctx.put(ReactiveSystemContext.REACTIVE_SYSTEM_CONTEXT, systemContext));
 		StepVerifier.create(select.log()).expectNextMatches(poList -> {
 			for (StringId p : poList) {
 				Assert.assertEquals((long) p.getVersion(), 0);

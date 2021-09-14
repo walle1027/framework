@@ -1,7 +1,7 @@
 package org.loed.framework.mybatis.sharding.table.po;
 
-import javax.persistence.Column;
-import javax.persistence.Table;
+import javax.persistence.*;
+import java.math.BigInteger;
 import java.util.Objects;
 
 /**
@@ -9,8 +9,12 @@ import java.util.Objects;
  * @version 1.0
  * @since 2017/9/27 下午4:42
  */
-@Table(name = "t_sharding_mapping")
+@Table(name = "t_sharding_mapping", indexes = {@Index(name = "idx_sharding_mapping", columnList = "sharding_value,sharding_key,table_name")})
 public class ShardingMapping {
+	@Id
+	@GeneratedValue(strategy = GenerationType.AUTO)
+	@Column(nullable = false, updatable = false)
+	private BigInteger id;
 	/**
 	 * 原表的名称
 	 */
@@ -34,8 +38,12 @@ public class ShardingMapping {
 
 	@Override
 	public boolean equals(Object o) {
-		if (this == o) return true;
-		if (!(o instanceof ShardingMapping)) return false;
+		if (this == o) {
+			return true;
+		}
+		if (!(o instanceof ShardingMapping)) {
+			return false;
+		}
 		ShardingMapping that = (ShardingMapping) o;
 		return Objects.equals(tableName, that.tableName) &&
 				Objects.equals(shardingKey, that.shardingKey) &&
@@ -45,8 +53,15 @@ public class ShardingMapping {
 
 	@Override
 	public int hashCode() {
-
 		return Objects.hash(tableName, shardingKey, shardingValue, shardingTableName);
+	}
+
+	public BigInteger getId() {
+		return id;
+	}
+
+	public void setId(BigInteger id) {
+		this.id = id;
 	}
 
 	public String getTableName() {

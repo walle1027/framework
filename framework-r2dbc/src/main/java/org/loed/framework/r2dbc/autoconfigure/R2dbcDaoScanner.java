@@ -1,5 +1,6 @@
 package org.loed.framework.r2dbc.autoconfigure;
 
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Import;
 
 import java.lang.annotation.*;
@@ -12,7 +13,8 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 @Documented
-@Import({R2dbcDaoRegister.class, R2dbcConfigurationSupport.class})
+@EnableConfigurationProperties(R2dbcProperties.class)
+@Import({R2dbcConfigurationSupport.class, R2dbcDaoRegister.class})
 public @interface R2dbcDaoScanner {
 	/**
 	 * Alias for the {@link #basePackages()} attribute. Allows for more concise

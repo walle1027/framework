@@ -1,8 +1,10 @@
 package org.loed.framework.r2dbc.autoconfigure;
 
 import lombok.Data;
+import org.loed.framework.r2dbc.R2dbcDialect;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.time.Duration;
 import java.util.Map;
 
 /**
@@ -22,6 +24,8 @@ public class R2dbcProperties {
 
 	private boolean enableRouting = false;
 
+	private R2dbcDialect dialect = R2dbcDialect.mysql;
+
 	private RoutingProvider routingProvider = RoutingProvider.zk;
 
 	private String zkAddress;
@@ -29,6 +33,15 @@ public class R2dbcProperties {
 	private Map<String, org.springframework.boot.autoconfigure.r2dbc.R2dbcProperties> routing;
 
 	private Inspector inspector = new Inspector();
+
+	private Pool pool = new Pool();
+
+	@Data
+	public static class Pool {
+		private Duration maxAcquireTime = Duration.ofSeconds(3);
+		private Duration maxCreateConnectionTime = Duration.ofSeconds(5);
+		private int maxRetry = 1;
+	}
 
 	@Data
 	public static class Inspector {

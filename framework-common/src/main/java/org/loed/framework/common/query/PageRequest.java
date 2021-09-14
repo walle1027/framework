@@ -9,25 +9,29 @@ import lombok.Data;
  */
 @Data
 public class PageRequest {
-	private int pageNumber = 1;
+	private int pageNo = 1;
 	private int pageSize = 10;
-	private boolean paging;
-	private boolean counting;
+	private boolean paging = true;
+	private boolean counting = true;
 
 	public static PageRequest of(int pageNumber, int pageSize) {
 		PageRequest pageRequest = new PageRequest();
-		pageRequest.setPageNumber(pageNumber);
+		pageRequest.setPageNo(pageNumber);
 		pageRequest.setPageSize(pageSize);
 		return pageRequest;
 	}
 
 	public static PageRequest of(int pageNumber) {
 		PageRequest pageRequest = new PageRequest();
-		pageRequest.setPageNumber(pageNumber);
+		pageRequest.setPageNo(pageNumber);
 		return pageRequest;
 	}
 
 	public long getOffset() {
-		return (this.pageNumber - 1) * pageSize;
+		return (this.pageNo - 1) * pageSize;
+	}
+
+	public int getLimit() {
+		return this.getPageSize();
 	}
 }

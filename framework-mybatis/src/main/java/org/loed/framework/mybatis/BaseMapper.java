@@ -47,7 +47,27 @@ public interface BaseMapper<T, ID extends Serializable> extends MybatisOperation
 				}
 			}
 		}
-		int rows = _insert(po);
+		int rows = _insert(po, Filters.INSERTABLE_FILTER);
+		//post insert listener 处理
+		List<PostInsertListener> postInsertListeners = MybatisListenerContainer.getPostInsertListeners();
+		if (CollectionUtils.isNotEmpty(postInsertListeners)) {
+			postInsertListeners.forEach(postInsertListener -> postInsertListener.postInsert(po));
+		}
+		return rows;
+	}
+
+	default int insertNonNull(T po) {
+		//pre insert listener 处理
+		List<PreInsertListener> preInsertListeners = MybatisListenerContainer.getPreInsertListeners();
+		if (CollectionUtils.isNotEmpty(preInsertListeners)) {
+			for (PreInsertListener preInsertListener : preInsertListeners) {
+				boolean execute = preInsertListener.preInsert(po);
+				if (!execute) {
+					return 0;
+				}
+			}
+		}
+		int rows = _insert(po, Filters.INSERTABLE_FILTER.and(new Filters.NonNullFilter(po)));
 		//post insert listener 处理
 		List<PostInsertListener> postInsertListeners = MybatisListenerContainer.getPostInsertListeners();
 		if (CollectionUtils.isNotEmpty(postInsertListeners)) {
@@ -79,14 +99,14 @@ public interface BaseMapper<T, ID extends Serializable> extends MybatisOperation
 		return rows;
 	}
 
-	default int _update(T po, Predicate<Column> predicate, List<Condition> conditions) {
+	default int _doUpdate(T po, Predicate<Column> predicate) {
 		boolean b = _preUpdate(Collections.singletonList(po));
 		if (!b) {
 			logger.warn("preupdate false ,will not update");
 			return 0;
 		}
 
-		int rows = _update(po, predicate.and(Filters.UPDATABLE_FILTER));
+		int rows = _update(po, (predicate.and(Filters.UPDATABLE_FILTER)).or(Filters.ALWAYS_UPDATE_FILTER));
 
 		//post update listener 处理
 		_postUpdate(Collections.singletonList(po));
@@ -104,9 +124,7 @@ public interface BaseMapper<T, ID extends Serializable> extends MybatisOperation
 		if (idValue == null) {
 			throw new RuntimeException("@Id is null from object:" + po);
 		}
-		List<Condition> conditions = new ArrayList<>();
-		conditions.add(new Condition(id.getJavaName(), Operator.equal, idValue));
-		return _update(po, Filters.ALWAYS_TRUE_FILTER, _mergeWithCommonConditions(conditions));
+		return _doUpdate(po, Filters.ALWAYS_TRUE_FILTER);
 	}
 
 	default int updateWith(T po, SFunction<T, ?>... props) {
@@ -123,11 +141,9 @@ public interface BaseMapper<T, ID extends Serializable> extends MybatisOperation
 		if (idValue == null) {
 			throw new RuntimeException("@Id is null from object:" + po);
 		}
-		List<Condition> conditions = new ArrayList<>();
-		conditions.add(new Condition(id.getJavaName(), Operator.equal, idValue));
 		List<String> includes = Arrays.stream(props).map(LambdaUtils::getPropFromLambda).collect(Collectors.toList());
 		Predicate<Column> predicate = new Filters.IncludeFilter(includes);
-		return _update(po, predicate, conditions);
+		return _doUpdate(po, predicate);
 	}
 
 	default int updateWithout(T po, SFunction<T, ?>... props) {
@@ -141,14 +157,12 @@ public interface BaseMapper<T, ID extends Serializable> extends MybatisOperation
 		if (idValue == null) {
 			throw new RuntimeException("@Id is null from object:" + po);
 		}
-		List<Condition> conditions = new ArrayList<>();
-		conditions.add(new Condition(id.getJavaName(), Operator.equal, idValue));
 		Predicate<Column> predicate = Filters.ALWAYS_TRUE_FILTER;
 		if (props != null && props.length > 0) {
 			List<String> includes = Arrays.stream(props).map(LambdaUtils::getPropFromLambda).collect(Collectors.toList());
 			predicate = new Filters.ExcludeFilter(includes);
 		}
-		return _update(po, predicate, conditions);
+		return _doUpdate(po, predicate);
 	}
 
 	@Deprecated
@@ -163,9 +177,7 @@ public interface BaseMapper<T, ID extends Serializable> extends MybatisOperation
 		if (idValue == null) {
 			throw new RuntimeException("@Id is null from object:" + po);
 		}
-		List<Condition> conditions = new ArrayList<>();
-		conditions.add(new Condition(id.getJavaName(), Operator.equal, idValue));
-		return _update(po, new Filters.NonBlankFilter(po), conditions);
+		return _doUpdate(po, new Filters.UpdateNonBlankFilter(po));
 	}
 
 	default int updateNonNull(T po) {
@@ -179,9 +191,7 @@ public interface BaseMapper<T, ID extends Serializable> extends MybatisOperation
 		if (idValue == null) {
 			throw new RuntimeException("@Id is null from object:" + po);
 		}
-		List<Condition> conditions = new ArrayList<>();
-		conditions.add(new Condition(id.getJavaName(), Operator.equal, idValue));
-		return _update(po, new Filters.NonNullFilter(po), conditions);
+		return _doUpdate(po, new Filters.UpdateNonNullFilter(po));
 	}
 
 	@Deprecated
@@ -196,14 +206,12 @@ public interface BaseMapper<T, ID extends Serializable> extends MybatisOperation
 		if (idValue == null) {
 			throw new RuntimeException("@Id is null from object:" + po);
 		}
-		List<Condition> conditions = new ArrayList<>();
-		conditions.add(new Condition(id.getJavaName(), Operator.equal, idValue));
-		Predicate<Column> predicate = new Filters.NonBlankFilter(po);
+		Predicate<Column> predicate = new Filters.UpdateNonBlankFilter(po);
 		if (props != null && props.length > 0) {
 			List<String> includes = Arrays.stream(props).map(LambdaUtils::getPropFromLambda).collect(Collectors.toList());
 			predicate = predicate.or(new Filters.IncludeFilter(includes));
 		}
-		return _update(po, predicate, conditions);
+		return _doUpdate(po, predicate);
 	}
 
 	@Deprecated
@@ -218,14 +226,12 @@ public interface BaseMapper<T, ID extends Serializable> extends MybatisOperation
 		if (idValue == null) {
 			throw new RuntimeException("@Id is null from object:" + po);
 		}
-		List<Condition> conditions = new ArrayList<>();
-		conditions.add(new Condition(id.getJavaName(), Operator.equal, idValue));
-		Predicate<Column> predicate = new Filters.NonNullFilter(po);
+		Predicate<Column> predicate = new Filters.UpdateNonNullFilter(po);
 		if (props != null && props.length > 0) {
 			List<String> includes = Arrays.stream(props).map(LambdaUtils::getPropFromLambda).collect(Collectors.toList());
 			predicate = predicate.or(new Filters.IncludeFilter(includes));
 		}
-		return _update(po, predicate, conditions);
+		return _doUpdate(po, predicate);
 	}
 
 	default int batchUpdate(List<T> poList) {
@@ -255,7 +261,7 @@ public interface BaseMapper<T, ID extends Serializable> extends MybatisOperation
 			logger.warn("empty rows to update");
 			return 0;
 		}
-		int i = _batchUpdate(poList, new Filters.IncludeFilter(includes).and(Filters.UPDATABLE_FILTER));
+		int i = _batchUpdate(poList, new Filters.IncludeFilter(includes).and(Filters.UPDATABLE_FILTER).or(Filters.ALWAYS_UPDATE_FILTER));
 		_postUpdate(poList);
 		return i;
 	}
@@ -276,7 +282,7 @@ public interface BaseMapper<T, ID extends Serializable> extends MybatisOperation
 			logger.warn("empty rows to update");
 			return 0;
 		}
-		int i = _batchUpdate(poList, predicate.and(Filters.UPDATABLE_FILTER));
+		int i = _batchUpdate(poList, predicate.and(Filters.UPDATABLE_FILTER).or(Filters.ALWAYS_UPDATE_FILTER));
 		_postUpdate(poList);
 		return i;
 	}
@@ -292,7 +298,7 @@ public interface BaseMapper<T, ID extends Serializable> extends MybatisOperation
 			return 0;
 		}
 
-		int rows = _batchUpdateNonBlank(poList, Filters.UPDATABLE_FILTER);
+		int rows = _batchUpdateNonBlank(poList);
 
 		//post insert listener 处理
 		_postUpdate(poList);
@@ -309,7 +315,7 @@ public interface BaseMapper<T, ID extends Serializable> extends MybatisOperation
 			return 0;
 		}
 
-		int rows = _batchUpdateNonNull(poList, Filters.UPDATABLE_FILTER);
+		int rows = _batchUpdateNonNull(poList);
 
 		//post insert listener 处理
 		_postUpdate(poList);
@@ -464,12 +470,13 @@ public interface BaseMapper<T, ID extends Serializable> extends MybatisOperation
 	 * @param request 查询条件
 	 * @return 分页查询结果
 	 */
+	@Deprecated
 	default Pagination<T> findPage(PageRequest request, Criteria<T> criteria) {
 		if (request.isPaging()) {
 			if (request.isCounting()) {
-				PageHelper.startPage(request.getPageNumber(), request.getPageSize(), true);
+				PageHelper.startPage(request.getPageNo(), request.getPageSize(), true);
 			} else {
-				PageHelper.startPage(request.getPageNumber(), request.getPageSize(), false);
+				PageHelper.startPage(request.getPageNo(), request.getPageSize(), false);
 			}
 		}
 		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
@@ -479,7 +486,20 @@ public interface BaseMapper<T, ID extends Serializable> extends MybatisOperation
 		response.setTotal(pageInfo.getTotal());
 		response.setRows(pageInfo.getList());
 		response.setPageSize(request.getPageSize());
-		response.setPageNo(request.getPageNumber());
+		response.setPageNo(request.getPageNo());
+		return response;
+	}
+
+	default Pagination<T> findPage(Criteria<T> criteria) {
+		PageHelper.offsetPage(criteria.getOffset() == null ? 0 : criteria.getOffset().intValue(), criteria.getLimit() == null ? 0 : criteria.getLimit());
+//		Class<T> entityClass = (Class<T>) ((ParameterizedType) getClass().getInterfaces()[0].getGenericInterfaces()[0]).getActualTypeArguments()[0];
+		List<T> list = this.find(criteria);
+		PageInfo<T> pageInfo = new PageInfo<>(list);
+		Pagination<T> response = new Pagination<>();
+		response.setTotal(pageInfo.getTotal());
+		response.setRows(pageInfo.getList());
+//		response.setPageSize(request.getPageSize());
+//		response.setPageNo(request.getPageNumber());
 		return response;
 	}
 

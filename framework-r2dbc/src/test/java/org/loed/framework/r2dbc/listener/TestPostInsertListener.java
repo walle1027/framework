@@ -20,7 +20,7 @@ public class TestPostInsertListener implements PostInsertListener {
 	@Override
 	public <T> Mono<T> postInsert(T object) {
 		return Mono.just(object).doOnNext(obj -> {
-			log.info("with order " + order + " post insert on object:" + obj);
+			log.debug("with order " + order + " post insert on object:" + obj);
 		});
 	}
 

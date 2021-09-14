@@ -285,8 +285,28 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 		return new R2dbcQuery(builder.toString(), paramMap);
 	}
 
+//	@Override
+//	public <T> R2dbcQuery findPage(@NonNull Table table, @NonNull Criteria<T> criteria, @NonNull PageRequest pageRequest) {
+//		R2dbcQuery query = find(table, criteria);
+//		String statement = query.getStatement();
+//		Map<String, R2dbcParam> params = query.getParams();
+//		if (params == null) {
+//			params = new HashMap<>();
+//		}
+//		String prstmt;
+//		if (pageRequest.getPageNumber() > 0) {
+//			prstmt = statement + BLANK + "limit :pr_limit offset :pr_offset";
+//			params.put("pr_limit", new R2dbcParam(Integer.class, pageRequest.getPageSize()));
+//			params.put("pr_offset", new R2dbcParam(Long.class, pageRequest.getOffset()));
+//		} else {
+//			prstmt = statement + BLANK + "limit :pr_limit";
+//			params.put("pr_limit", new R2dbcParam(Integer.class, pageRequest.getPageSize()));
+//		}
+//		return new R2dbcQuery(prstmt, params);
+//	}
+
 	@Override
-	public <T> R2dbcQuery findPage(@NonNull Table table, @NonNull Criteria<T> criteria, @NonNull PageRequest pageRequest) {
+	public <T> R2dbcQuery findPage(Table table, Criteria<T> criteria, int limit, long offset) {
 		R2dbcQuery query = find(table, criteria);
 		String statement = query.getStatement();
 		Map<String, R2dbcParam> params = query.getParams();
@@ -294,13 +314,13 @@ public class MysqlR2dbcSqlBuilder implements R2dbcSqlBuilder {
 			params = new HashMap<>();
 		}
 		String prstmt;
-		if (pageRequest.getPageNumber() > 0) {
+		if (offset > 0) {
 			prstmt = statement + BLANK + "limit :pr_limit offset :pr_offset";
-			params.put("pr_limit", new R2dbcParam(Integer.class, pageRequest.getPageSize()));
-			params.put("pr_offset", new R2dbcParam(Long.class, pageRequest.getOffset()));
+			params.put("pr_limit", new R2dbcParam(Integer.class, limit));
+			params.put("pr_offset", new R2dbcParam(Long.class, offset));
 		} else {
 			prstmt = statement + BLANK + "limit :pr_limit";
-			params.put("pr_limit", new R2dbcParam(Integer.class, pageRequest.getPageSize()));
+			params.put("pr_limit", new R2dbcParam(Integer.class, limit));
 		}
 		return new R2dbcQuery(prstmt, params);
 	}

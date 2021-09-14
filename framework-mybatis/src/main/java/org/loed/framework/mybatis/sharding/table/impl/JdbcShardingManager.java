@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
  */
 public class JdbcShardingManager implements ShardingManager {
 
-	private static final String idMappingInsertSql = "insert into t_id_mapping(table_name, id, sharding_key,sharding_value,sharding_table_name) values (?,?,?,?,?)";
+	private static final String idMappingInsertSql = "insert into t_id_mapping(table_name, table_id, sharding_key,sharding_value,sharding_table_name) values (?,?,?,?,?)";
 
 	private static final String shardingMappingsInsertSql = "insert into t_sharding_mapping(table_name,sharding_key,sharding_value,sharding_table_name) values (?,?,?,?)";
 	private SqlSessionFactory sqlSessionFactory;
@@ -116,7 +116,7 @@ public class JdbcShardingManager implements ShardingManager {
 		try (PreparedStatement ps = connection.prepareStatement(sql)) {
 			for (IdMapping idMapping : idMappings) {
 				ps.setString(1, idMapping.getTableName());
-				ps.setString(2, String.valueOf(idMapping.getId()));
+				ps.setString(2, String.valueOf(idMapping.getTableId()));
 				ps.setString(3, idMapping.getShardingKey());
 				ps.setString(4, idMapping.getShardingValue());
 				ps.setString(5, idMapping.getShardingTableName());
@@ -163,7 +163,7 @@ public class JdbcShardingManager implements ShardingManager {
 	@Override
 	public String getShardingTableNameById(Table table, Serializable id) {
 		StringBuilder builder = new StringBuilder();
-		builder.append("select table_name, id, sharding_key, sharding_value,sharding_table_name from t_id_mapping where table_name = '").append(table.getSqlName()).append("'").append(" and id = ").append(id);
+		builder.append("select table_name, table_id, sharding_key, sharding_value,sharding_table_name from t_id_mapping where table_name = '").append(table.getSqlName()).append("'").append(" and table_id = ").append(id);
 		try (SqlSession session = sqlSessionFactory.openSession(true)) {
 			Connection connection = session.getConnection();
 			try (PreparedStatement prepareStatement = connection.prepareStatement(builder.toString(), ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
@@ -222,8 +222,8 @@ public class JdbcShardingManager implements ShardingManager {
 			return resultMap;
 		}
 		StringBuilder builder = new StringBuilder();
-		builder.append("select table_name, id, sharding_key, sharding_value,sharding_table_name from t_id_mapping where table_name = '").append(table.getSqlName()).append("'")
-				.append(" and id in (");
+		builder.append("select table_name, table_id, sharding_key, sharding_value,sharding_table_name from t_id_mapping where table_name = '").append(table.getSqlName()).append("'")
+				.append(" and table_id in (");
 		for (Serializable id : ids) {
 			builder.append(id).append(",");
 		}

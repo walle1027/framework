@@ -1,14 +1,10 @@
 package org.loed.framework.r2dbc.dao;
 
 import io.r2dbc.spi.ConnectionFactory;
-import org.loed.framework.common.util.SerializeUtils;
-import org.loed.framework.r2dbc.R2dbcDialect;
 import org.loed.framework.r2dbc.autoconfigure.R2dbcProperties;
 import org.loed.framework.r2dbc.listener.spi.*;
 import org.loed.framework.r2dbc.query.R2dbcSqlBuilder;
 import org.loed.framework.r2dbc.query.R2dbcSqlBuilderFactory;
-import org.loed.framework.r2dbc.routing.R2dbcPropertiesProvider;
-import org.loed.framework.r2dbc.routing.RoutingConnectionFactory;
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.aop.interceptor.ExposeInvocationInterceptor;
 import org.springframework.beans.BeansException;
@@ -16,15 +12,14 @@ import org.springframework.beans.factory.BeanClassLoaderAware;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.core.env.Environment;
 import org.springframework.data.projection.DefaultMethodInvokingMethodInterceptor;
-import org.springframework.data.r2dbc.core.DatabaseClient;
 import org.springframework.data.repository.core.support.MethodInvocationValidator;
 import org.springframework.data.util.Lazy;
+import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.transaction.interceptor.TransactionalProxy;
 
 import java.util.ArrayList;
@@ -102,6 +97,8 @@ public class R2dbcDaoFactoryBean<R extends R2dbcDao<T, ID>, T, ID> implements In
 
 			result.addAdvice(new QueryInterceptor<>(daoInterface, databaseClient));
 
+			result.addAdvice(new ExecuteInterceptor(databaseClient));
+
 			if (DefaultMethodInvokingMethodInterceptor.hasDefaultMethods(daoInterface)) {
 				result.addAdvice(new DefaultMethodInvokingMethodInterceptor());
 			}
@@ -123,22 +120,7 @@ public class R2dbcDaoFactoryBean<R extends R2dbcDao<T, ID>, T, ID> implements In
 
 
 	private R2dbcSqlBuilder createR2dbcSqlBuilder() {
-		ConnectionFactory connectionFactory = applicationContext.getBean(ConnectionFactory.class);
-		org.springframework.boot.autoconfigure.r2dbc.R2dbcProperties r2dbcProperties = null;
-		if (connectionFactory instanceof RoutingConnectionFactory) {
-			R2dbcPropertiesProvider r2dbcPropertiesProvider = applicationContext.getBean(R2dbcPropertiesProvider.class);
-			r2dbcProperties = r2dbcPropertiesProvider.getAllProperties().get(0);
-		} else {
-			r2dbcProperties = Binder.get(environment).bind("spring.r2dbc", org.springframework.boot.autoconfigure.r2dbc.R2dbcProperties.class)
-					.orElse(new org.springframework.boot.autoconfigure.r2dbc.R2dbcProperties());
-		}
-		R2dbcDialect dialect = R2dbcDialect.autoGuessDialect(r2dbcProperties.getUrl());
-
-		R2dbcSqlBuilder r2dbcSqlBuilder = R2dbcSqlBuilderFactory.getInstance().getSqlBuilder(dialect, properties);
-		if (r2dbcSqlBuilder == null) {
-			throw new RuntimeException("can't find R2dbcSqlBuilder from properties:" + SerializeUtils.toJson(r2dbcProperties));
-		}
-		return r2dbcSqlBuilder;
+		return R2dbcSqlBuilderFactory.getInstance().getSqlBuilder(properties.getDialect(), properties);
 	}
 
 	@Override

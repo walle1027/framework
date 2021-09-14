@@ -1,21 +1,32 @@
 package org.loed.framework.mybatis.datasource.meta.impl;
 
-import org.loed.framework.common.util.SerializeUtils;
-import org.loed.framework.common.zookeeper.ZKHolder;
-import org.loed.framework.mybatis.datasource.meta.DatabaseMetaInfo;
-import org.loed.framework.mybatis.datasource.meta.DatabaseMetaInfoProvider;
-import org.loed.framework.mybatis.datasource.readwriteisolate.ReadWriteStrategy;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.recipes.cache.TreeCache;
-import org.apache.curator.framework.recipes.cache.TreeCacheEvent;
+import org.apache.curator.framework.recipes.cache.CuratorCache;
+import org.loed.framework.common.balancer.BalanceStrategy;
+import org.loed.framework.common.balancer.Balancer;
+import org.loed.framework.common.balancer.BalancerFactory;
+import org.loed.framework.common.balancer.FocusBalancer;
+import org.loed.framework.common.lock.ZKDistributeLock;
+import org.loed.framework.common.util.SerializeUtils;
+import org.loed.framework.common.zookeeper.ZKHolder;
+import org.loed.framework.mybatis.datasource.meta.DataSourceGroup;
+import org.loed.framework.mybatis.datasource.meta.DataSourceMetaInfo;
+import org.loed.framework.mybatis.datasource.meta.DatabaseMetaInfoProvider;
+import org.loed.framework.mybatis.datasource.readwriteisolate.ReadWriteStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import static org.apache.zookeeper.CreateMode.PERSISTENT;
 
 /**
  * @author Thomason
@@ -24,64 +35,148 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 
 public class ZKDatabaseMetaInfoProvider implements DatabaseMetaInfoProvider, InitializingBean, DisposableBean {
-	private Logger logger = LoggerFactory.getLogger(ZKDatabaseMetaInfoProvider.class);
-	//ZK 连接信息
+	/**
+	 * 路由数据源根路径
+	 */
+	private static final String ROOT_PATH = "/RDS";
+	/**
+	 * 路由规则路径
+	 */
+	private static final String ROUTING_RULE_PATH = "/ROUTING";
+	/**
+	 * 数据源路径
+	 */
+	private static final String DATASOURCE_PATH = "/DATASOURCE";
+
+	private final Logger logger = LoggerFactory.getLogger(ZKDatabaseMetaInfoProvider.class);
+	/**
+	 * ZK 连接信息
+	 */
 	private String zkAddress;
-	//数据库名称
+	/**
+	 * 数据库名称
+	 */
 	private String database;
-	//zkClient
+	/**
+	 * zkClient
+	 */
 	private CuratorFramework zkClient;
-	//本地的路由Map
-	private ConcurrentHashMap<String, DatabaseMetaInfo> databaseMetaMap;
+	/**
+	 * 主从库的负载均衡策略
+	 */
+	private final BalanceStrategy strategy;
+	/**
+	 * 是否运行自动分配数据源
+	 */
+	private final boolean autoAllocate;
+	/**
+	 * 本地的路由Map
+	 */
+	private final ConcurrentHashMap<String, FocusBalancer<DataSourceMetaInfo>> routingMap = new ConcurrentHashMap<>(1);
 
-	@Override
-	public DatabaseMetaInfo getDatabaseMeta() {
-		return null;
-	}
+	/**
+	 * 本地的数据源Map
+	 */
+	private final ConcurrentHashMap<String, DataSourceGroup> dataSourceMap = new ConcurrentHashMap<>(1);
 
-	@Override
-	public DatabaseMetaInfo getDatabaseMeta(ReadWriteStrategy strategy) {
-		return null;
+	public ZKDatabaseMetaInfoProvider(BalanceStrategy strategy, boolean autoAllocate) {
+		this.strategy = strategy;
+		this.autoAllocate = autoAllocate;
 	}
 
 	/**
 	 * 获取数据库信息
 	 * 根据当前上下文中读写数据库的标记获取数据源配置
 	 *
-	 * @param horizontalKey   水平切分键
-	 * @param horizontalValue 水平切分值
+	 * @param routingKey   水平切分键
+	 * @param routingValue 水平切分值
 	 * @return 数据源元信息
 	 */
 	@Override
-	public DatabaseMetaInfo getDatabaseMetaHorizontally(String horizontalKey, String horizontalValue) {
-		String horizontalShardingKey = horizontalKey + ":" + horizontalValue;
-		//TODO autoSharding
-		return databaseMetaMap.computeIfAbsent(horizontalShardingKey, (k) -> {
+	public DataSourceMetaInfo getDatabase(String routingKey, String routingValue) {
+		FocusBalancer<DataSourceMetaInfo> balancedDataSource = routingMap.computeIfAbsent(uniqueKey(routingKey, routingValue), (k) -> {
+			if (autoAllocate) {
+				return createBalancedDataSource(routingKey, routingValue);
+			}
 			return null;
 		});
+		if (balancedDataSource == null) {
+			throw new RuntimeException("can't find datasource for database:{" + database + "},with routingKey:{" + routingKey + "} and routingValue:{" + routingValue + "}");
+		}
+		return balancedDataSource.getFocus();
+	}
+
+	protected FocusBalancer<DataSourceMetaInfo> createBalancedDataSource(String routingKey, String routingValue) {
+		String lockPath = database + ":" + uniqueKey(routingKey, routingValue);
+		ZKDistributeLock lock = new ZKDistributeLock(zkClient);
+		//save routing rule to zk
+		DataSourceGroup t = lock.get(lockPath, 5, TimeUnit.SECONDS, (p) -> {
+			String databaseRootPath = ROOT_PATH + ROUTING_RULE_PATH + "/" + database;
+			String routingRulePath = databaseRootPath + "/" + routingKey + "/" + routingValue;
+
+			Balancer<DataSourceGroup> balancer = BalancerFactory.getBalancer(BalanceStrategy.weightedRoundRobin);
+			balancer.updateProfiles(this.dataSourceMap.values());
+			DataSourceGroup dataSourceGroup = balancer.select();
+			if (dataSourceGroup == null) {
+				logger.error("database:{} has no datasource,can't allocate", database);
+				throw new RuntimeException("database:{" + database + "} has no datasource,can't allocate");
+			}
+
+			String jsonValue = SerializeUtils.toJson(dataSourceGroup);
+			try {
+				zkClient.create().withMode(PERSISTENT).forPath(routingRulePath, jsonValue.getBytes(StandardCharsets.UTF_8));
+				return dataSourceGroup;
+			} catch (Exception e) {
+				logger.error("error write value:{},for path:{}", jsonValue, routingRulePath, e);
+			}
+			return null;
+		});
+		if (t == null) {
+			logger.error("can't get required lock for path:" + lockPath);
+			return null;
+		}
+		Balancer<DataSourceMetaInfo> balancer = BalancerFactory.getBalancer(this.strategy);
+		FocusBalancer<DataSourceMetaInfo> dataSource = new FocusBalancer<>(t.getMaster(), balancer);
+		if (t.getSlaves() != null && t.getSlaves().length > 0) {
+			dataSource.updateProfiles(Arrays.asList(t.getSlaves()));
+		}
+		return dataSource;
 	}
 
 	/**
 	 * 获取数据库信息
 	 * 根据当前上下文中读写数据库的标记获取数据源配置
 	 *
-	 * @param horizontalKey     水平切分键
-	 * @param horizontalValue   水平切分值
+	 * @param routingKey        水平切分键
+	 * @param routingValue      水平切分值
 	 * @param readWriteStrategy 读写类型
 	 * @return 数据源元信息
 	 */
 	@Override
-	public DatabaseMetaInfo getDatabaseMetaHorizontally(String horizontalKey, String horizontalValue, ReadWriteStrategy readWriteStrategy) {
-		String horizontalShardingKey = horizontalKey + ":" + horizontalValue + "#" + readWriteStrategy.name();
-		//TODO autoSharding
-		return databaseMetaMap.computeIfAbsent(horizontalShardingKey, (k) -> {
+	public DataSourceMetaInfo getDatabase(String routingKey, String routingValue, ReadWriteStrategy readWriteStrategy) {
+		// autoSharding
+		FocusBalancer<DataSourceMetaInfo> balancedDataSource = routingMap.computeIfAbsent(uniqueKey(routingKey, routingValue), (k) -> {
+			if (autoAllocate) {
+				return createBalancedDataSource(routingKey, routingValue);
+			}
 			return null;
 		});
+		if (balancedDataSource == null) {
+			throw new RuntimeException("can't find datasource for database:{" + database + "},with routingKey:{" + routingKey + "} and routingValue:{" + routingValue + "}");
+		}
+		switch (readWriteStrategy) {
+			case write:
+				return balancedDataSource.getFocus();
+			case read:
+				return balancedDataSource.select();
+			default:
+				return null;
+		}
 	}
 
 	@Override
-	public List<DatabaseMetaInfo> getAllMetaInfo() {
-		return null;
+	public List<DataSourceMetaInfo> getAllDataSource() {
+		return this.routingMap.values().stream().map(FocusBalancer::getFocus).collect(Collectors.toList());
 	}
 
 	@Override
@@ -89,65 +184,139 @@ public class ZKDatabaseMetaInfoProvider implements DatabaseMetaInfoProvider, Ini
 		if (zkClient == null) {
 			zkClient = ZKHolder.get(zkAddress);
 		}
-		this.databaseMetaMap = new ConcurrentHashMap<>();
 		loadRule();
 		monitorRule();
+
+		loadDataSource();
+		monitorDataSource();
 	}
 
 	/**
 	 * 加载数据库路由信息配置
 	 * 数据库路由信息存储如下
-	 * +/RDS
-	 * --/database
-	 * ----/水平切分键:水平切分值#write  路由详细信息
-	 * ----/水平切分键:水平切分值#read   路由详细信息
+	 * <pre>
+	 *  RDS
+	 *   |
+	 *   |
+	 *   --ROUTING
+	 *      |
+	 *      |
+	 *      --database
+	 *        |
+	 *        |
+	 *        --路由key
+	 *           |
+	 *           |
+	 *           -- 路由值 =>  {
+	 *                             master:{
+	 *                                  "name":"数据库名称,
+	 *                                  "driverClass":"驱动类",
+	 *                                  "jdbcUrl":"jdbc连接地址",
+	 *                                  "username":"用户名",
+	 *                                  "password":"密码",
+	 *                                  "weight": "权重 int"
+	 *                              }
+	 *                             ,slaves:[
+	 *                                  {
+	 *                                      "name":"数据库名称,
+	 * 	                                    "driverClass":"驱动类",
+	 * 	                                    "jdbcUrl":"jdbc连接地址",
+	 * 	                                    "username":"用户名",
+	 * 	                                    "password":"密码",
+	 * 	                                    "weight": "权重 int"
+	 *                                  }
+	 *                             ]
+	 *                         }
+	 * </pre>
 	 */
-	private void loadRule() {
-		String appRootPath = DATASOURCE_PATH + "/" + database;
+	protected void loadRule() {
+		String databaseRootPath = ROOT_PATH + ROUTING_RULE_PATH + "/" + database;
 		try {
-			ZKHolder.checkOrCreatePath(zkClient, appRootPath);
-
-			List<String> children = zkClient.getChildren().forPath(appRootPath);
-			if (CollectionUtils.isNotEmpty(children)) {
-				for (String child : children) {
-					String fullPath = appRootPath + "/" + child;
+			ZKHolder.checkOrCreatePath(zkClient, databaseRootPath);
+			List<String> routingKeys = zkClient.getChildren().forPath(databaseRootPath);
+			if (CollectionUtils.isEmpty(routingKeys)) {
+				logger.warn("database :{} ,has no configured routing rule", database);
+				return;
+			}
+			for (String routingKey : routingKeys) {
+				List<String> routingValues = zkClient.getChildren().forPath(routingKey);
+				if (CollectionUtils.isEmpty(routingValues)) {
+					logger.warn("routing key:{},for database :{} ,has no routing values", routingKey, database);
+					continue;
+				}
+				for (String routingValue : routingValues) {
+					String fullPath = databaseRootPath + "/" + routingKey + "/" + routingValue;
 					byte[] bytes = zkClient.getData().forPath(fullPath);
-					DatabaseMetaInfo databaseMetaInfo = SerializeUtils.fromJson(new String(bytes, "UTF-8"), DatabaseMetaInfo.class);
-					if (databaseMetaInfo != null) {
-						databaseMetaMap.put(child, databaseMetaInfo);
+					DataSourceGroup dataSourceGroup = SerializeUtils.fromJson(new String(bytes, StandardCharsets.UTF_8), DataSourceGroup.class);
+					if (dataSourceGroup == null) {
+						logger.warn("routing key:{},routing value:{},for database :{} ,has no routing rule", routingKey, routingValue, database);
+						continue;
 					}
+					routingMap.computeIfAbsent(uniqueKey(routingKey, routingValue), k -> {
+						Balancer<DataSourceMetaInfo> balancer = BalancerFactory.getBalancer(this.strategy);
+						FocusBalancer<DataSourceMetaInfo> focusBalancer = new FocusBalancer<>(dataSourceGroup.getMaster(), balancer);
+						if (dataSourceGroup.getSlaves() != null && dataSourceGroup.getSlaves().length > 0) {
+							focusBalancer.updateProfiles(Arrays.asList(dataSourceGroup.getSlaves()));
+						}
+						if (dataSourceGroup.getSlaves() != null && dataSourceGroup.getSlaves().length > 0) {
+							focusBalancer.updateProfiles(Arrays.asList(dataSourceGroup.getSlaves()));
+						}
+						return focusBalancer;
+					});
 				}
 			}
 		} catch (Exception e) {
-			logger.error(e.getMessage(), e);
+			logger.error("error load routing rule for database:{},caused by {}", database, e.getMessage(), e);
 		}
 	}
 
+	/**
+	 * 监控路由规则变化 路由规则参考 {@link #loadRule} 中的定义
+	 */
 	protected void monitorRule() {
-		final String appRootPath = DATASOURCE_PATH + "/" + database;
+		String databaseRootPath = ROOT_PATH + ROUTING_RULE_PATH + "/" + database;
 		try {
-			ZKHolder.checkOrCreatePath(zkClient, appRootPath);
+			ZKHolder.checkOrCreatePath(zkClient, databaseRootPath);
 
-			TreeCache watcher = new TreeCache(
-					zkClient,
-					appRootPath
-			);
-			watcher.getListenable().addListener((c, event) -> {
-				TreeCacheEvent.Type eventType = event.getType();
-				switch (eventType) {
-					case NODE_ADDED:
-					case NODE_REMOVED:
-					case NODE_UPDATED:
-						List<String> children = c.getChildren().forPath(appRootPath);
-						databaseMetaMap = resolveRoutingRule(appRootPath, children);
+			CuratorCache watcher = CuratorCache.build(zkClient, databaseRootPath);
+			watcher.listenable().addListener((t, o, n) -> {
+				String path = n.getPath();
+				String routingRulePath = path.substring(databaseRootPath.length() + 1);
+				if (!isValidRoutingRulePath(routingRulePath)) {
+					logger.warn("path :{} is not a valid routing rule path", routingRulePath);
+					return;
+				}
+				byte[] data = n.getData();
+				if (data == null || data.length == 0) {
+					logger.warn("data in routing rule:{},is null", routingRulePath);
+					return;
+				}
+				DataSourceGroup dataSourceGroup = SerializeUtils.fromJson(new String(data, StandardCharsets.UTF_8), DataSourceGroup.class);
+				if (dataSourceGroup == null) {
+					logger.warn("data in routing rule:{},is null", routingRulePath);
+					return;
+				}
+				String[] splits = routingRulePath.split("/");
+				String routingKey = splits[0];
+				String routingValue = splits[1];
+				FocusBalancer<DataSourceMetaInfo> balancedDataSource = routingMap.computeIfAbsent(uniqueKey(routingKey, routingValue), k -> {
+					Balancer<DataSourceMetaInfo> balancer = BalancerFactory.getBalancer(this.strategy);
+					FocusBalancer<DataSourceMetaInfo> focusBalancer = new FocusBalancer<>(dataSourceGroup.getMaster(), balancer);
+					if (dataSourceGroup.getSlaves() != null && dataSourceGroup.getSlaves().length > 0) {
+						focusBalancer.updateProfiles(Arrays.asList(dataSourceGroup.getSlaves()));
+					}
+					return focusBalancer;
+				});
+				switch (t) {
+					case NODE_CREATED:
+					case NODE_CHANGED:
+						balancedDataSource.updateFocus(dataSourceGroup.getMaster());
+						if (dataSourceGroup.getSlaves() != null && dataSourceGroup.getSlaves().length > 0) {
+							balancedDataSource.updateProfiles(Arrays.asList(dataSourceGroup.getSlaves()));
+						}
 						break;
-					case CONNECTION_LOST:
-						break;
-					case INITIALIZED:
-						break;
-					case CONNECTION_SUSPENDED:
-						break;
-					case CONNECTION_RECONNECTED:
+					case NODE_DELETED:
+						routingMap.remove(uniqueKey(routingKey, routingValue));
 						break;
 					default:
 						break;
@@ -155,21 +324,125 @@ public class ZKDatabaseMetaInfoProvider implements DatabaseMetaInfoProvider, Ini
 			});
 			watcher.start();
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error("error monitor routing rule for database:{},caused by:{}", database, e.getMessage(), e);
 		}
 	}
 
-	private ConcurrentHashMap<String, DatabaseMetaInfo> resolveRoutingRule(String appRootPath, List<String> children) throws Exception {
-		ConcurrentHashMap<String, DatabaseMetaInfo> map = new ConcurrentHashMap<>();
-		for (String child : children) {
-			String fullPath = appRootPath + "/" + child;
-			byte[] bytes = zkClient.getData().forPath(fullPath);
-			DatabaseMetaInfo databaseMetaInfo = SerializeUtils.fromJson(new String(bytes, "utf-8"), DatabaseMetaInfo.class);
-			if (databaseMetaInfo != null) {
-				map.put(child, databaseMetaInfo);
+	/**
+	 * 加载应用数据源
+	 * 应用数据源的结构为：
+	 * <pre>
+	 *    RDS
+	 *     |
+	 *     |
+	 *     --DATASOURCE
+	 *        |
+	 *        |
+	 *        -- database
+	 *            |
+	 *            |
+	 *            -- group1
+	 *            |
+	 *            |
+	 *            -- group2 => {
+	 *                 master:{
+	 * 	                  "name":"数据库名称,
+	 * 	                  "driverClass":"驱动类",
+	 * 	                  "jdbcUrl":"jdbc连接地址",
+	 * 	                  "username":"用户名",
+	 * 	                  "password":"密码",
+	 * 	                  "weight": "权重 int"
+	 *                  }
+	 * 	             ,slaves:[
+	 *                      {
+	 * 	                      "name":"数据库名称,
+	 * 	                        "driverClass":"驱动类",
+	 * 	                        "jdbcUrl":"jdbc连接地址",
+	 * 	                        "username":"用户名",
+	 * 	                        "password":"密码",
+	 * 	                        "weight": "权重 int"
+	 *                      }
+	 * 	              ]
+	 *            }
+	 * </pre>
+	 */
+	protected void loadDataSource() {
+		String datasourceRootPath = ROOT_PATH + DATASOURCE_PATH + "/" + database;
+		try {
+			ZKHolder.checkOrCreatePath(zkClient, datasourceRootPath);
+			List<String> groups = zkClient.getChildren().forPath(datasourceRootPath);
+			if (CollectionUtils.isEmpty(groups)) {
+				logger.warn("database :{} ,has no datasource", database);
+				return;
 			}
+			for (String group : groups) {
+				String fullPath = datasourceRootPath + "/" + group;
+				byte[] bytes = zkClient.getData().forPath(fullPath);
+				DataSourceGroup dataSourceGroup = SerializeUtils.fromJson(new String(bytes, StandardCharsets.UTF_8), DataSourceGroup.class);
+				if (dataSourceGroup == null) {
+					logger.warn("group :{},for database :{} ,has no routing rule", group, database);
+					continue;
+				}
+				dataSourceMap.put(group, dataSourceGroup);
+			}
+		} catch (Exception e) {
+			logger.error("error load datasource for database:{},caused by {}", database, e.getMessage(), e);
 		}
-		return map;
+	}
+
+	/**
+	 * 监控数据源变化 路由规则参考 {@link #loadDataSource} 中的定义
+	 */
+	protected void monitorDataSource() {
+		String datasourceRootPath = ROOT_PATH + DATASOURCE_PATH + "/" + database;
+		try {
+			ZKHolder.checkOrCreatePath(zkClient, datasourceRootPath);
+
+			CuratorCache watcher = CuratorCache.build(zkClient, datasourceRootPath);
+			watcher.listenable().addListener((t, o, n) -> {
+				String path = n.getPath();
+				String group = path.substring(datasourceRootPath.length() + 1);
+				byte[] data = n.getData();
+				if (data == null || data.length == 0) {
+					logger.warn("data in routing rule:{},is null", group);
+					return;
+				}
+				DataSourceGroup dataSourceGroup = SerializeUtils.fromJson(new String(data, StandardCharsets.UTF_8), DataSourceGroup.class);
+				if (dataSourceGroup == null) {
+					logger.warn("data in routing rule:{},is null", group);
+					return;
+				}
+				switch (t) {
+					case NODE_CREATED:
+					case NODE_CHANGED:
+						dataSourceMap.put(group, dataSourceGroup);
+						break;
+					case NODE_DELETED:
+						routingMap.remove(group);
+						break;
+					default:
+						break;
+				}
+			});
+			watcher.start();
+		} catch (Exception e) {
+			logger.error("error monitor datasource for database:{},caused by:{}", database, e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * 判断路径是否是合法的 路由规则路径
+	 *
+	 * @param path 路径
+	 * @return 是否合法
+	 */
+	protected boolean isValidRoutingRulePath(String path) {
+		String[] split = path.split("/");
+		return split.length == 2;
+	}
+
+	protected String uniqueKey(String routingKey, String routingValue) {
+		return routingKey + ":" + routingValue;
 	}
 
 	public String getDatabase() {

@@ -45,6 +45,15 @@ public class BasicTest {
 	}
 
 	@Test
+	public void testInsertNonNull() {
+		User user = new User();
+		user.setAccount("testAccount");
+		user.setEmail("test@test.com");
+		int i = userMapper.insertNonNull(user);
+		Assert.assertEquals(i, 1);
+	}
+
+	@Test
 	public void testBatchInsert() {
 		List<User> userList = new ArrayList<>();
 		int batchCount = 10000;
@@ -241,6 +250,7 @@ public class BasicTest {
 			user.setUsername(null);
 			user.setAccount(" ");
 			user.setEmail("");
+			user.setUsername("update UserName" + i);
 		}
 		long batchUpdateStart = System.currentTimeMillis();
 		userMapper.batchUpdateNonBlank(userList);
@@ -249,7 +259,7 @@ public class BasicTest {
 		List<User> userPOList = userMapper.find(Criteria.from(User.class).and(User::getId).in(userList.stream().map(User::getId).collect(Collectors.toList())));
 		for (User user : userPOList) {
 			int idx = Integer.parseInt(user.getAccount().substring("testAccount".length()));
-			Assert.assertEquals("testUsername" + idx, user.getUsername());
+			Assert.assertEquals("update UserName" + idx, user.getUsername());
 			Assert.assertEquals("testAccount" + idx, user.getAccount());
 			Assert.assertEquals("test@test.com" + idx, user.getEmail());
 			Assert.assertEquals((byte) 0, (byte) user.getIsDeleted());
@@ -371,7 +381,7 @@ public class BasicTest {
 		PageRequest pageRequest = PageRequest.of(0, 10);
 		Pagination<User> pagination = userMapper.findPage(pageRequest, criteria);
 		Assert.assertEquals(pagination.getRows().size(), 0);
-		Assert.assertEquals(pageRequest.getPageNumber(), 0);
+		Assert.assertEquals(pageRequest.getPageNo(), 0);
 		Assert.assertEquals(pageRequest.getPageSize(), 10);
 	}
 
