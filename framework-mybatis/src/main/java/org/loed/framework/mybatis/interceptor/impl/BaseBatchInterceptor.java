@@ -3,6 +3,7 @@ package org.loed.framework.mybatis.interceptor.impl;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.ibatis.executor.Executor;
+import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.plugin.Invocation;
 import org.loed.framework.common.orm.Column;
 import org.loed.framework.common.orm.ORMapping;
@@ -62,11 +63,12 @@ public abstract class BaseBatchInterceptor extends BasePreProcessInterceptor<Tri
 		Object[] args = invocation.getArgs();
 		Object parameterMap = args[1];
 		Executor executor = (Executor) invocation.getTarget();
-		return doBatch(executor, context, (HashMap<Object, Object>) parameterMap);
+		final MappedStatement ms = (MappedStatement) args[0];
+		return doBatch(ms, executor, context, (HashMap<Object, Object>) parameterMap);
 	}
 
 
-	private int doBatch(Executor executor, Triple<BatchType, List<Object>, Table> context, HashMap<Object, Object> parameterMap) throws SQLException {
+	private int doBatch(MappedStatement ms, Executor executor, Triple<BatchType, List<Object>, Table> context, HashMap<Object, Object> parameterMap) throws SQLException {
 		BatchType batchType = context.getLeft();
 		List<Object> poList = context.getMiddle();
 		if (CollectionUtils.isEmpty(poList)) {
@@ -82,16 +84,16 @@ public abstract class BaseBatchInterceptor extends BasePreProcessInterceptor<Tri
 		try {
 			switch (batchType) {
 				case BatchInsert:
-					rows = doBatchInsert(executor, poList, table);
+					rows = doBatchInsert(ms, executor, poList, table);
 					break;
 				case BatchUpdateNonBlank:
-					rows = doBatchUpdateNonBlank(executor, poList, table, (Predicate<Column>) parameterMap.get("predicate"));
+					rows = doBatchUpdateNonBlank(ms, executor, poList, table);
 					break;
 				case BatchUpdateNonNull:
-					rows = doBatchUpdateNonNull(executor, poList, table, (Predicate<Column>) parameterMap.get("predicate"));
+					rows = doBatchUpdateNonNull(ms, executor, poList, table);
 					break;
 				case BatchUpdateFixed:
-					rows = doBatchUpdate(executor, poList, table, (Predicate<Column>) parameterMap.get("predicate"));
+					rows = doBatchUpdate(ms, executor, poList, table, (Predicate<Column>) parameterMap.get("predicate"));
 					break;
 				default:
 					break;
@@ -111,7 +113,7 @@ public abstract class BaseBatchInterceptor extends BasePreProcessInterceptor<Tri
 	 * @return
 	 * @throws SQLException
 	 */
-	protected abstract int doBatchInsert(Executor executor, List<Object> poList, Table table) throws SQLException;
+	protected abstract int doBatchInsert(MappedStatement ms, Executor executor, List<Object> poList, Table table) throws SQLException;
 
 	/**
 	 * 批量更新
@@ -123,7 +125,7 @@ public abstract class BaseBatchInterceptor extends BasePreProcessInterceptor<Tri
 	 * @return
 	 * @throws SQLException
 	 */
-	protected abstract int doBatchUpdateNonBlank(Executor executor, List<Object> poList, Table table, Predicate<Column> predicate) throws SQLException;
+	protected abstract int doBatchUpdateNonBlank(MappedStatement ms, Executor executor, List<Object> poList, Table table) throws SQLException;
 
 	/**
 	 * 批量更新
@@ -135,7 +137,7 @@ public abstract class BaseBatchInterceptor extends BasePreProcessInterceptor<Tri
 	 * @return
 	 * @throws SQLException
 	 */
-	protected abstract int doBatchUpdateNonNull(Executor executor, List<Object> poList, Table table, Predicate<Column> predicate) throws SQLException;
+	protected abstract int doBatchUpdateNonNull(MappedStatement ms, Executor executor, List<Object> poList, Table table) throws SQLException;
 
 	/**
 	 * 批量更新
@@ -147,5 +149,5 @@ public abstract class BaseBatchInterceptor extends BasePreProcessInterceptor<Tri
 	 * @return
 	 * @throws SQLException
 	 */
-	protected abstract int doBatchUpdate(Executor executor, List<Object> poList, Table table, Predicate<Column> predicate) throws SQLException;
+	protected abstract int doBatchUpdate(MappedStatement ms, Executor executor, List<Object> poList, Table table, Predicate<Column> predicate) throws SQLException;
 }

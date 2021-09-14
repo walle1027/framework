@@ -250,6 +250,7 @@ public class BasicTest {
 			user.setUsername(null);
 			user.setAccount(" ");
 			user.setEmail("");
+			user.setUsername("update UserName" + i);
 		}
 		long batchUpdateStart = System.currentTimeMillis();
 		userMapper.batchUpdateNonBlank(userList);
@@ -258,7 +259,7 @@ public class BasicTest {
 		List<User> userPOList = userMapper.find(Criteria.from(User.class).and(User::getId).in(userList.stream().map(User::getId).collect(Collectors.toList())));
 		for (User user : userPOList) {
 			int idx = Integer.parseInt(user.getAccount().substring("testAccount".length()));
-			Assert.assertEquals("testUsername" + idx, user.getUsername());
+			Assert.assertEquals("update UserName" + idx, user.getUsername());
 			Assert.assertEquals("testAccount" + idx, user.getAccount());
 			Assert.assertEquals("test@test.com" + idx, user.getEmail());
 			Assert.assertEquals((byte) 0, (byte) user.getIsDeleted());
