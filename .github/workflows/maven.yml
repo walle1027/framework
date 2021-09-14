@@ -25,7 +25,7 @@ jobs:
     - name: maven-settings-xml
       uses: whelk-io/maven-settings-xml-action@v4
       with:
-        servers: '[{ "id": "loed", "username": "admin", "password": "yangtao1027" }]'
+        servers: '[{ "id": "loed", "username": "${{secrets.NEXUS_USER_NAMER}}", "password": "${{secrets.NEXUS_PASSWORD}}" }]'
     - name: Restore Maven cache
       uses: skjolber/maven-cache-github-action@v1
       with:
