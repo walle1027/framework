@@ -245,17 +245,15 @@ public class MysqlProvider implements DdlProvider {
 		Set<String> columnSqlNameSet = columnList.stream().map(Column::getSqlName).collect(Collectors.toSet());
 		Map<String, Column> columnJavaNameMap = columnList.stream().collect(Collectors.toMap(Column::getJavaName, v -> v, (a, b) -> a));
 		List<String> indexColumnList = new ArrayList<>();
-		for (String column : columnArr) {
+		Arrays.stream(columnArr).filter(StringUtils::isNotBlank).map(String::trim).forEach(column -> {
 			if (columnSqlNameSet.contains(column)) {
 				indexColumnList.add(wrap(column));
-				continue;
 			}
 			if (columnJavaNameMap.containsKey(column)) {
 				indexColumnList.add(wrap(columnJavaNameMap.get(column).getSqlName()));
-				continue;
 			}
 			throw new RuntimeException("column:" + column + " is not a valid column name");
-		}
+		});
 		return "create " +
 				(index.isUnique() ? "unique" : "") + " " +
 				"index" + " " +

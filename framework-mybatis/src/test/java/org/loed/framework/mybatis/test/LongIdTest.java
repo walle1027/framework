@@ -90,23 +90,6 @@ public class LongIdTest {
 		Assert.assertNull(po.getProp12());
 	}
 
-	@Test
-	public void testInsertNonNull() {
-		LongIdPO insert = new LongIdPO();
-		insert.setProp1("stringProp1");
-		insert.setProp2(Integer.MAX_VALUE);
-		insert.setProp3(Double.MAX_VALUE);
-		insert.setProp4(Float.MAX_VALUE);
-		longIdPOMapper.insertNonNull(insert);
-		LongIdPO po = longIdPOMapper.get(insert.getId());
-		Assert.assertEquals((long) po.getCreateBy(), 1L);
-		Assert.assertEquals((long) po.getVersion(), 0L);
-		Assert.assertEquals(po.getProp1(), "stringProp1");
-		Assert.assertEquals((int) po.getProp2(), Integer.MAX_VALUE);
-		Assert.assertEquals(po.getProp5(), 0L);
-		Assert.assertNull(po.getProp6());
-		Assert.assertNull(po.getProp12());
-	}
 
 	@Test
 	public void testBatchInsert() {
