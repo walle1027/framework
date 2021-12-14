@@ -104,8 +104,9 @@ public class R2dbcDaoClassPathScanner extends ClassPathBeanDefinitionScanner {
 			// but, the actual class of the bean is MapperFactoryBean
 			definition.setLazyInit(true);
 			definition.getConstructorArgumentValues().addIndexedArgumentValue(0, beanClassName);
-			definition.getConstructorArgumentValues().addIndexedArgumentValue(1, new RuntimeBeanReference(DatabaseClient.class));
-			definition.getConstructorArgumentValues().addIndexedArgumentValue(2, new RuntimeBeanReference(ConnectionFactory.class));
+			definition.getPropertyValues().add("databaseClient", new RuntimeBeanReference(DatabaseClient.class));
+			definition.getPropertyValues().add("connectionFactory", new RuntimeBeanReference(ConnectionFactory.class));
+			definition.getPropertyValues().add("properties", new RuntimeBeanReference(R2dbcProperties.class));
 			definition.setBeanClass(R2dbcDaoFactoryBean.class);
 		}
 	}

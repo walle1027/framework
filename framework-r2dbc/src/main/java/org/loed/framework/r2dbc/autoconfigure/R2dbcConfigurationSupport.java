@@ -1,29 +1,19 @@
 package org.loed.framework.r2dbc.autoconfigure;
 
-import io.r2dbc.pool.ConnectionPool;
-import io.r2dbc.pool.ConnectionPoolConfiguration;
 import io.r2dbc.spi.ConnectionFactory;
 import org.loed.framework.r2dbc.listener.impl.DefaultPreInsertListener;
 import org.loed.framework.r2dbc.listener.impl.DefaultPreUpdateListener;
 import org.loed.framework.r2dbc.listener.spi.PreInsertListener;
 import org.loed.framework.r2dbc.listener.spi.PreUpdateListener;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.boot.autoconfigure.r2dbc.ConnectionFactoryBuilder;
-import org.springframework.boot.autoconfigure.r2dbc.ConnectionFactoryOptionsBuilderCustomizer;
-import org.springframework.boot.autoconfigure.r2dbc.EmbeddedDatabaseConnection;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.springframework.core.io.ResourceLoader;
 import org.springframework.r2dbc.connection.R2dbcTransactionManager;
 import org.springframework.transaction.ReactiveTransactionManager;
-import org.springframework.util.StringUtils;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * @author thomason
@@ -31,7 +21,7 @@ import java.util.stream.Collectors;
  * @since 2020/9/1 3:22 下午
  */
 @Configuration
-//@AutoConfigureBefore(R2dbcAutoConfiguration.class)
+@EnableConfigurationProperties(R2dbcProperties.class)
 public class R2dbcConfigurationSupport {
 	@Autowired
 	private R2dbcProperties properties;
@@ -56,7 +46,7 @@ public class R2dbcConfigurationSupport {
 		return new R2dbcTransactionManager(connectionFactory);
 	}
 
-	@Bean(destroyMethod = "dispose")
+	/*@Bean(destroyMethod = "dispose")
 	ConnectionPool connectionFactory(org.springframework.boot.autoconfigure.r2dbc.R2dbcProperties springProperties, ResourceLoader resourceLoader,
 	                                 ObjectProvider<ConnectionFactoryOptionsBuilderCustomizer> customizers) {
 		ConnectionFactory connectionFactory = createConnectionFactory(springProperties, resourceLoader.getClassLoader(),
@@ -81,5 +71,5 @@ public class R2dbcConfigurationSupport {
 						optionsCustomizer.customize(options);
 					}
 				}).build();
-	}
+	}*/
 }

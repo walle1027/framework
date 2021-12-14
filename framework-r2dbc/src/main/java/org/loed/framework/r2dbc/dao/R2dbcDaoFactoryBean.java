@@ -11,7 +11,6 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanClassLoaderAware;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.EnvironmentAware;
@@ -42,19 +41,16 @@ public class R2dbcDaoFactoryBean<R extends R2dbcDao<T, ID>, T, ID> implements In
 
 	private Lazy<R> dao;
 
-	private final DatabaseClient databaseClient;
+	private DatabaseClient databaseClient;
 
 	private Environment environment;
 
-	private final ConnectionFactory connectionFactory;
+	private ConnectionFactory connectionFactory;
 
-	@Autowired
 	private R2dbcProperties properties;
 
-	public R2dbcDaoFactoryBean(Class<? extends R> daoInterface, DatabaseClient databaseClient, ConnectionFactory connectionFactory) {
+	public R2dbcDaoFactoryBean(Class<? extends R> daoInterface) {
 		this.daoInterface = daoInterface;
-		this.databaseClient = databaseClient;
-		this.connectionFactory = connectionFactory;
 	}
 
 	@Override
@@ -118,7 +114,6 @@ public class R2dbcDaoFactoryBean<R extends R2dbcDao<T, ID>, T, ID> implements In
 		return null;
 	}
 
-
 	private R2dbcSqlBuilder createR2dbcSqlBuilder() {
 		return R2dbcSqlBuilderFactory.getInstance().getSqlBuilder(properties.getDialect(), properties);
 	}
@@ -131,5 +126,17 @@ public class R2dbcDaoFactoryBean<R extends R2dbcDao<T, ID>, T, ID> implements In
 	@Override
 	public void setEnvironment(Environment environment) {
 		this.environment = environment;
+	}
+
+	public void setDatabaseClient(DatabaseClient databaseClient) {
+		this.databaseClient = databaseClient;
+	}
+
+	public void setConnectionFactory(ConnectionFactory connectionFactory) {
+		this.connectionFactory = connectionFactory;
+	}
+
+	public void setProperties(R2dbcProperties properties) {
+		this.properties = properties;
 	}
 }
