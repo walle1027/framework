@@ -10,7 +10,7 @@ import java.io.Serializable;
 public class Result<T> implements Serializable {
 	public static final Result<Void> UNKNOWN_ERROR = new Result<>(503, "Unknown Server Error");
 
-	private int code;
+	private int status;
 	private String message;
 	private T data;
 
@@ -21,27 +21,27 @@ public class Result<T> implements Serializable {
 		this.data = data;
 	}
 
-	public Result(int code) {
-		this.code = code;
+	public Result(int status) {
+		this.status = status;
 	}
 
-	public Result(int code, String message) {
-		this.code = code;
+	public Result(int status, String message) {
+		this.status = status;
 		this.message = message;
 	}
 
-	public Result(int code, String message, T data) {
-		this.code = code;
+	public Result(int status, String message, T data) {
+		this.status = status;
 		this.message = message;
 		this.data = data;
 	}
 
-	public int getCode() {
-		return code;
+	public int getStatus() {
+		return status;
 	}
 
-	public void setCode(int code) {
-		this.code = code;
+	public void setStatus(int status) {
+		this.status = status;
 	}
 
 	public String getMessage() {

@@ -52,7 +52,7 @@ public class DefaultExceptionHandler {
 	 */
 	private Result<Void> resolveException(Throwable ex) {
 		Result<Void> result = new Result<>();
-		result.setCode(SystemConstant.SERVER_ERROR);
+		result.setStatus(SystemConstant.SERVER_ERROR);
 		try {
 			if (i18nProvider == null) {
 				i18nProvider = I18nProvider.DEFAULT_I18N_PROVIDER;
@@ -67,7 +67,7 @@ public class DefaultExceptionHandler {
 						error.setText(i18nProvider.getText(error.getI18nKey()));
 					}
 					result.setMessage(error.getText());
-					result.setCode(((BusinessException) ex).getErrorCode());
+					result.setStatus(((BusinessException) ex).getErrorCode());
 				}
 			} else if (ex instanceof BindException) {
 				BindingResult bindingResult = ((BindException) ex).getBindingResult();

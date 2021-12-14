@@ -67,7 +67,7 @@ public class DefaultExceptionHandler {
 					}
 				}).map(errorText ->{
 					Result<Void> result = new Result<>();
-					result.setCode(((BusinessException) ex).getErrorCode());
+					result.setStatus(((BusinessException) ex).getErrorCode());
 					result.setMessage(errorText);
 					return result;
 				});
@@ -100,7 +100,7 @@ public class DefaultExceptionHandler {
 		} else {
 			//这里是未知异常，直接报服务器错误
 			Result<Void> result = new Result<>();
-			result.setCode(SystemConstant.SERVER_ERROR);
+			result.setStatus(SystemConstant.SERVER_ERROR);
 			String stackTrace = ExceptionUtils.getStackTrace(ex);
 			if (stackTrace.length() > 300) {
 				result.setMessage(stackTrace.substring(0, 300));
@@ -113,7 +113,7 @@ public class DefaultExceptionHandler {
 
 	private Result<Void> convertToServerError(List<String> errors) {
 		Result<Void> result = new Result<>();
-		result.setCode(SystemConstant.SERVER_ERROR);
+		result.setStatus(SystemConstant.SERVER_ERROR);
 		result.setMessage(String.join("\n", errors));
 		return result;
 	}
