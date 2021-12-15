@@ -1,6 +1,6 @@
 package org.loed.framework.common.validator.constraints;
 
-import org.loed.framework.common.validator.constraintvalidators.PhoneNumberValidator;
+import org.loed.framework.common.validator.constraintvalidators.ObjectCodeValidator;
 
 import javax.validation.Constraint;
 import javax.validation.Payload;
@@ -12,7 +12,7 @@ import java.lang.annotation.*;
  * @since 2021/12/15 2:05 PM
  */
 @Documented
-@Constraint(validatedBy = PhoneNumberValidator.class)
+@Constraint(validatedBy = ObjectCodeValidator.class)
 @Target({ElementType.METHOD, ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ObjectCode {

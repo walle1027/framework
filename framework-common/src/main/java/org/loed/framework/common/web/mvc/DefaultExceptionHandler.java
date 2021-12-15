@@ -15,6 +15,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.bind.support.WebExchangeBindException;
 import org.springframework.web.util.NestedServletException;
 
 import javax.servlet.http.HttpServletRequest;
@@ -69,8 +70,13 @@ public class DefaultExceptionHandler {
 					result.setMessage(error.getText());
 					result.setStatus(((BusinessException) ex).getErrorCode());
 				}
-			} else if (ex instanceof BindException) {
-				BindingResult bindingResult = ((BindException) ex).getBindingResult();
+			} else if (ex instanceof BindException || ex instanceof WebExchangeBindException) {
+				BindingResult bindingResult = null;
+				if (ex instanceof BindException) {
+					bindingResult = ((BindException) ex).getBindingResult();
+				} else {
+					bindingResult = ((WebExchangeBindException) ex).getBindingResult();
+				}
 				List<FieldError> fieldErrors = bindingResult.getFieldErrors();
 				if (CollectionUtils.isNotEmpty(fieldErrors)) {
 					String message = fieldErrors.stream().map(fieldError -> {

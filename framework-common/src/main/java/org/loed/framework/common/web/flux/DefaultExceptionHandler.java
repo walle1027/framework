@@ -15,6 +15,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.bind.support.WebExchangeBindException;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.util.NestedServletException;
 import reactor.core.publisher.Flux;
@@ -74,8 +75,13 @@ public class DefaultExceptionHandler {
 			} else {
 				return Mono.just(Result.UNKNOWN_ERROR);
 			}
-		} else if (ex instanceof BindException) {
-			BindingResult bindingResult = ((BindException) ex).getBindingResult();
+		} else if (ex instanceof BindException || ex instanceof WebExchangeBindException) {
+			BindingResult bindingResult = null;
+			if (ex instanceof BindException) {
+				bindingResult = ((BindException) ex).getBindingResult();
+			} else {
+				bindingResult = ((WebExchangeBindException) ex).getBindingResult();
+			}
 			List<FieldError> fieldErrors = bindingResult.getFieldErrors();
 			if (CollectionUtils.isNotEmpty(fieldErrors)) {
 				return Flux.fromIterable(fieldErrors).flatMap(fieldError -> {
