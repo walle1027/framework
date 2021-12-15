@@ -19,10 +19,7 @@ import org.springframework.web.bind.support.WebExchangeBindException;
 import org.springframework.web.util.NestedServletException;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.validation.ConstraintViolation;
-import javax.validation.ConstraintViolationException;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -82,14 +79,6 @@ public class DefaultExceptionHandler {
 					String message = fieldErrors.stream().map(fieldError -> {
 						String defaultMessage = fieldError.getDefaultMessage();
 						return i18nProvider.getText(defaultMessage);
-					}).collect(Collectors.joining("\n"));
-					result.setMessage(message);
-				}
-			} else if (ex instanceof ConstraintViolationException) {
-				Set<ConstraintViolation<?>> violationSet = ((ConstraintViolationException) ex).getConstraintViolations();
-				if (CollectionUtils.isNotEmpty(violationSet)) {
-					String message = violationSet.stream().map(v -> {
-						return i18nProvider.getText(v.getMessage());
 					}).collect(Collectors.joining("\n"));
 					result.setMessage(message);
 				}

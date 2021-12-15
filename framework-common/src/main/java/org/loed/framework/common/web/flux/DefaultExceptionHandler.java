@@ -21,10 +21,7 @@ import org.springframework.web.util.NestedServletException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import javax.validation.ConstraintViolation;
-import javax.validation.ConstraintViolationException;
 import java.util.List;
-import java.util.Set;
 
 /**
  * @author thomason
@@ -66,7 +63,7 @@ public class DefaultExceptionHandler {
 					} else {
 						return i18nProvider.getText(error.getI18nKey() + "");
 					}
-				}).map(errorText ->{
+				}).map(errorText -> {
 					Result<Void> result = new Result<>();
 					result.setStatus(((BusinessException) ex).getErrorCode());
 					result.setMessage(errorText);
@@ -87,16 +84,7 @@ public class DefaultExceptionHandler {
 				return Flux.fromIterable(fieldErrors).flatMap(fieldError -> {
 					String defaultMessage = fieldError.getDefaultMessage();
 					return i18nProvider.getText(defaultMessage);
-				}).collectList().map(this::convertToServerError);
-			} else {
-				return Mono.just(Result.UNKNOWN_ERROR);
-			}
-		} else if (ex instanceof ConstraintViolationException) {
-			Set<ConstraintViolation<?>> violationSet = ((ConstraintViolationException) ex).getConstraintViolations();
-			if (CollectionUtils.isNotEmpty(violationSet)) {
-				return Flux.fromIterable(violationSet).flatMap(error -> {
-					return i18nProvider.getText(error.getMessage());
-				}).collectList().map(this::convertToServerError);
+				}).collectList().map(errors -> convertToServerError(SystemConstant.INVALID_PARAMETER, errors));
 			} else {
 				return Mono.just(Result.UNKNOWN_ERROR);
 			}
@@ -117,9 +105,9 @@ public class DefaultExceptionHandler {
 		}
 	}
 
-	private Result<Void> convertToServerError(List<String> errors) {
+	private Result<Void> convertToServerError(int status, List<String> errors) {
 		Result<Void> result = new Result<>();
-		result.setStatus(SystemConstant.SERVER_ERROR);
+		result.setStatus(status);
 		result.setMessage(String.join("\n", errors));
 		return result;
 	}

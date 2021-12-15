@@ -13,6 +13,11 @@ public interface SystemConstant {
 	 */
 	int SERVER_ERROR = 503;
 
+	/**
+	 * 参数验证错误
+	 */
+	int INVALID_PARAMETER = 504;
+
 	String RESPONSE_WRAPPED = "ResponseWrapped";
 
 	//*******************http请求响应类型**************/
