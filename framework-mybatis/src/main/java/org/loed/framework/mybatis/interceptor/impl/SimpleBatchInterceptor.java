@@ -305,7 +305,7 @@ public class SimpleBatchInterceptor extends BaseBatchInterceptor {
 						Object fieldValue = ReflectionUtils.getFieldValue(po, column.getJavaName());
 						TypeHandler typeHandler = thr.getTypeHandler(column.getJavaType());
 						try {
-							typeHandler.setParameter(ps, i + 1, fieldValue, JdbcType.forCode(column.getSqlType()));
+							typeHandler.setParameter(ps, i + 1, fieldValue, JdbcType.forCode(column.getSqlType().getVendorTypeNumber()));
 						} catch (SQLException sqlException) {
 							logger.error("error set parameter(name=" + column.getJavaName() + ",value=" + fieldValue + ",caused by:" + sqlException.getSQLState(), sqlException);
 						}
@@ -367,7 +367,7 @@ public class SimpleBatchInterceptor extends BaseBatchInterceptor {
 						Object fieldValue = ReflectionUtils.getFieldValue(po, column.getJavaName());
 						TypeHandler typeHandler = thr.getTypeHandler(column.getJavaType());
 						try {
-							typeHandler.setParameter(ps, i + 1, fieldValue, JdbcType.forCode(column.getSqlType()));
+							typeHandler.setParameter(ps, i + 1, fieldValue, JdbcType.forCode(column.getSqlType().getVendorTypeNumber()));
 						} catch (SQLException sqlException) {
 							logger.error("error set parameter(name=" + column.getJavaName() + ",value=" + fieldValue + ",caused by:" + sqlException.getSQLState(), sqlException);
 						}
@@ -419,7 +419,7 @@ public class SimpleBatchInterceptor extends BaseBatchInterceptor {
 						TypeHandler typeHandler = thr.getTypeHandler(column.getJavaType());
 						Object value = ReflectionUtils.getFieldValue(po, column.getJavaName());
 						try {
-							typeHandler.setParameter(ps, i.getAndIncrement(), value, JdbcType.forCode(column.getSqlType()));
+							typeHandler.setParameter(ps, i.getAndIncrement(), value, JdbcType.forCode(column.getSqlType().getVendorTypeNumber()));
 						} catch (SQLException sqlException) {
 							logger.error("error set parameter(name=" + column.getJavaName() + ",value=" + value + ",caused by:" + sqlException.getSQLState(), sqlException);
 						}
@@ -430,7 +430,7 @@ public class SimpleBatchInterceptor extends BaseBatchInterceptor {
 					}
 					try {
 						TypeHandler typeHandler = thr.getTypeHandler(idColumn.getJavaType());
-						typeHandler.setParameter(ps, i.getAndIncrement(), value, JdbcType.forCode(idColumn.getSqlType()));
+						typeHandler.setParameter(ps, i.getAndIncrement(), value, JdbcType.forCode(idColumn.getSqlType().getVendorTypeNumber()));
 //						ps.setObject(i.getAndIncrement(), value, idColumn.getSqlType());
 
 					} catch (SQLException sqlException) {

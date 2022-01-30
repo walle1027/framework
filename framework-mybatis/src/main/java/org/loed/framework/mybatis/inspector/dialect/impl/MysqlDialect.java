@@ -1,12 +1,13 @@
 package org.loed.framework.mybatis.inspector.dialect.impl;
 
 import org.apache.commons.lang3.StringUtils;
-import org.loed.framework.common.data.DataType;
 import org.loed.framework.common.orm.Column;
 import org.loed.framework.common.orm.Index;
 import org.loed.framework.common.orm.Table;
 import org.loed.framework.mybatis.inspector.dialect.Dialect;
 
+import java.sql.SQLType;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -171,68 +172,69 @@ public class MysqlDialect implements Dialect {
 			return column.getColumnDefinition();
 		}
 		String definition = "";
-		int dataType = DataType.getDataType(column.getJavaType());
-		if (DataType.isSimpleType(dataType)) {
-			switch (dataType) {
-				case DataType.DT_Byte:
-				case DataType.DT_byte:
-				case DataType.DT_short:
-				case DataType.DT_Short:
-					definition = "tinyint";
-					break;
-				case DataType.DT_int:
-				case DataType.DT_Integer:
-					definition = "int";
-					break;
-				case DataType.DT_Long:
-				case DataType.DT_long:
-				case DataType.DT_BigInteger:
-					definition = "bigint";
-					if (column.isPk()) {
-						definition += " auto_increment ";
-					}
-					break;
-				case DataType.DT_Double:
-				case DataType.DT_double:
-					definition = "double";
-					break;
-				case DataType.DT_Float:
-				case DataType.DT_float:
-					definition = "float";
-					break;
-				case DataType.DT_Character:
-				case DataType.DT_char:
-				case DataType.DT_String:
-					definition = "varchar(" + column.getLength() + ")";
-					break;
-				case DataType.DT_Date:
-				case DataType.DT_DateTime:
-					definition = "datetime(6)";
-					break;
-				case DataType.DT_Boolean:
-					definition = "tinyint";
-					break;
-				case DataType.DT_BigDecimal:
-					definition = "decimal(" + column.getLength() + "," + column.getScale() + ")";
-					break;
-				case DataType.DT_LocalDate:
-					definition = "date";
-					break;
-				case DataType.DT_LocalDateTime:
-					definition = "datetime(6)";
-					break;
-				default:
-					definition = "varchar(255)";
-					break;
-			}
-		} else {
-			definition = "text";
+		//优先考虑列类型
+		SQLType sqlType = column.getSqlType();
+		if (sqlType == null){
+			System.out.println("null sqlType for column:" + column);
 		}
+		switch (sqlType.getVendorTypeNumber()) {
+			case Types.TINYINT:
+			case Types.BIT:
+				definition = "tinyint";
+				break;
+			case Types.SMALLINT:
+				definition = "smallint";
+				break;
+			case Types.INTEGER:
+				definition = "int";
+				break;
+			case Types.BIGINT:
+				definition = "bigint";
+				if (column.isPk()) {
+					definition += " auto_increment ";
+				}
+				break;
+			case Types.FLOAT:
+				definition = "float";
+				break;
+			case Types.DOUBLE:
+				definition = "double";
+				break;
+			case Types.NUMERIC:
+			case Types.DECIMAL:
+				definition = "decimal(" + column.getLength() + "," + column.getScale() + ")";
+				break;
+			case Types.CHAR:
+				definition = "char(" + column.getLength() + ")";
+				break;
+			case Types.VARCHAR:
+				definition = "varchar(" + column.getLength() + ")";
+				break;
+			case Types.LONGVARCHAR:
+				definition = "text";
+				break;
+			case Types.DATE:
+				definition = "date";
+				break;
+			case Types.TIME:
+				definition = "time";
+				break;
+			case Types.TIMESTAMP:
+				definition = "datetime(6)";
+				break;
+			default:
+				definition = "varchar(255)";
+				break;
+		}
+
 		if (!column.isNullable()) {
 			definition += " not null";
 		}
 		if (column.getDefaultValue() != null) {
 			definition += " default '" + column.getDefaultValue() + "'";
+		}
+		if (StringUtils.isNotBlank(column.getSqlComment())) {
+			definition += " comment '" + column.getSqlComment() + "'";
 		}
 		return definition;
 	}

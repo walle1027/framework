@@ -17,7 +17,7 @@ public class CommonPO {
 	 * 主键
 	 */
 	@Id
-	@Column(nullable = false, updatable = false)
+	@Column(nullable = false, updatable = false, length = 32)
 	protected String id;
 	/**
 	 * 数据版本号

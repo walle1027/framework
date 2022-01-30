@@ -115,7 +115,7 @@ public interface BatchOperation {
 			Column column = columns.get(i);
 			//改为通过mybatis的typeHandler处理参数，降低不一致性
 			TypeHandler typeHandler = thr.getTypeHandler(column.getJavaType());
-			typeHandler.setParameter(ps, i + 1, ReflectionUtils.getFieldValue(po, column.getJavaName()), JdbcType.forCode(column.getSqlType()));
+			typeHandler.setParameter(ps, i + 1, ReflectionUtils.getFieldValue(po, column.getJavaName()),  JdbcType.forCode(column.getSqlType().getVendorTypeNumber()));
 			//处理 boolean型
 //			int dataType = DataType.getDataType(column.getJavaType());
 //			if ((DataType.DT_Boolean == dataType || DataType.DT_boolean == dataType)

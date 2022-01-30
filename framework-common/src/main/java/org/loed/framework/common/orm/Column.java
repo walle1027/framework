@@ -4,6 +4,7 @@ import lombok.Data;
 import lombok.ToString;
 
 import javax.persistence.GenerationType;
+import java.sql.SQLType;
 
 /**
  * @author thomason
@@ -20,11 +21,7 @@ public class Column {
 	/**
 	 * The java.sql.Types type
 	 */
-	private int sqlType;
-	/**
-	 * The sql typename. provided by JDBC driver
-	 */
-	private String sqlTypeName;
+	private SQLType sqlType;
 	/**
 	 * 数据库列名称
 	 */

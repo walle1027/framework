@@ -96,8 +96,7 @@ public class ORMapping {
 				column.setLastModifyTime(field.getAnnotation(LastModifyTime.class) != null);
 				//自动设置columnDef
 				JDBCType jdbcType = autoGuessJdbcType(field);
-				column.setSqlType(jdbcType.getVendorTypeNumber());
-				column.setSqlTypeName(jdbcType.getName());
+				column.setSqlType(jdbcType);
 
 				String columnName = columnAnno.name();
 				if (StringUtils.isBlank(columnName)) {
@@ -297,10 +296,10 @@ public class ORMapping {
 					return JDBCType.BIGINT;
 				case DataType.DT_Double:
 				case DataType.DT_double:
-					return JDBCType.DECIMAL;
+					return JDBCType.DOUBLE;
 				case DataType.DT_Float:
 				case DataType.DT_float:
-					return JDBCType.DECIMAL;
+					return JDBCType.FLOAT;
 				case DataType.DT_Character:
 				case DataType.DT_char:
 				case DataType.DT_String:

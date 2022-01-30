@@ -13,6 +13,7 @@ import org.loed.framework.mybatis.inspector.DatabaseResolver;
 import org.loed.framework.mybatis.inspector.dialect.Dialect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -156,34 +157,12 @@ public class DbInspector {
 						if (table.isSharding()) {
 							for (int i = 1; i <= table.getShardingCount(); i++) {
 								org.loed.framework.common.orm.Table shardingTable = new org.loed.framework.common.orm.Table();
+								BeanUtils.copyProperties(table, shardingTable);
 								shardingTable.setSqlName(table.getSqlName() + "_" + i);
-								shardingTable.setCatalog(table.getCatalog());
-								shardingTable.setSchema(table.getSchema());
-								shardingTable.setComment(table.getComment());
-								shardingTable.setDatabase(table.getDatabase());
-								shardingTable.setJavaName(javaName);
-								shardingTable.setSimpleJavaName(table.getSimpleJavaName());
-								shardingTable.setOwnerSynonymName(table.getOwnerSynonymName());
-								shardingTable.setSharding(table.isSharding());
-								shardingTable.setShardingCount(table.getShardingCount());
 								if (table.getColumns() != null) {
 									shardingTable.setColumns(table.getColumns().stream().map(c -> {
 										org.loed.framework.common.orm.Column column = new org.loed.framework.common.orm.Column(shardingTable);
-										column.setColumnDefinition(c.getColumnDefinition());
-										column.setDefaultValue(c.getDefaultValue());
-										column.setIndexed(c.isIndexed());
-										column.setJavaName(c.getJavaName());
-										column.setLength(c.getLength());
-										column.setNullable(c.isNullable());
-										column.setJavaType(c.getJavaType());
-//										column.setJavaTypeName(c.getJavaTypeName());
-										column.setPrecision(c.getPrecision());
-										column.setScale(c.getScale());
-										column.setShardingColumn(c.isShardingColumn());
-										column.setSqlComment(c.getSqlComment());
-										column.setSqlName(c.getSqlName());
-										column.setUnique(c.isUnique());
-										column.setPk(c.isPk());
+										BeanUtils.copyProperties(c, column);
 										return column;
 									}).collect(Collectors.toList()));
 								}

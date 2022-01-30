@@ -5,9 +5,7 @@ import org.loed.framework.common.orm.Column;
 
 import java.io.StringReader;
 import java.math.BigDecimal;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.sql.Types;
+import java.sql.*;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
@@ -26,7 +24,8 @@ public class MysqlUtils {
 	}
 	public static String getSqlForNotNullValue(Object val, Column column) {
 		try {
-			switch (column.getSqlType()) {
+			SQLType sqlType = column.getSqlType();
+			switch (sqlType.getVendorTypeNumber()) {
 				case Types.BOOLEAN:
 					if (val instanceof Boolean) {
 						return getBoolean((Boolean) val);
@@ -56,7 +55,7 @@ public class MysqlUtils {
 					if (val instanceof BigDecimal) {
 						scale = ((BigDecimal) val).scale();
 					}
-					return getNumericObject(val, column.getSqlType(), scale);
+					return getNumericObject(val, sqlType.getVendorTypeNumber(), scale);
 				case Types.CHAR:
 				case Types.VARCHAR:
 				case Types.LONGVARCHAR:
@@ -78,7 +77,7 @@ public class MysqlUtils {
 						ParsePosition pp = new ParsePosition(0);
 						java.text.DateFormat sdf = new SimpleDateFormat(getDateTimePattern((String) val, false), Locale.US);
 						parameterAsDate = sdf.parse((String) val, pp);
-						switch (column.getSqlType()) {
+						switch (sqlType.getVendorTypeNumber()) {
 							case Types.DATE:
 								SimpleDateFormat ddf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
 								return ddf.format(new java.sql.Date(parameterAsDate.getTime()));
@@ -90,7 +89,7 @@ public class MysqlUtils {
 						}
 					} else if (val instanceof java.util.Date) {
 						parameterAsDate = (java.util.Date) val;
-						switch (column.getSqlType()) {
+						switch (sqlType.getVendorTypeNumber()) {
 							case Types.DATE:
 								SimpleDateFormat ddf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
 								if (parameterAsDate instanceof java.sql.Date) {

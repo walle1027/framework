@@ -86,7 +86,7 @@ public class InsertInterceptor extends BasePreProcessInterceptor<Boolean> {
 //					ps.setObject(i + 1, 0, column.getSqlType());
 				} else {
 					//处理 boolean型
-					typeHandler.setParameter(ps, i + 1, ReflectionUtils.getFieldValue(object, column.getJavaName()), JdbcType.forCode(column.getSqlType()));
+					typeHandler.setParameter(ps, i + 1, ReflectionUtils.getFieldValue(object, column.getJavaName()), JdbcType.forCode(column.getSqlType().getVendorTypeNumber()));
 //					int dataType = DataType.getDataType(column.getJavaType());
 //					if ((DataType.DT_Boolean == dataType || DataType.DT_boolean == dataType)
 //							&& JDBCType.INTEGER.getVendorTypeNumber() == column.getSqlType()) {
