@@ -102,7 +102,11 @@ public class MysqlDialect implements Dialect {
 			throw new RuntimeException("tableName:" + table.getSqlName() + " is the keywords of mysql");
 		}
 		StringBuilder builder = new StringBuilder();
-		builder.append("create table ").append(table.getSqlName());
+		builder.append("create table ");
+		if (StringUtils.isNotBlank(table.getSchema())) {
+			builder.append(wrap(table.getSchema())).append(".");
+		}
+		builder.append(wrap(table.getSqlName()));
 		builder.append("(");
 		StringBuilder primaryKeys = new StringBuilder();
 		table.getColumns().forEach(column -> {
@@ -110,11 +114,11 @@ public class MysqlDialect implements Dialect {
 			if (isKeyword(columnName)) {
 				throw new RuntimeException("columnName:" + column.getSqlName() + " is the keywords of mysql");
 			}
-			builder.append(columnName).append(BLANK);
+			builder.append(wrap(columnName)).append(BLANK);
 			builder.append(getColumnDefinition(column));
 			builder.append(",");
 			if (column.isPk()) {
-				primaryKeys.append(columnName).append(",");
+				primaryKeys.append(wrap(columnName)).append(",");
 			}
 		});
 		if (primaryKeys.length() > 0) {
@@ -129,7 +133,12 @@ public class MysqlDialect implements Dialect {
 		if (StringUtils.isNotBlank(table.getComment())) {
 			List<String> sqls = new ArrayList<>();
 			sqls.add(builder.toString());
-			sqls.add("alter table " + table.getSqlName() + " comment '" + table.getComment() + "'");
+			if (StringUtils.isNotBlank(table.getSchema())) {
+				sqls.add("alter table " + wrap(table.getSchema()) + "." + wrap(table.getSqlName()) + " comment '" + table.getComment() + "'");
+			} else {
+				sqls.add("alter table " + wrap(table.getSqlName()) + " comment '" + table.getComment() + "'");
+			}
+
 			return sqls;
 		}
 		return Collections.singletonList(builder.toString());
@@ -145,10 +154,14 @@ public class MysqlDialect implements Dialect {
 			throw new RuntimeException("columnName:" + column.getSqlName() + " is the keywords of mysql");
 		}
 		StringBuilder builder = new StringBuilder();
-		builder.append("alter table").append(BLANK).append(column.getTable().getSqlName());
+		builder.append("alter table").append(BLANK);
+		if (StringUtils.isNotBlank(column.getTable().getSchema())) {
+			builder.append(wrap(column.getTable().getSchema())).append(".");
+		}
+		builder.append(wrap(column.getTable().getSqlName()));
 		builder.append(BLANK).append("add").append(BLANK);
 		String columnName = column.getSqlName();
-		builder.append(columnName);
+		builder.append(wrap(columnName));
 		builder.append(BLANK);
 		builder.append(getColumnDefinition(column));
 		return Collections.singletonList(builder.toString());
@@ -160,11 +173,15 @@ public class MysqlDialect implements Dialect {
 		if (column == null) {
 			return null;
 		}
-		return Collections.singletonList("alter table" + BLANK + column.getTable().getSqlName() +
-				BLANK + "modify" + BLANK +
-				column.getSqlName() +
-				BLANK +
-				getColumnDefinition(column));
+		StringBuilder builder = new StringBuilder();
+		builder.append("alter table").append(BLANK);
+		String schema = column.getTable().getSchema();
+		if (StringUtils.isNotBlank(schema)) {
+			builder.append(wrap(schema)).append(".");
+		}
+		builder.append(wrap(column.getTable().getSqlName())).append(BLANK);
+		builder.append("modify").append(BLANK).append(wrap(column.getSqlName())).append(BLANK).append(getColumnDefinition(column));
+		return Collections.singletonList(builder.toString());
 	}
 
 	private String getColumnDefinition(Column column) {
@@ -174,7 +191,7 @@ public class MysqlDialect implements Dialect {
 		String definition = "";
 		//优先考虑列类型
 		SQLType sqlType = column.getSqlType();
-		if (sqlType == null){
+		if (sqlType == null) {
 			System.out.println("null sqlType for column:" + column);
 		}
 		switch (sqlType.getVendorTypeNumber()) {
@@ -242,12 +259,18 @@ public class MysqlDialect implements Dialect {
 
 	@Override
 	public List<String> buildIndexClause(Index index) {
-		return Collections.singletonList("create" + BLANK +
-				(index.isUnique() ? "unique" : BLANK) + BLANK +
-				"index" + BLANK +
-				index.getName() + BLANK +
-				"on" + BLANK + index.getTable().getSqlName() +
-				"(" + index.getColumnList() + ")");
+		StringBuilder builder = new StringBuilder();
+		builder.append("create" + BLANK)
+				.append(index.isUnique() ? "unique" : BLANK)
+				.append(BLANK).append("index").append(BLANK)
+				.append(index.getName()).append(BLANK).append("on").append(BLANK);
+		String schema = index.getTable().getSchema();
+		if (StringUtils.isNotBlank(schema)) {
+			builder.append(wrap(schema)).append(".");
+		}
+		builder.append(wrap(index.getTable().getSqlName()));
+		builder.append("(").append(index.getColumnList()).append(")");
+		return Collections.singletonList(builder.toString());
 	}
 
 	private boolean isKeyword(String name) {
@@ -257,5 +280,9 @@ public class MysqlDialect implements Dialect {
 			}
 		}
 		return false;
+	}
+
+	private String wrap(String raw) {
+		return "`" + raw + "`";
 	}
 }
